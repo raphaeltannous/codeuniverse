@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+
+SESSION_NAME="$(basename "$PWD" | tr ".,:" "___")"
+
+if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  # Window 1: helix
+  tmux rename-window -t "$SESSION_NAME:1" helix
+  tmux send-keys -t "$SESSION_NAME:1" "helix" C-m
+
+  # Window 2: docker compose
+  tmux new-window -t "$SESSION_NAME:2" -n "docker"
+  tmux send-keys -t "$SESSION_NAME:2" "clear && docker compose up" C-m
+
+  # Window 3: psql
+  tmux new-window -t "$SESSION_NAME:3" -n "psql"
+  tmux send-keys -t "$SESSION_NAME:3" "clear && sleep 3 && psql -U rt -h localhost -d codeuniverse -p 5432" C-m
+
+  # Window 4: goose
+  tmux new-window -t "$SESSION_NAME:4" -n "goose" -c "$PWD/migrations"
+
+  # Window 5: shell
+  tmux new-window -t "$SESSION_NAME:5" -n "shell"
+
+  # Window 6: make
+  tmux new-window -t "$SESSION_NAME:6" -n "make"
+
+  # Window 7: curl
+  tmux new-window -t "$SESSION_NAME:7" -n "curl"
+
+  # Window 8: ssh
+  tmux new-window -t "$SESSION_NAME:8" -n "ssh"
+  
+  # Custom binding to reload make
+  tmux bind u run-shell "tmux display-message 'Restarting make...'; tmux send-keys -t '$SESSION_NAME:6' C-c 'make watch' C-m"
+
+  # Focus on window 5
+  tmux select-window -t "$SESSION_NAME:1"
+fi
