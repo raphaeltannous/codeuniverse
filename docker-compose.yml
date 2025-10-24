@@ -1,0 +1,13 @@
+services:
+  db:
+    container_name: "codeUniverseDB"
+    image: postgres
+    volumes:
+      - "./.database/postgres-data:/var/lib/postgresql/data:rw"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: "codeuniverse"
+      POSTGRES_USER: "rt"
+      POSTGRES_PASSWORD: "postgres"
+    restart: unless-stopped
