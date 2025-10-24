@@ -18,20 +18,20 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
   # Window 4: goose
   tmux new-window -t "$SESSION_NAME:4" -n "goose" -c "$PWD/migrations"
 
-  # Window 5: shell
-  tmux new-window -t "$SESSION_NAME:5" -n "shell"
+  # Window 5: make
+  tmux new-window -t "$SESSION_NAME:5" -n "make"
 
-  # Window 6: make
-  tmux new-window -t "$SESSION_NAME:6" -n "make"
+  # Window 6: shell
+  tmux new-window -t "$SESSION_NAME:6" -n "shell"
 
   # Window 7: curl
   tmux new-window -t "$SESSION_NAME:7" -n "curl"
 
   # Window 8: ssh
   tmux new-window -t "$SESSION_NAME:8" -n "ssh"
-  
+
   # Custom binding to reload make
-  tmux bind u run-shell "tmux display-message 'Restarting make...'; tmux send-keys -t '$SESSION_NAME:6' C-c 'make watch' C-m"
+  tmux bind u run-shell "tmux display-message 'Restarting make...'; tmux send-keys -t '$SESSION_NAME:5' C-c 'make watch' C-m"
 
   # Focus on window 5
   tmux select-window -t "$SESSION_NAME:1"
