@@ -21,7 +21,7 @@ watch:
 	@if !type "entr" > /dev/null 2>&1; then \
 		echo "Please install entr: http://eradman.com/entrproject/"; \
 	else \
-		find -type f -name "*.go" \
+		find . -path ./.database -prune -or -type f -name "*.go" -print \
 			| entr -dnr make clean generate fmt vet build run; \
 	fi
 
