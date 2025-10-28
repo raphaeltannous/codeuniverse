@@ -20,6 +20,7 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
 
   # Window 5: make
   tmux new-window -t "$SESSION_NAME:5" -n "make"
+  tmux send-keys -t "$SESSION_NAME:5" "clear && make watch" C-m
 
   # Window 6: shell
   tmux new-window -t "$SESSION_NAME:6" -n "shell"
@@ -33,6 +34,6 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
   # Custom binding to reload make
   tmux bind u run-shell "tmux display-message 'Restarting make...'; tmux send-keys -t '$SESSION_NAME:5' C-c 'make watch' C-m"
 
-  # Focus on window 5
+  # Focus on window 1
   tmux select-window -t "$SESSION_NAME:1"
 fi
