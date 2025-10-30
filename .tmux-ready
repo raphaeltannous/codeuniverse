@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 SESSION_NAME="$(basename "$PWD" | tr ".,:" "___")"
+FILE_MANAGER="yazi"
 
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
   # Window 1: helix
@@ -9,30 +10,27 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
 
   # Window 2: docker compose
   tmux new-window -t "$SESSION_NAME:2" -n "docker"
-  tmux send-keys -t "$SESSION_NAME:2" "clear && docker compose up" C-m
+  tmux split-window -t "$SESSION_NAME:2" -l 75%
+  tmux send-keys -t "$SESSION_NAME:2.0" "clear && docker compose up" C-m
+  tmux send-keys -t "$SESSION_NAME:2.1" "clear && sleep 3 && psql -U rt -h localhost -d codeuniverse -p 5432" C-m
 
-  # Window 3: psql
-  tmux new-window -t "$SESSION_NAME:3" -n "psql"
-  tmux send-keys -t "$SESSION_NAME:3" "clear && sleep 3 && psql -U rt -h localhost -d codeuniverse -p 5432" C-m
+  # Window 3: goose
+  tmux new-window -t "$SESSION_NAME:3" -n "goose" -c "$PWD/migrations"
 
-  # Window 4: goose
-  tmux new-window -t "$SESSION_NAME:4" -n "goose" -c "$PWD/migrations"
+  # Window 4: make
+  tmux new-window -t "$SESSION_NAME:4" -n "make"
+  tmux split-window -t "$SESSION_NAME:4" -l 75%
+  tmux send-keys -t "$SESSION_NAME:4.0" "clear && source .env && make watch" C-m
 
-  # Window 5: make
-  tmux new-window -t "$SESSION_NAME:5" -n "make"
-  tmux send-keys -t "$SESSION_NAME:5" "clear && make watch" C-m
+  # Window 5: shell
+  tmux new-window -t "$SESSION_NAME:5" -n "shell"
 
-  # Window 6: shell
-  tmux new-window -t "$SESSION_NAME:6" -n "shell"
-
-  # Window 7: curl
-  tmux new-window -t "$SESSION_NAME:7" -n "curl"
-
-  # Window 8: ssh
-  tmux new-window -t "$SESSION_NAME:8" -n "ssh"
+  # Window 6: ssh
+  tmux new-window -t "$SESSION_NAME:6" -n "ssh"
 
   # Custom binding to reload make
-  tmux bind u run-shell "tmux display-message 'Restarting make...'; tmux send-keys -t '$SESSION_NAME:5' C-c 'make watch' C-m"
+  tmux bind u run-shell "tmux display-message 'Restarting make...'; tmux send-keys -t '$SESSION_NAME:4.0' C-c 'make watch' C-m"
+  tmux bind e display-popup -w 80% -h 80% -E "$FILE_MANAGER"
 
   # Focus on window 1
   tmux select-window -t "$SESSION_NAME:1"
