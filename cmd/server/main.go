@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log"
 	"net/http"
@@ -9,12 +10,21 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"git.riyt.dev/codeuniverse/internal/database"
+	"git.riyt.dev/codeuniverse/internal/router"
 )
 
 func main() {
-	server := &http.Server{Addr: ":3333", Handler: service()}
+	db, err := database.Connect()
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	server := &http.Server{
+		Addr:    ":3333",
+		Handler: service(db),
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -35,13 +45,6 @@ func main() {
 	}
 }
 
-func service() http.Handler {
-	r := chi.NewRouter()
-
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
-
-	// todo
-
-	return r
+func service(db *sql.DB) http.Handler {
+	return router.Service(db)
 }
