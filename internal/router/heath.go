@@ -4,17 +4,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"git.riyt.dev/codeuniverse/internal/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
-func adminRouter() http.Handler {
+func heathRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Use(middleware.AdminOnly)
-
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "pong")
+		fmt.Fprintln(w, "pong")
 	})
 
 	return r

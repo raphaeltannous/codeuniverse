@@ -11,7 +11,10 @@ import (
 	"time"
 
 	"git.riyt.dev/codeuniverse/internal/database"
+	"git.riyt.dev/codeuniverse/internal/handlers"
+	"git.riyt.dev/codeuniverse/internal/repository/postgres"
 	"git.riyt.dev/codeuniverse/internal/router"
+	"git.riyt.dev/codeuniverse/internal/services"
 )
 
 func main() {
@@ -46,5 +49,14 @@ func main() {
 }
 
 func service(db *sql.DB) http.Handler {
-	return router.Service(db)
+	// repos
+	userRepo := postgres.NewUserRepository(db)
+	//
+	// services
+	userService := services.NewUserService(userRepo)
+	//
+	// handlers
+	userHandler := handlers.NewUserHandler(userService)
+
+	return router.Service(userHandler)
 }

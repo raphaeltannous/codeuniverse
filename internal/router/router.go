@@ -1,26 +1,38 @@
 package router
 
 import (
-	"database/sql"
-	"fmt"
 	"net/http"
 
+	"git.riyt.dev/codeuniverse/internal/handlers"
+	"git.riyt.dev/codeuniverse/internal/middleware"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
-func Service(db *sql.DB) http.Handler {
+func Service(userHandler *handlers.UserHandler) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
+	r.Use(chimiddleware.RequestID)
+	r.Use(chimiddleware.Logger)
 
-	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		if err := db.Ping(); err != nil {
-			fmt.Fprintln(w, "not pong")
-		} else {
-			fmt.Fprintln(w, "pong")
-		}
+	r.Mount("/api", apiRouter(
+		userHandler,
+	))
+
+	return r
+}
+
+func apiRouter(userHandler *handlers.UserHandler) http.Handler {
+	r := chi.NewRouter()
+
+	r.Mount("/health", heathRouter())
+	r.Mount("/auth", authRouter(userHandler))
+
+	// Private
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.AuthMiddleware)
+
+		r.Mount("/admin", adminRouter())
 	})
 
 	return r
