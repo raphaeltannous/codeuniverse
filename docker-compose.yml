@@ -3,7 +3,7 @@ services:
     container_name: "codeUniverseDB"
     image: postgres
     volumes:
-      - "./.database/postgres-data:/var/lib/postgresql/data:rw"
+      - "./.database/postgresql:/var/lib/postgresql:rw"
     ports:
       - "5432:5432"
     environment:
