@@ -21,6 +21,7 @@ watch:
 	@if !type "entr" > /dev/null 2>&1; then \
 		echo "Please install entr: http://eradman.com/entrproject/"; \
 	else \
+		make migrate; \
 		find . -path ./.database -prune -or -type f -name "*.go" -print \
 			| entr -dnr make clean generate fmt vet build run; \
 	fi
@@ -29,7 +30,7 @@ watch:
 migrate:
 	@echo " > Migrating database..."
 	@if !type "goose" > /dev/null 2>&1; then \
-		echo " > goose not found, installing..."
+		echo " > goose not found, installing..."; \
 		go install github.com/pressly/goose/v3/cmd/goose@latest; \
 	fi
 	@echo " > Running migrations"
