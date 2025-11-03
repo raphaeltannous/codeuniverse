@@ -32,7 +32,7 @@ func apiRouter(userHandler *handlers.UserHandler) http.Handler {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware)
 
-		r.Mount("/admin", adminRouter())
+		r.Mount("/admin", adminRouter(userHandler))
 	})
 
 	return r
