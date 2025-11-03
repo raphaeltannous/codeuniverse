@@ -4,6 +4,7 @@ go 1.25.3
 
 ignore (
 	./.database
+	./.json-sample-data
 	./frontend
 )
 
