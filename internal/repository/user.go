@@ -2,19 +2,30 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"github.com/google/uuid"
 )
 
 type UserRepository interface {
+	GetUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
+
 	Create(ctx context.Context, user *models.User) (uuid.UUID, error)
-	GetByID(ctx context.Context, id string) (*models.User, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+
+	GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
-	List(ctx context.Context, limit, offset int) ([]*models.User, error)
-	Update(ctx context.Context, user *models.User) (*models.User, error)
-	Delete(ctx context.Context, id string) error
-	VerifyEmail(ctx context.Context, id string) error
-	SetActive(ctx context.Context, id string, active bool) error
+
+	UpdateEmail(ctx context.Context, id uuid.UUID, email string) error
+	UpdatePassword(ctx context.Context, id uuid.UUID, password string) error
+	UpdateActive(ctx context.Context, id uuid.UUID, status bool) error
+	UpdateVerify(ctx context.Context, id uuid.UUID, status bool) error
+	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
 }
+
+var (
+	ErrUserNotFound      = errors.New("user not found")
+	ErrUserAlreadyExists = errors.New("user already exists")
+)
