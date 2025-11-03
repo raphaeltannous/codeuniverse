@@ -12,6 +12,8 @@ import (
 
 type UserService interface {
 	CreateUser(ctx context.Context, username, password, email string) (uuid.UUID, error)
+	GetUserInfoById(ctx context.Context, id string) (*models.User, error)
+	GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
 }
 
 type userService struct {
@@ -40,6 +42,7 @@ func (s *userService) CreateUser(ctx context.Context, username, password, email 
 		Username:     username,
 		PasswordHash: password,
 		Email:        email,
+		Role:         "user",
 	}
 
 	id, err := s.userRepo.Create(ctx, user)
@@ -48,4 +51,31 @@ func (s *userService) CreateUser(ctx context.Context, username, password, email 
 	}
 
 	return id, nil
+}
+
+func (s *userService) GetUserInfoById(ctx context.Context, id string) (*models.User, error) {
+	if err := uuid.Validate(id); err != nil {
+		return nil, fmt.Errorf("provided id is not a valid uuid: %w", err)
+	}
+
+	newId, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create uuid from id: %w", err)
+	}
+
+	user, err := s.userRepo.GetByID(ctx, newId)
+	if err != nil {
+		return nil, fmt.Errorf("service error getting user info: %w", err)
+	}
+
+	return user, nil
+}
+
+func (s *userService) GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error) {
+	users, err := s.userRepo.GetUsers(ctx, offset, limit)
+	if err != nil {
+		return nil, fmt.Errorf("service failed to get from userRepo: %w", err)
+	}
+
+	return users, nil
 }
