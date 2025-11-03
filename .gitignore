@@ -27,5 +27,8 @@
 
 !frontend
 
+!.sapmle-data/
+!.sample-data/**
+
 # ...even if they are in subdirectories
 !*/
