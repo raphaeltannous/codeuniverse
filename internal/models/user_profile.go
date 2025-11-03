@@ -7,12 +7,13 @@ import (
 )
 
 type UserProfile struct {
-	UserID            uuid.UUID `db:"user_id" json:"userId"`
-	Name              *string   `db:"name" json:"name"`
-	Bio               *string   `db:"bio" json:"bio"`
-	AvatarURL         *string   `db:"avatar_url" json:"avatarUrl"`
-	Country           *string   `db:"country" json:"country"`
-	PreferredLanguage *string   `db:"preferred_language" json:"preferredLanguage"`
+	UserID uuid.UUID `db:"user_id" json:"-"`
+
+	Name              *string `db:"name" json:"name"`
+	Bio               *string `db:"bio" json:"bio"`
+	AvatarURL         *string `db:"avatar_url" json:"avatarUrl"`
+	Country           *string `db:"country" json:"country"`
+	PreferredLanguage *string `db:"preferred_language" json:"preferredLanguage"`
 
 	TotalSubmissions    *int `db:"total_submissions" json:"totalSubmissions"`
 	AcceptedSubmissions *int `db:"accepted_submissions" json:"acceptedSubmissions"`
