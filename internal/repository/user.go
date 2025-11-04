@@ -23,6 +23,10 @@ type UserRepository interface {
 	UpdateActive(ctx context.Context, id uuid.UUID, status bool) error
 	UpdateVerify(ctx context.Context, id uuid.UUID, status bool) error
 	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
+
+	// TODO:
+	// - Search Functionality
+	// - Get All Users?
 }
 
 var (
