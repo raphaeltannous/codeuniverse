@@ -21,9 +21,6 @@ type Problem struct {
 	CodeSnippets []byte `db:"code_snippets" json:"codeSnippets"`
 	TestCases    []byte `db:"test_cases" json:"testcases"`
 
-	Likes    *int `db:"likes" json:"likes"`
-	Dislikes *int `db:"dislikes" json:"dislikes"`
-
 	IsPaid   *bool `db:"is_paid" json:"isPaid"`
 	IsPublic *bool `db:"is_public" json:"isPublic"`
 

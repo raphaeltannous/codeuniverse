@@ -39,11 +39,6 @@ type ProblemRepository interface {
 	UpdatePublic(ctx context.Context, id uuid.UUID, status bool) error
 	UpdatePaid(ctx context.Context, id uuid.UUID, status bool) error
 
-	IncrementLikes(ctx context.Context, id uuid.UUID, incrementValue int) error
-	DecrementLikes(ctx context.Context, id uuid.UUID, decrementValue int) error
-	IncrementDislikes(ctx context.Context, id uuid.UUID, incrementValue int) error
-	DecrementDislikes(ctx context.Context, id uuid.UUID, decrementValue int) error
-
 	// TODO:
 	// - Search capabilities.
 	// - Get all problems?
