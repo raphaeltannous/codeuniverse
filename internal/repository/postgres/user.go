@@ -80,20 +80,116 @@ func (pur *postgresUserRepository) Create(ctx context.Context, user *models.User
 }
 
 func (pur *postgresUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	query := `
+		DELETE FROM users
+		where id = $1;
+	`
+
+	result, err := pur.db.ExecContext(
+		ctx,
+		query,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete requested user: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to query rows affected from database: %w", err)
+	}
+
+	if rows != 1 {
+		return fmt.Errorf("expect single row affected, got %d rows affected", rows)
+	}
+
 	return nil
 }
 
 func (pur *postgresUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
-	query := `
-		SELECT id, username, password_hash, email, is_verified, is_active, role, created_at, updated_at
-		FROM users
-		WHERE id = $1;
-	`
+	return pur.getUserByColumn(
+		ctx,
+		"id",
+		id,
+	)
+}
 
-	row := pur.db.QueryRowContext(ctx, query, id)
+func (pur *postgresUserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+	return pur.getUserByColumn(
+		ctx,
+		"username",
+		username,
+	)
+}
+
+func (pur *postgresUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+	return pur.getUserByColumn(
+		ctx,
+		"email",
+		email,
+	)
+}
+
+func (pur *postgresUserRepository) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
+	return pur.updateUserColumnValue(
+		ctx,
+		id,
+		"email",
+		email,
+	)
+}
+
+func (pur *postgresUserRepository) UpdatePassword(ctx context.Context, id uuid.UUID, password string) error {
+	return pur.updateUserColumnValue(
+		ctx,
+		id,
+		"password",
+		password,
+	)
+}
+
+func (pur *postgresUserRepository) UpdateActive(ctx context.Context, id uuid.UUID, status bool) error {
+	return pur.updateUserColumnValue(
+		ctx,
+		id,
+		"is_active",
+		status,
+	)
+}
+
+func (pur *postgresUserRepository) UpdateVerify(ctx context.Context, id uuid.UUID, status bool) error {
+	return pur.updateUserColumnValue(
+		ctx,
+		id,
+		"is_verified",
+		status,
+	)
+}
+
+func (pur *postgresUserRepository) UpdateRole(ctx context.Context, id uuid.UUID, role string) error {
+	return pur.updateUserColumnValue(
+		ctx,
+		id,
+		"role",
+		role,
+	)
+}
+
+func (pur *postgresUserRepository) getUserByColumn(ctx context.Context, column string, value any) (*models.User, error) {
+	query := fmt.Sprintf(
+		`
+			SELECT id, username, email, password_hash, is_verified, is_active, role, created_at, updated_at
+			FROM users
+			WHERE %s = $1;
+		`,
+		column,
+	)
+
+	row := pur.db.QueryRowContext(ctx, query, value)
 
 	user := new(models.User)
-	if err := scanUser(row, user); err != nil {
+	// TODO: what are the erros that are returnes by row.Scan()?
+	if err := scanUserFunc(row, user); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrUserNotFound
 		}
@@ -103,46 +199,36 @@ func (pur *postgresUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*
 	return user, nil
 }
 
-func (pur *postgresUserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
-	return nil, nil
-}
-
-func (pur *postgresUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	return nil, nil
-}
-
-func (pur *postgresUserRepository) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
-	return nil
-}
-
-func (pur *postgresUserRepository) UpdatePassword(ctx context.Context, id uuid.UUID, password string) error {
-	return nil
-}
-
-func (pur *postgresUserRepository) UpdateActive(ctx context.Context, id uuid.UUID, status bool) error {
-	return nil
-}
-
-func (pur *postgresUserRepository) UpdateVerify(ctx context.Context, id uuid.UUID, status bool) error {
-	return nil
-}
-
-func (pur *postgresUserRepository) UpdateRole(ctx context.Context, id uuid.UUID, role string) error {
-	return nil
-}
-
-func scanUser(row *sql.Row, user *models.User) error {
-	return row.Scan(
-		&user.ID,
-		&user.Username,
-		&user.PasswordHash,
-		&user.Email,
-		&user.IsVerified,
-		&user.IsActive,
-		&user.Role,
-		&user.CreatedAt,
-		&user.UpdatedAt,
+func (pur *postgresUserRepository) updateUserColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
+	query := fmt.Sprintf(
+		`
+			UPDATE users
+			set %s = $1
+			WHERE id = $2;
+		`,
+		column,
 	)
+
+	result, err := pur.db.ExecContext(
+		ctx,
+		query,
+		value,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update %s for requested user: %w", column, err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows from database: %w", err)
+	}
+
+	if rows != 1 {
+		return fmt.Errorf("expect single row affected, got %d rows affected", rows)
+	}
+
+	return nil
 }
 
 type userScanner interface {
