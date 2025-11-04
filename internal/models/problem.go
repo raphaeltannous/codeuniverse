@@ -7,7 +7,7 @@ import (
 )
 
 type Problem struct {
-	ID uuid.UUID `db:"id" json:"id"`
+	ID uuid.UUID `db:"id" json:"-"`
 
 	Title       string `db:"title" json:"title"`
 	Slug        string `db:"slug" json:"slug"`
@@ -19,7 +19,7 @@ type Problem struct {
 	Hints []string `db:"hints" json:"hints"`
 
 	CodeSnippets []byte `db:"code_snippets" json:"codeSnippets"`
-	TestCases    []byte `db:"test_cases" json:"testCases"`
+	TestCases    []byte `db:"test_cases" json:"testcases"`
 
 	Likes    *int `db:"likes" json:"likes"`
 	Dislikes *int `db:"dislikes" json:"dislikes"`
