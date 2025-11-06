@@ -6,18 +6,23 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"git.riyt.dev/codeuniverse/internal/database"
 	"git.riyt.dev/codeuniverse/internal/handlers"
+	"git.riyt.dev/codeuniverse/internal/judger"
 	"git.riyt.dev/codeuniverse/internal/repository/postgres"
 	"git.riyt.dev/codeuniverse/internal/router"
 	"git.riyt.dev/codeuniverse/internal/services"
 )
 
 func main() {
+	judger.JudgeRun()
+
+	os.Exit(1)
 	db, err := database.Connect()
 	if err != nil {
 		panic(err)
