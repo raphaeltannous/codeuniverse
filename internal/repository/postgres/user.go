@@ -131,7 +131,7 @@ func (pur *postgresUserRepository) GetByEmail(ctx context.Context, email string)
 }
 
 func (pur *postgresUserRepository) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
-	return pur.updateUserColumnValue(
+	return pur.updateColumnValue(
 		ctx,
 		id,
 		"email",
@@ -140,7 +140,7 @@ func (pur *postgresUserRepository) UpdateEmail(ctx context.Context, id uuid.UUID
 }
 
 func (pur *postgresUserRepository) UpdatePassword(ctx context.Context, id uuid.UUID, password string) error {
-	return pur.updateUserColumnValue(
+	return pur.updateColumnValue(
 		ctx,
 		id,
 		"password",
@@ -149,7 +149,7 @@ func (pur *postgresUserRepository) UpdatePassword(ctx context.Context, id uuid.U
 }
 
 func (pur *postgresUserRepository) UpdateActive(ctx context.Context, id uuid.UUID, status bool) error {
-	return pur.updateUserColumnValue(
+	return pur.updateColumnValue(
 		ctx,
 		id,
 		"is_active",
@@ -158,7 +158,7 @@ func (pur *postgresUserRepository) UpdateActive(ctx context.Context, id uuid.UUI
 }
 
 func (pur *postgresUserRepository) UpdateVerify(ctx context.Context, id uuid.UUID, status bool) error {
-	return pur.updateUserColumnValue(
+	return pur.updateColumnValue(
 		ctx,
 		id,
 		"is_verified",
@@ -167,7 +167,7 @@ func (pur *postgresUserRepository) UpdateVerify(ctx context.Context, id uuid.UUI
 }
 
 func (pur *postgresUserRepository) UpdateRole(ctx context.Context, id uuid.UUID, role string) error {
-	return pur.updateUserColumnValue(
+	return pur.updateColumnValue(
 		ctx,
 		id,
 		"role",
@@ -199,36 +199,15 @@ func (pur *postgresUserRepository) getUserByColumn(ctx context.Context, column s
 	return user, nil
 }
 
-func (pur *postgresUserRepository) updateUserColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
-	query := fmt.Sprintf(
-		`
-			UPDATE users
-			set %s = $1
-			WHERE id = $2;
-		`,
-		column,
-	)
-
-	result, err := pur.db.ExecContext(
+func (pur *postgresUserRepository) updateColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
+	return updateColumnValue(
 		ctx,
-		query,
-		value,
+		pur.db,
+		"users",
 		id,
+		column,
+		value,
 	)
-	if err != nil {
-		return fmt.Errorf("failed to update %s for requested user: %w", column, err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows from database: %w", err)
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("expect single row affected, got %d rows affected", rows)
-	}
-
-	return nil
 }
 
 type userScanner interface {

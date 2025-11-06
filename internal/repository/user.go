@@ -9,10 +9,10 @@ import (
 )
 
 type UserRepository interface {
-	GetUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
-
 	Create(ctx context.Context, user *models.User) (uuid.UUID, error)
 	Delete(ctx context.Context, id uuid.UUID) error
+
+	GetUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
 
 	GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)

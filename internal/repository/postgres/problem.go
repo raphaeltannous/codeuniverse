@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
@@ -41,7 +40,7 @@ func (ppr *postgresProblemRepository) GetByNumber(ctx context.Context, number in
 }
 
 func (ppr *postgresProblemRepository) UpdateTitle(ctx context.Context, id uuid.UUID, title string) error {
-	return ppr.updateUserColumnValue(
+	return ppr.updateColumnValue(
 		ctx,
 		id,
 		"title",
@@ -50,7 +49,7 @@ func (ppr *postgresProblemRepository) UpdateTitle(ctx context.Context, id uuid.U
 }
 
 func (ppr *postgresProblemRepository) UpdateSlug(ctx context.Context, id uuid.UUID, slug string) error {
-	return ppr.updateUserColumnValue(
+	return ppr.updateColumnValue(
 		ctx,
 		id,
 		"slug",
@@ -59,7 +58,7 @@ func (ppr *postgresProblemRepository) UpdateSlug(ctx context.Context, id uuid.UU
 }
 
 func (ppr *postgresProblemRepository) UpdateDescription(ctx context.Context, id uuid.UUID, description string) error {
-	return ppr.updateUserColumnValue(
+	return ppr.updateColumnValue(
 		ctx,
 		id,
 		"description",
@@ -68,7 +67,7 @@ func (ppr *postgresProblemRepository) UpdateDescription(ctx context.Context, id 
 }
 
 func (ppr *postgresProblemRepository) UpdateDifficulty(ctx context.Context, id uuid.UUID, difficulty string) error {
-	return ppr.updateUserColumnValue(
+	return ppr.updateColumnValue(
 		ctx,
 		id,
 		"difficulty",
@@ -109,7 +108,7 @@ func (ppr *postgresProblemRepository) UpdateTestcases(ctx context.Context, id uu
 }
 
 func (ppr *postgresProblemRepository) UpdatePublic(ctx context.Context, id uuid.UUID, status bool) error {
-	return ppr.updateUserColumnValue(
+	return ppr.updateColumnValue(
 		ctx,
 		id,
 		"is_public",
@@ -118,7 +117,7 @@ func (ppr *postgresProblemRepository) UpdatePublic(ctx context.Context, id uuid.
 }
 
 func (ppr *postgresProblemRepository) UpdatePaid(ctx context.Context, id uuid.UUID, status bool) error {
-	return ppr.updateUserColumnValue(
+	return ppr.updateColumnValue(
 		ctx,
 		id,
 		"is_paid",
@@ -126,50 +125,13 @@ func (ppr *postgresProblemRepository) UpdatePaid(ctx context.Context, id uuid.UU
 	)
 }
 
-func (ppr *postgresProblemRepository) IncrementLikes(ctx context.Context, id uuid.UUID, incrementValue int) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) DecrementLikes(ctx context.Context, id uuid.UUID, decrementValue int) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) IncrementDislikes(ctx context.Context, id uuid.UUID, incrementValue int) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) DecrementDislikes(ctx context.Context, id uuid.UUID, decrementValue int) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) updateUserColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
-	query := fmt.Sprintf(
-		`
-			UPDATE problems
-			set %s = $1
-			WHERE id = $2;
-		`,
-		column,
-	)
-
-	result, err := ppr.db.ExecContext(
+func (ppr *postgresProblemRepository) updateColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
+	return updateColumnValue(
 		ctx,
-		query,
-		value,
+		ppr.db,
+		"problems",
 		id,
+		column,
+		value,
 	)
-	if err != nil {
-		return fmt.Errorf("failed to update %s for requested problem: %w", column, err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows from database: %w", err)
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("expect single row affected, got %d rows affected", rows)
-	}
-
-	return nil
 }
