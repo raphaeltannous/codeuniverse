@@ -23,7 +23,7 @@ watch:
 	else \
 		make migrate; \
 		find . -path ./.database -prune -or -type f -name "*.go" -print \
-			| entr -dnr make clean generate fmt vet build run; \
+			| entr -nr make clean generate fmt vet build run; \
 	fi
 
 ## migrate: migrate the database to the lastest version
