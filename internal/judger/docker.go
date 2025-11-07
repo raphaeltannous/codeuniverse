@@ -2,10 +2,11 @@ package judger
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
-	"github.com/docker/docker/api/types/container"
+	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -30,7 +31,7 @@ func JudgeRun() {
 	// If stdout is not required, consider using io.Discard instead of os.Stdout.
 	io.Copy(os.Stdout, reader)
 
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
+	resp, err := cli.ContainerCreate(ctx, &containertypes.Config{
 		Image: "alpine",
 		Cmd:   []string{"echo", "hello world"},
 		Tty:   false,
@@ -39,11 +40,11 @@ func JudgeRun() {
 		panic(err)
 	}
 
-	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+	if err := cli.ContainerStart(ctx, resp.ID, containertypes.StartOptions{}); err != nil {
 		panic(err)
 	}
 
-	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, containertypes.WaitConditionNotRunning)
 	select {
 	case err := <-errCh:
 		if err != nil {
@@ -52,10 +53,32 @@ func JudgeRun() {
 	case <-statusCh:
 	}
 
-	out, err := cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true})
+	out, err := cli.ContainerLogs(ctx, resp.ID, containertypes.LogsOptions{ShowStdout: true})
 	if err != nil {
 		panic(err)
 	}
 
 	stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+}
+
+func GetAllContainers() {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	defer cli.Close()
+
+	containers, err := cli.ContainerList(ctx, containertypes.ListOptions{All: true})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, container := range containers {
+		fmt.Println(container.ID)
+	}
+}
+
+func DeleteStoppedContainers() {
+
 }

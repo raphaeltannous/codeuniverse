@@ -20,8 +20,9 @@ import (
 )
 
 func main() {
-	judger.JudgeRun()
+	// judger.JudgeRun()
 
+	judger.GetAllContainers()
 	os.Exit(1)
 	db, err := database.Connect()
 	if err != nil {
