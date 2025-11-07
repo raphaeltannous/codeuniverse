@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -20,10 +19,12 @@ import (
 )
 
 func main() {
-	// judger.JudgeRun()
+	judge, err := judger.NewJudge()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer judge.Cli.Close()
 
-	judger.GetAllContainers()
-	os.Exit(1)
 	db, err := database.Connect()
 	if err != nil {
 		panic(err)
@@ -37,6 +38,10 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	if err := judge.InitializeContainers(ctx); err != nil {
+		log.Fatal(err)
+	}
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
