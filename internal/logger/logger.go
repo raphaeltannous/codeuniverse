@@ -2,18 +2,26 @@ package logger
 
 import (
 	"io"
+	"log"
 	"log/slog"
 	"os"
 )
 
-func New(level slog.Leveler) (*slog.Logger, error) {
+var LoggerWriter io.Writer
+
+func init() {
+	// TODO: change app.log to its correct path.
 	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0640)
 	if err != nil {
-		return nil, err
+		log.Fatalf("failed to initialize logFile: %v", err)
 	}
 
+	LoggerWriter = io.MultiWriter(os.Stdout, logFile)
+}
+
+func New(level slog.Leveler) (*slog.Logger, error) {
 	handler := slog.NewJSONHandler(
-		io.MultiWriter(os.Stdout, logFile),
+		LoggerWriter,
 		&slog.HandlerOptions{Level: level},
 	)
 

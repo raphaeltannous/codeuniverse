@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"os"
 
+	"git.riyt.dev/codeuniverse/internal/logger"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 )
@@ -71,7 +71,7 @@ func (judge *Judge) pullImage(ctx context.Context, wantedImage string) error {
 	}
 	defer reader.Close()
 
-	_, err = io.Copy(os.Stdout, reader)
+	_, err = io.Copy(logger.LoggerWriter, reader)
 	if err != nil {
 		judge.logger.Error("failed reading image stream", "err", err)
 		return err
