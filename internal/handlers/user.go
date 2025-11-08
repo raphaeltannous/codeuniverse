@@ -20,7 +20,7 @@ func NewUserHandler(s services.UserService) *UserHandler {
 	}
 }
 
-func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
 		Username string `json:"username"`
 		Email    string `json:"email"`
@@ -45,7 +45,8 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
-		http.Error(w, "Failed to create user: "+err.Error(), http.StatusInternalServerError)
+
+		http.Error(w, "failed to create user", http.StatusInternalServerError)
 		return
 	}
 
@@ -116,4 +117,16 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusFound)
 
 	json.NewEncoder(w).Encode(users)
+}
+
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h *UserHandler) RefreshJWTToken(w http.ResponseWriter, r *http.Request) {
+
 }

@@ -15,6 +15,7 @@ import (
 	"git.riyt.dev/codeuniverse/internal/handlers"
 	"git.riyt.dev/codeuniverse/internal/judger"
 	"git.riyt.dev/codeuniverse/internal/logger"
+	"git.riyt.dev/codeuniverse/internal/middleware"
 	"git.riyt.dev/codeuniverse/internal/repository/postgres"
 	"git.riyt.dev/codeuniverse/internal/router"
 	"git.riyt.dev/codeuniverse/internal/services"
@@ -77,6 +78,11 @@ func service(db *sql.DB) http.Handler {
 	//
 	// handlers
 	userHandler := handlers.NewUserHandler(userService)
+	//
+	// middlewares
+	authMiddleware := func(next http.Handler) http.Handler {
+		return middleware.AuthMiddleware(next, userService)
+	}
 
-	return router.Service(userHandler)
+	return router.Service(userHandler, authMiddleware)
 }
