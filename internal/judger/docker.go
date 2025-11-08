@@ -2,8 +2,8 @@ package judger
 
 import (
 	"context"
-	"fmt"
 	"io"
+	"log/slog"
 	"os"
 
 	"github.com/docker/docker/api/types/image"
@@ -18,7 +18,8 @@ var supportedLanguages = map[string]string{
 }
 
 type Judge struct {
-	Cli *client.Client
+	Cli    *client.Client
+	logger *slog.Logger
 }
 
 func NewJudge() (*Judge, error) {
@@ -28,7 +29,8 @@ func NewJudge() (*Judge, error) {
 	}
 
 	return &Judge{
-		Cli: cli,
+		Cli:    cli,
+		logger: slog.Default().With("package", "judge"),
 	}, nil
 }
 
@@ -48,19 +50,34 @@ func (judge *Judge) pullImageIfNotExists(ctx context.Context, wantedImage string
 		return judge.pullImage(ctx, wantedImage)
 	}
 
-	fmt.Println(wantedImage, imageInfo.ID, imageInfo.Size)
+	containerLogger := judge.logger.WithGroup("containerInfo")
+	containerLogger.Info(
+		"already pulled.",
+		"tag", wantedImage,
+		"id", imageInfo.ID,
+		"size", imageInfo.Size,
+	)
 
 	return nil
 }
 
 func (judge *Judge) pullImage(ctx context.Context, wantedImage string) error {
+	judge.logger.Info("pulling image", "image", wantedImage)
+
 	reader, err := judge.Cli.ImagePull(ctx, wantedImage, image.PullOptions{})
 	if err != nil {
+		judge.logger.Error("failed to pull image", "err", err)
 		return err
 	}
 	defer reader.Close()
 
 	_, err = io.Copy(os.Stdout, reader)
+	if err != nil {
+		judge.logger.Error("failed reading image stream", "err", err)
+		return err
+	}
+
+	judge.logger.Info("image pulled", "image", wantedImage)
 
 	return err
 }

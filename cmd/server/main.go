@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"log/slog"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -13,12 +14,20 @@ import (
 	"git.riyt.dev/codeuniverse/internal/database"
 	"git.riyt.dev/codeuniverse/internal/handlers"
 	"git.riyt.dev/codeuniverse/internal/judger"
+	"git.riyt.dev/codeuniverse/internal/logger"
 	"git.riyt.dev/codeuniverse/internal/repository/postgres"
 	"git.riyt.dev/codeuniverse/internal/router"
 	"git.riyt.dev/codeuniverse/internal/services"
 )
 
 func main() {
+	// TODO: command line option for logging level
+	lg, err := logger.New(slog.LevelDebug)
+	if err != nil {
+		log.Fatal(err)
+	}
+	slog.SetDefault(lg)
+
 	judge, err := judger.NewJudge()
 	if err != nil {
 		log.Fatal(err)
