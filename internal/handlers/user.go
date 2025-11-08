@@ -34,7 +34,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	id, err := h.UserService.CreateUser(
+	id, err := h.UserService.Create(
 		ctx,
 		requestBody.Username,
 		requestBody.Password,
@@ -78,7 +78,7 @@ func (h *UserHandler) GetUserInfoById(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	user, err := h.UserService.GetUserInfoById(ctx, *requestBody.Id)
+	user, err := h.UserService.GetById(ctx, *requestBody.Id)
 	if err != nil {
 		if strings.Contains(err.Error(), "does not exists") {
 			http.Error(w, err.Error(), http.StatusConflict)
