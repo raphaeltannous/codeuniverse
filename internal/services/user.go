@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"git.riyt.dev/codeuniverse/internal/mailer"
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/utils"
@@ -32,12 +33,14 @@ type UserService interface {
 type userService struct {
 	userRepo repository.UserRepository
 	logger   *slog.Logger
+	mailMan  mailer.Mailer
 }
 
-func NewUserService(r repository.UserRepository) UserService {
+func NewUserService(r repository.UserRepository, mailMan mailer.Mailer) UserService {
 	return &userService{
 		userRepo: r,
 		logger:   slog.Default().With("package", "postgres.UserRepository"),
+		mailMan:  mailMan,
 	}
 }
 
