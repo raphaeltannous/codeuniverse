@@ -3,7 +3,7 @@ services:
     container_name: "codeUniverseDB"
     image: postgres
     volumes:
-      - "./.database/postgresql:/var/lib/postgresql:rw"
+      - "./.development/postgresql:/var/lib/postgresql:rw"
     ports:
       - "5432:5432"
     environment:
@@ -11,3 +11,17 @@ services:
       POSTGRES_USER: "rt"
       POSTGRES_PASSWORD: "postgres"
     restart: unless-stopped
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    restart: unless-stopped
+    volumes:
+        - "./.development/mailpit/data:/data"
+    ports:
+        - "8025:8025"
+        - "1025:1025"
+    environment:
+        MP_MAX_MESSAGES: 5000
+        MP_DATABASE: /data/mailpit.db
+        MP_SMTP_AUTH_ACCEPT_ANY: 1
+        MP_SMTP_AUTH_ALLOW_INSECURE: 1
