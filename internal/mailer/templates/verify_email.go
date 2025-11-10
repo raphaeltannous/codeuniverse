@@ -2,8 +2,10 @@ package templates
 
 import (
 	"embed"
+	"fmt"
 	"html/template"
 	"log/slog"
+	"time"
 )
 
 //go:embed html/verify_email.html
@@ -18,6 +20,17 @@ type VerifyEmailTmplData struct {
 	LinkTTL   string
 	Year      string
 	AppName   string
+}
+
+func NewVerifyEmailTmplData(username, email, verifyURL, linkTTL string) *VerifyEmailTmplData {
+	return &VerifyEmailTmplData{
+		Username:  username,
+		Email:     email,
+		VerifyURL: verifyURL,
+		LinkTTL:   linkTTL,
+		Year:      fmt.Sprintf("%d", time.Now().Year()),
+		AppName:   "CodeUniverse",
+	}
 }
 
 func init() {
