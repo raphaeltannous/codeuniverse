@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>{{ .AppName }} 2FA</title>
+</head>
+
+<body>
+  <h1>Two-factor authentication</h1>
+
+  <p>Hi{{ with .Username }} {{ . }}{{ end }}, use this code to continue:</p>
+
+  <pre><code>{{ .Code }}</code></pre>
+
+  <p>The code expires in {{ .CodeTTL }} minutes.</p>
+
+  <p>If you didn’t request this code, we recommend resetting your password to keep your account secure.</p>
+
+  <hr>
+  <p>
+    © {{ .Year }} {{ .AppName }}
+  </p>
+</body>
+
+</html>
