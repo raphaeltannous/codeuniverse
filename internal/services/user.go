@@ -28,6 +28,9 @@ type UserService interface {
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 
 	GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
+
+	SendPasswordResetEmail(ctx context.Context, email string) error
+	ResetPasswordByToken(ctx context.Context, token, newPassword string) error
 }
 
 type userService struct {
@@ -120,4 +123,12 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 	}
 
 	return user, nil
+}
+
+func (s *userService) SendPasswordResetEmail(ctx context.Context, email string) error {
+	return nil
+}
+
+func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPassword string) error {
+	return nil
 }
