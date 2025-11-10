@@ -30,5 +30,7 @@
 !.sapmle-data/
 !.sample-data/**
 
+!internal/mailer/templates/html/*.html
+
 # ...even if they are in subdirectories
 !*/
