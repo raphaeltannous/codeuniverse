@@ -64,7 +64,6 @@ func main() {
 			"codeuniverse.lb@gmail.com",
 		)
 	}
-	mailMan.Send(context.Background(), "log@riyt.dev", "Testing Mailpit", "Hello mailpit")
 
 	// TODO: command line option for logging level or using environment variables
 	lg, err := logger.New(slog.LevelDebug)
