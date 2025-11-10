@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Verify your email</title>
+</head>
+
+<body>
+  <h1>Verify your email</h1>
+
+  <p>
+    Hi{{ with .Username }} {{ . }}{{ end }}, please confirm that {{ .Email }} belongs to you for {{ .AppName }}.
+  </p>
+
+  <p>
+    <a href="{{ .VerifyURL }}" target="_blank">Verify your email</a>
+  </p>
+
+  <p>
+    This link expires in {{ .LinkTTL }}.
+  </p>
+  <p>If you didn’t request this, you can ignore this email.</p>
+
+  <hr>
+  <p>
+    © {{ .Year }} {{ .AppName }}
+  </p>
+</body>
+
+</html>

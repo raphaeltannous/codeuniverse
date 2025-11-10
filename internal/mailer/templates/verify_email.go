@@ -12,9 +12,12 @@ var verifyEmailFS embed.FS
 var VerifyEmailTmpl *template.Template
 
 type VerifyEmailTmplData struct {
-	Name  string
-	Email string
-	Link  string
+	Username  string
+	Email     string
+	VerifyURL string
+	LinkTTL   string
+	Year      string
+	AppName   string
 }
 
 func init() {
