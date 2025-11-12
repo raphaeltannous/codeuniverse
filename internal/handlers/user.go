@@ -22,14 +22,21 @@ func NewUserHandler(s services.UserService) *UserHandler {
 
 func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Username        string `json:"username"`
+		Email           string `json:"email"`
+		Password        string `json:"password"`
+		PasswordConfirm string `json:"confirm"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if requestBody.Password != requestBody.PasswordConfirm {
+		http.Error(w, "passwords do not match", http.StatusConflict)
+		return
 	}
 
 	ctx := r.Context()
