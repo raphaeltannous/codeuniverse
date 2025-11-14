@@ -115,9 +115,10 @@ func main() {
 func service(db *sql.DB, mailMan mailer.Mailer) http.Handler {
 	// repos
 	userRepo := postgres.NewUserRepository(db)
+	mfaRepo := postgres.NewMfaCodeRepository(db)
 	//
 	// services
-	userService := services.NewUserService(userRepo, mailMan)
+	userService := services.NewUserService(userRepo, mfaRepo, mailMan)
 	//
 	// handlers
 	userHandler := handlers.NewUserHandler(userService)

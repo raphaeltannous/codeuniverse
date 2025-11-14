@@ -127,7 +127,6 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {

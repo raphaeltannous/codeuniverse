@@ -31,19 +31,31 @@ type UserService interface {
 
 	SendPasswordResetEmail(ctx context.Context, email string) error
 	ResetPasswordByToken(ctx context.Context, token, newPassword string) error
+
+	SendMfaCodeVerificationEmail(ctx context.Context, email string) error
+	VerifyMfaCode(ctx context.Context, token, code string) error
 }
 
 type userService struct {
 	userRepo repository.UserRepository
-	logger   *slog.Logger
-	mailMan  mailer.Mailer
+	mfaRepo  repository.MfaCodeRepository
+
+	logger  *slog.Logger
+	mailMan mailer.Mailer
 }
 
-func NewUserService(r repository.UserRepository, mailMan mailer.Mailer) UserService {
+func NewUserService(
+	userRepo repository.UserRepository,
+	mfaRepo repository.MfaCodeRepository,
+
+	mailMan mailer.Mailer,
+) UserService {
 	return &userService{
-		userRepo: r,
-		logger:   slog.Default().With("package", "postgres.UserRepository"),
-		mailMan:  mailMan,
+		userRepo: userRepo,
+		mfaRepo:  mfaRepo,
+
+		logger:  slog.Default().With("package", "postgres.UserRepository"),
+		mailMan: mailMan,
 	}
 }
 
@@ -130,5 +142,13 @@ func (s *userService) SendPasswordResetEmail(ctx context.Context, email string) 
 }
 
 func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPassword string) error {
+	return nil
+}
+
+func (s *userService) SendMfaCodeVerificationEmail(ctx context.Context, email string) error {
+	return nil
+}
+
+func (s *userService) VerifyMfaCode(ctx context.Context, token, code string) error {
 	return nil
 }
