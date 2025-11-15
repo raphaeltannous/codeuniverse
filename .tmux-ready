@@ -10,7 +10,7 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
 
   # Window 2: docker compose
   tmux new-window -t "$SESSION_NAME:2" -n "docker"
-  tmux split-window -t "$SESSION_NAME:2" -l 75%
+  tmux split-window -t "$SESSION_NAME:2" -l 50%
   tmux send-keys -t "$SESSION_NAME:2.0" "clear && docker compose up" C-m
   tmux send-keys -t "$SESSION_NAME:2.1" "clear && sleep 3 && psql -U rt -h localhost -d codeuniverse -p 5432" C-m
 
