@@ -22,11 +22,11 @@ func NewMfaCodeRepository(db *sql.DB) repository.MfaCodeRepository {
 
 func (pmcr *postgresMfaCodeRepository) Save(ctx context.Context, userId uuid.UUID, hash string, expiresAt time.Time) error {
 	query := `
-		INSERT INTO mfa_codes (user_id, code, expires_at)
+		INSERT INTO mfa_codes (user_id, code_hash, expires_at)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (user_id)
 		DO UPDATE SET
-			code = EXCLUDED.code,
+			code_hash = EXCLUDED.code_hash,
 			expires_at = EXCLUDED.expires_at;
 	`
 
@@ -34,30 +34,22 @@ func (pmcr *postgresMfaCodeRepository) Save(ctx context.Context, userId uuid.UUI
 	return err
 }
 
-func (pmcr *postgresMfaCodeRepository) GetByUserId(ctx context.Context, userId uuid.UUID) (mfaCode *models.MfaCode, err error) {
+func (pmcr *postgresMfaCodeRepository) GetByCodeHash(ctx context.Context, codeHash string) (mfaCode *models.MfaCode, err error) {
 	query := `
-		SELECT id, user_id, code, expires_at, created_at
+		SELECT id, user_id, code_hash, expires_at, created_at
 		FROM mfa_codes
-		WHERE user_id = $1
+		WHERE code_hash = $1
 		LIMIT 1;
 	`
 
 	mfaCode = new(models.MfaCode)
-	err = pmcr.db.QueryRowContext(ctx, query, userId).Scan(
+	err = pmcr.db.QueryRowContext(ctx, query, codeHash).Scan(
 		&mfaCode.ID,
 		&mfaCode.UserId,
 		&mfaCode.Hash,
 		&mfaCode.ExpiresAt,
 		&mfaCode.CreatedAt,
 	)
-
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
 
 	return
 }
