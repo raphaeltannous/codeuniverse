@@ -37,8 +37,10 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepo repository.UserRepository
-	mfaRepo  repository.MfaCodeRepository
+	userRepo              repository.UserRepository
+	mfaRepo               repository.MfaCodeRepository
+	passwordResetRepo     repository.PasswordResetRepository
+	emailVerificationRepo repository.EmailVerificationRepository
 
 	logger  *slog.Logger
 	mailMan mailer.Mailer
@@ -47,12 +49,16 @@ type userService struct {
 func NewUserService(
 	userRepo repository.UserRepository,
 	mfaRepo repository.MfaCodeRepository,
+	passwordResetRepo repository.PasswordResetRepository,
+	emailVerificationRepo repository.EmailVerificationRepository,
 
 	mailMan mailer.Mailer,
 ) UserService {
 	return &userService{
-		userRepo: userRepo,
-		mfaRepo:  mfaRepo,
+		userRepo:              userRepo,
+		mfaRepo:               mfaRepo,
+		passwordResetRepo:     passwordResetRepo,
+		emailVerificationRepo: emailVerificationRepo,
 
 		logger:  slog.Default().With("package", "postgres.UserRepository"),
 		mailMan: mailMan,
@@ -146,6 +152,7 @@ func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPasswo
 }
 
 func (s *userService) SendMfaCodeVerificationEmail(ctx context.Context, email string) error {
+
 	return nil
 }
 

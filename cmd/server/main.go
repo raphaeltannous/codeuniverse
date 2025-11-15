@@ -116,13 +116,22 @@ func service(db *sql.DB, mailMan mailer.Mailer) http.Handler {
 	// repos
 	userRepo := postgres.NewUserRepository(db)
 	mfaRepo := postgres.NewMfaCodeRepository(db)
-	//
+	passwordResetRepo := postgres.NewPasswordResetRepository(db)
+	emailVerificationRepo := postgres.NewEmailVerificationRepository(db)
+
 	// services
-	userService := services.NewUserService(userRepo, mfaRepo, mailMan)
-	//
+	userService := services.NewUserService(
+		userRepo,
+		mfaRepo,
+		passwordResetRepo,
+		emailVerificationRepo,
+
+		mailMan,
+	)
+
 	// handlers
 	userHandler := handlers.NewUserHandler(userService)
-	//
+
 	// middlewares
 	authMiddleware := func(next http.Handler) http.Handler {
 		return middleware.AuthMiddleware(next, userService)
