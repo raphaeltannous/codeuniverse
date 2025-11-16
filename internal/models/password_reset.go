@@ -20,8 +20,10 @@ type PasswordReset struct {
 func (pr PasswordReset) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("ID", pr.ID.String()),
+
 		slog.String("UserId", pr.UserId.String()),
 		slog.String("Hash", pr.Hash),
+
 		slog.Time("ExpiresAt", pr.ExpiresAt),
 		slog.Time("CreatedAt", pr.CreatedAt),
 	)
