@@ -35,7 +35,7 @@ func TestCreateToken(t *testing.T) {
 
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
-			got, err := utils.CreateToken(c.length)
+			got, err := utils.GenerateToken(c.length)
 
 			if c.wantErr {
 				if err == nil {

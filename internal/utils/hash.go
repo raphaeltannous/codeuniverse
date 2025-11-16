@@ -11,7 +11,7 @@ func HashToken(token string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func CreateToken(length int) (string, error) {
+func GenerateToken(length int) (string, error) {
 	if length <= 0 {
 		return "", ErrInvalidLength
 	}
