@@ -14,7 +14,11 @@ func authRouter(
 ) chi.Router {
 	r := chi.NewRouter()
 
-	r.Post("/signup", userHandler.Signup)
+	r.Route("/signup", func(r chi.Router) {
+		r.Post("/", userHandler.Signup)
+		r.Post("/verify", userHandler.VerifyEmailByToken)
+	})
+
 	r.Post("/login", userHandler.Login)
 
 	r.Group(func(r chi.Router) {
@@ -22,6 +26,11 @@ func authRouter(
 
 		r.Post("/logout", userHandler.Logout)
 		r.Post("/refresh", userHandler.RefreshJWTToken)
+	})
+
+	r.Route("/password", func(r chi.Router) {
+		r.Post("/request", userHandler.PasswordResetRequest)
+		r.Post("/reset", userHandler.PasswordResetByToken)
 	})
 
 	return r

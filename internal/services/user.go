@@ -1,12 +1,15 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"git.riyt.dev/codeuniverse/internal/mailer"
+	"git.riyt.dev/codeuniverse/internal/mailer/templates"
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/utils"
@@ -34,6 +37,9 @@ type UserService interface {
 
 	SendMfaCodeVerificationEmail(ctx context.Context, email string) error
 	VerifyMfaCode(ctx context.Context, token, code string) error
+
+	SendEmailVerificationEmail(ctx context.Context, email string) error
+	VerifyEmailByToken(ctx context.Context, token string) error
 }
 
 type userService struct {
@@ -95,7 +101,7 @@ func (s *userService) Create(ctx context.Context, username, password, email stri
 		return uuid.UUID{}, fmt.Errorf("service error creating user")
 	}
 
-	return id, nil
+	return id, s.SendEmailVerificationEmail(ctx, email)
 }
 
 func (s *userService) Delete(ctx context.Context, id uuid.UUID) error {
@@ -130,7 +136,12 @@ func (s *userService) GetAllUsers(ctx context.Context, offset, limit int) ([]*mo
 }
 
 func (s *userService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	return nil, nil
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		slog.Error("failed to get user info by email", "err", err)
+		return nil, fmt.Errorf("failed to get user by email")
+	}
+	return user, nil
 }
 
 func (s *userService) GetByUsername(ctx context.Context, username string) (*models.User, error) {
@@ -144,11 +155,74 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 }
 
 func (s *userService) SendPasswordResetEmail(ctx context.Context, email string) error {
-	return nil
+	user, err := s.GetByEmail(ctx, email)
+	fmt.Println(user, err)
+	if err != nil {
+		return err
+	}
+
+	token, err := utils.GenerateToken(64)
+	if err != nil {
+		return err
+	}
+
+	s.passwordResetRepo.Save(
+		ctx,
+		user.ID,
+		utils.HashToken(token),
+		time.Now().UTC().Add(10*time.Minute),
+	)
+
+	resetPasswordTmplData := templates.NewResetPasswordTmplData(
+		user.Username,
+		fmt.Sprintf("http://localhost:8080/accounts/password/reset?token=%s", token),
+		"10",
+	)
+
+	var htmlBody bytes.Buffer
+	err = templates.ResetPasswordTmpl.Execute(&htmlBody, resetPasswordTmplData)
+	if err != nil {
+		return err
+	}
+
+	return s.mailMan.SendHTML(
+		ctx,
+		email,
+		"Password Reset Request",
+		htmlBody.String(),
+	)
 }
 
 func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPassword string) error {
-	return nil
+	passwordReset, err := s.passwordResetRepo.GetByTokenHash(ctx, utils.HashToken(token))
+	if err != nil {
+		return err
+	}
+
+	if !time.Now().UTC().Before(passwordReset.ExpiresAt) {
+		return errors.New("time is expired")
+	}
+
+	hashedPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	err = s.userRepo.UpdatePassword(
+		ctx,
+		passwordReset.UserId,
+		hashedPassword,
+	)
+	if err != nil {
+		return err
+	}
+
+	return s.passwordResetRepo.Save(
+		ctx,
+		passwordReset.UserId,
+		passwordReset.Hash,
+		time.Now().UTC(),
+	)
 }
 
 func (s *userService) SendMfaCodeVerificationEmail(ctx context.Context, email string) error {
@@ -158,4 +232,76 @@ func (s *userService) SendMfaCodeVerificationEmail(ctx context.Context, email st
 
 func (s *userService) VerifyMfaCode(ctx context.Context, token, code string) error {
 	return nil
+}
+
+func (s *userService) SendEmailVerificationEmail(ctx context.Context, email string) error {
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	token, err := utils.GenerateToken(32)
+	if err != nil {
+		return err
+	}
+
+	err = s.emailVerificationRepo.Save(
+		ctx,
+		user.ID,
+		utils.HashToken(token),
+		time.Now().UTC().Add(10*time.Minute),
+	)
+	if err != nil {
+		slog.Error("failed to save email verification token to repo", "err", err)
+		return fmt.Errorf("failed to save email verification")
+	}
+
+	verifyEmailTmplData := templates.NewVerifyEmailTmplData(
+		user.Username,
+		user.Email,
+		fmt.Sprintf("http://localhost:8080/accounts/signup/email-verification?token=%s", token),
+		"10",
+	)
+
+	var htmlBody bytes.Buffer
+	err = templates.VerifyEmailTmpl.Execute(&htmlBody, verifyEmailTmplData)
+	if err != nil {
+		return err
+	}
+
+	return s.mailMan.SendHTML(
+		ctx,
+		email,
+		"Email Verification",
+		htmlBody.String(),
+	)
+}
+
+func (s *userService) VerifyEmailByToken(ctx context.Context, token string) error {
+	emailVerification, err := s.emailVerificationRepo.GetByTokenHash(ctx, utils.HashToken(token))
+	if err != nil {
+		return err
+	}
+
+	if !time.Now().UTC().Before(emailVerification.ExpiresAt) {
+		return errors.New("time is expired")
+	}
+
+	// Token is valid
+	// update
+	err = s.userRepo.UpdateVerify(
+		ctx,
+		emailVerification.UserId,
+		true,
+	)
+	if err != nil {
+		return err
+	}
+
+	return s.emailVerificationRepo.Save(
+		ctx,
+		emailVerification.UserId,
+		emailVerification.Hash,
+		time.Now().UTC(),
+	)
 }
