@@ -15,8 +15,6 @@ type postgresUserRepository struct {
 	db *sql.DB
 }
 
-var _ repository.UserRepository = (*postgresUserRepository)(nil)
-
 func NewUserRepository(db *sql.DB) repository.UserRepository {
 	return &postgresUserRepository{db: db}
 }
@@ -143,7 +141,7 @@ func (pur *postgresUserRepository) UpdatePassword(ctx context.Context, id uuid.U
 	return pur.updateColumnValue(
 		ctx,
 		id,
-		"password",
+		"password_hash",
 		password,
 	)
 }
