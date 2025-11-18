@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -9,8 +10,8 @@ import (
 	"time"
 
 	"git.riyt.dev/codeuniverse/internal/middleware"
+	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
-	"github.com/google/uuid"
 )
 
 type UserHandler struct {
@@ -33,41 +34,59 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		apiError := NewAPIError(
+			"INVALID_REQUEST_BODY",
+			"Invalid request body.",
+		)
+
+		writeResponseJSON(w, apiError, http.StatusBadRequest)
 		return
 	}
 
 	if requestBody.Password != requestBody.PasswordConfirm {
-		http.Error(w, "passwords do not match", http.StatusConflict)
+		apiError := NewAPIError(
+			"PASSWORD_MISMATCH",
+			"Passwords do not match.",
+		)
+
+		writeResponseJSON(w, apiError, http.StatusConflict)
 		return
 	}
 
 	ctx := r.Context()
 
-	id, err := h.userService.Create(
+	user, err := h.userService.Create(
 		ctx,
 		requestBody.Username,
 		requestBody.Password,
 		requestBody.Email,
 	)
+
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
-			http.Error(w, err.Error(), http.StatusConflict)
-			return
+		apiError := NewAPIError(
+			"INTERNAL_SERVER_ERROR",
+			"Internal server error. Please contact support.",
+		)
+
+		switch {
+		case errors.Is(err, repository.ErrUserAlreadyExists):
+			apiError.Code = "USER_ALREADY_EXISTS"
+			apiError.Message = "User already exists."
+
+			writeResponseJSON(w, apiError, http.StatusConflict)
+
+		default:
+			writeResponseJSON(w, apiError, http.StatusInternalServerError)
 		}
 
-		http.Error(w, "failed to create user", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	response := map[string]string{
+		"username": user.Username,
+	}
 
-	json.NewEncoder(w).Encode(struct {
-		Id uuid.UUID `json:"UUID"`
-	}{
-		Id: id,
-	})
+	writeResponseJSON(w, response, http.StatusAccepted)
 }
 
 func (h *UserHandler) GetUserInfoById(w http.ResponseWriter, r *http.Request) {

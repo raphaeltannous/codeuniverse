@@ -9,6 +9,7 @@ import (
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type postgresUserRepository struct {
@@ -53,7 +54,7 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, offset, limit i
 	return users, nil
 }
 
-func (pur *postgresUserRepository) Create(ctx context.Context, user *models.User) (uuid.UUID, error) {
+func (pur *postgresUserRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
 	query := `
 		INSERT INTO users (username, password_hash, email, role)
 		VALUES ($1, $2, $3, $4)
@@ -70,11 +71,17 @@ func (pur *postgresUserRepository) Create(ctx context.Context, user *models.User
 	)
 
 	err := row.Scan(&user.ID)
+
 	if err != nil {
-		return uuid.UUID{}, fmt.Errorf("error inserting user: %w", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, repository.ErrUserAlreadyExists
+		}
+
+		return user, fmt.Errorf("error inserting user: %w", err)
 	}
 
-	return user.ID, nil
+	return user, nil
 }
 
 func (pur *postgresUserRepository) Delete(ctx context.Context, id uuid.UUID) error {

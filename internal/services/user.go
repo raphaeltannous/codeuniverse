@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	ErrEmptyEmail         = errors.New("email address cannot be empty")
-	ErrEmptyUsername      = errors.New("username cannot be empty")
+	ErrInvalidEmail       = errors.New("invalid email")
+	ErrInvalidUsername    = errors.New("invalid username")
 	ErrWeakPasswordLength = errors.New("password should be greater than 8")
 )
 
 type UserService interface {
-	Create(ctx context.Context, username, password, email string) (uuid.UUID, error)
+	Create(ctx context.Context, username, password, email string) (*models.User, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 
 	GetById(ctx context.Context, uuidString string) (*models.User, error)
@@ -71,21 +71,27 @@ func NewUserService(
 	}
 }
 
-func (s *userService) Create(ctx context.Context, username, password, email string) (uuid.UUID, error) {
-	if email == "" {
-		return uuid.UUID{}, ErrEmptyEmail
-	}
-	if username == "" {
-		return uuid.UUID{}, ErrEmptyUsername
-	}
+func (s *userService) Create(ctx context.Context, username, password, email string) (*models.User, error) {
+	// TODO: Validate email
+	// TODO: Validate username
+	// TODO: Validate password
+
+	// if email == "" {
+	// 	return uuid.UUID{}, ErrEmptyEmail
+	// }
+
+	// if username == "" {
+	// 	return uuid.UUID{}, ErrEmptyUsername
+	// }
+
 	if len(password) < 8 {
-		return uuid.UUID{}, ErrWeakPasswordLength
+		return nil, ErrWeakPasswordLength
 	}
 
 	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
 		s.logger.Error("failed to hash password", "err", err)
-		return uuid.UUID{}, fmt.Errorf("failed to hash password")
+		return nil, fmt.Errorf("failed to hash password")
 	}
 
 	user := &models.User{
@@ -95,13 +101,17 @@ func (s *userService) Create(ctx context.Context, username, password, email stri
 		Role:         "user",
 	}
 
-	id, err := s.userRepo.Create(ctx, user)
+	user, err = s.userRepo.Create(ctx, user)
 	if err != nil {
+		if errors.Is(err, repository.ErrUserAlreadyExists) {
+			return nil, err
+		}
+
 		s.logger.Error("creating user repo error", "err", err)
-		return uuid.UUID{}, fmt.Errorf("service error creating user")
+		return nil, fmt.Errorf("service error creating user")
 	}
 
-	return id, s.SendEmailVerificationEmail(ctx, email)
+	return user, s.SendEmailVerificationEmail(ctx, email)
 }
 
 func (s *userService) Delete(ctx context.Context, id uuid.UUID) error {
@@ -304,4 +314,16 @@ func (s *userService) VerifyEmailByToken(ctx context.Context, token string) erro
 		emailVerification.Hash,
 		time.Now().UTC(),
 	)
+}
+
+func (s *userService) isEmailValid(email string) bool {
+	return false
+}
+
+func (s *userService) isUsernameValid(username string) bool {
+	return false
+}
+
+func (s *userService) isPasswordValid(password string) bool {
+	return false
 }

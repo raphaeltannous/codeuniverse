@@ -9,7 +9,7 @@ import (
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user *models.User) (uuid.UUID, error)
+	Create(ctx context.Context, user *models.User) (*models.User, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 
 	GetUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
