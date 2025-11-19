@@ -19,7 +19,10 @@ func authRouter(
 		r.Post("/verify", userHandler.VerifyEmailByToken)
 	})
 
-	r.Post("/login", userHandler.Login)
+	r.Route("/login", func(r chi.Router) {
+		r.Post("/", userHandler.Login)
+		r.Post("/mfa", userHandler.MfaVerification)
+	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
