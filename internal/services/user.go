@@ -35,7 +35,8 @@ type UserService interface {
 	SendPasswordResetEmail(ctx context.Context, email string) error
 	ResetPasswordByToken(ctx context.Context, token, newPassword string) error
 
-	SendMfaCodeVerificationEmail(ctx context.Context, email string) error
+	CreateMfaCodeAndToken(ctx context.Context, user *models.User) (string, string, error)
+	SendMfaCodeVerificationEmail(ctx context.Context, user *models.User, mfaCode string) error
 	VerifyMfaCode(ctx context.Context, token, code string) error
 
 	SendEmailVerificationEmail(ctx context.Context, email string) error
@@ -157,8 +158,13 @@ func (s *userService) GetByEmail(ctx context.Context, email string) (*models.Use
 func (s *userService) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	user, err := s.userRepo.GetByUsername(ctx, username)
 	if err != nil {
-		slog.Error("failed to get user info by username", "err", err)
-		return nil, fmt.Errorf("failed to get user by username")
+		switch {
+		case errors.Is(err, repository.ErrUserNotFound):
+			return nil, err
+		default:
+			slog.Error("failed to get user info by username", "err", err)
+			return nil, fmt.Errorf("internal server error")
+		}
 	}
 
 	return user, nil
@@ -235,9 +241,52 @@ func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPasswo
 	)
 }
 
-func (s *userService) SendMfaCodeVerificationEmail(ctx context.Context, email string) error {
+func (s *userService) CreateMfaCodeAndToken(ctx context.Context, user *models.User) (string, string, error) {
+	token, err := utils.GenerateToken(32)
+	if err != nil {
+		return "", "", err
+	}
 
-	return nil
+	mfaCode, err := utils.GenerateNumericCode(7)
+	if err != nil {
+		return "", "", err
+	}
+
+	err = s.mfaRepo.Save(
+		ctx,
+		user.ID,
+		utils.HashToken(token),
+		utils.HashToken(mfaCode),
+		time.Now().UTC().Add(10*time.Minute),
+	)
+
+	if err != nil {
+		slog.Error("failed to save mfa code to repo", "err", err)
+		return "", "", fmt.Errorf("failed to save mfa code to repo")
+	}
+
+	return mfaCode, token, nil
+}
+
+func (s *userService) SendMfaCodeVerificationEmail(ctx context.Context, user *models.User, mfaCode string) error {
+	mfaTmplData := templates.NewTwoFATmplData(
+		user.Username,
+		mfaCode,
+		"10",
+	)
+
+	var htmlBody bytes.Buffer
+	err := templates.TwoFATmpl.Execute(&htmlBody, mfaTmplData)
+	if err != nil {
+		return err
+	}
+
+	return s.mailMan.SendHTML(
+		ctx,
+		user.Email,
+		"MFA Verification",
+		htmlBody.String(),
+	)
 }
 
 func (s *userService) VerifyMfaCode(ctx context.Context, token, code string) error {
