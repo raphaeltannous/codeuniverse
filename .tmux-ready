@@ -19,7 +19,7 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
 
   # Window 4: make
   tmux new-window -t "$SESSION_NAME:4" -n "make"
-  tmux split-window -t "$SESSION_NAME:4" -l 75%
+  tmux split-window -t "$SESSION_NAME:4" -l 50%
   tmux send-keys -t "$SESSION_NAME:4.0" "clear && source .env && make watch" C-m
 
   # Window 5: shell
