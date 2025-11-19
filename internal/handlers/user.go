@@ -12,6 +12,7 @@ import (
 	"git.riyt.dev/codeuniverse/internal/middleware"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
+	"git.riyt.dev/codeuniverse/internal/utils"
 )
 
 type UserHandler struct {
@@ -32,16 +33,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		PasswordConfirm string `json:"confirm"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		apiError := NewAPIError(
-			"INVALID_REQUEST_BODY",
-			"Invalid request body.",
-		)
-
-		writeResponseJSON(w, apiError, http.StatusBadRequest)
-		return
-	}
+	decodeJSONRequest(w, r, &requestBody)
 
 	if requestBody.Password != requestBody.PasswordConfirm {
 		apiError := NewAPIError(
@@ -82,6 +74,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO should send token
 	response := map[string]string{
 		"username": user.Username,
 	}
@@ -89,16 +82,89 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	writeResponseJSON(w, response, http.StatusAccepted)
 }
 
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	decodeJSONRequest(w, r, &requestBody)
+
+	ctx := r.Context()
+
+	user, err := h.userService.GetByUsername(
+		ctx,
+		requestBody.Username,
+	)
+
+	if err != nil {
+		apiError := NewAPIError(
+			"INTERNAL_SERVER_ERROR",
+			"Internal Server Error.",
+		)
+
+		switch {
+		case errors.Is(err, repository.ErrUserNotFound):
+			apiError.Code = "INVALID_CREDENTIALS"
+			apiError.Message = "Invalid Credentials."
+
+			writeResponseJSON(w, apiError, http.StatusUnauthorized)
+		default:
+			writeResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	if !utils.CheckPassword(user.PasswordHash, requestBody.Password) {
+		apiError := NewAPIError(
+			"INVALID_CREDENTIALS",
+			"Invalid Credentials.",
+		)
+
+		writeResponseJSON(w, apiError, http.StatusUnauthorized)
+		return
+	}
+
+	mfaCode, token, err := h.userService.CreateMfaCodeAndToken(ctx, user)
+	if err != nil {
+		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.userService.SendMfaCodeVerificationEmail(
+		ctx,
+		user,
+		mfaCode,
+	)
+	if err != nil {
+		slog.Error("login handler error: send mfa code email", "err", err)
+		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"username": user.Username,
+		"mfaToken": token,
+	}
+
+	writeResponseJSON(w, response, http.StatusAccepted) // TODO what should the return status be?
+}
+
+func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
+	// var requestBody struct {
+	// 	Username  string `json:"username"`
+	// 	TokenHash string `json:"token_hash"`
+	// 	CodeHash  string `json:"code_hash"`
+	// }
+}
+
 func (h *UserHandler) GetUserInfoById(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
 		Id *string `json:"id"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
+	decodeJSONRequest(w, r, &requestBody)
 
 	if requestBody.Id == nil {
 		http.Error(w, "Invalid request body: id is required", http.StatusBadRequest)
@@ -146,9 +212,6 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusFound)
 
 	json.NewEncoder(w).Encode(users)
-}
-
-func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
