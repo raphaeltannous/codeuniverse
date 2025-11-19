@@ -11,3 +11,10 @@ func NewAPIError(code, message string) APIError {
 		Message: message,
 	}
 }
+
+func NewInternalServerAPIError() APIError {
+	return NewAPIError(
+		"INTERNAL_SERVER_ERROR",
+		"Internal server error. Please contact support.",
+	)
+}
