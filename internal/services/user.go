@@ -20,6 +20,10 @@ var (
 	ErrInvalidEmail       = errors.New("invalid email")
 	ErrInvalidUsername    = errors.New("invalid username")
 	ErrWeakPasswordLength = errors.New("password should be greater than 8")
+
+	ErrTimeIsExpired = errors.New("time is expired")
+
+	ErrInvalidMfaCode = errors.New("invalid mfa code")
 )
 
 type UserService interface {
@@ -37,7 +41,7 @@ type UserService interface {
 
 	CreateMfaCodeAndToken(ctx context.Context, user *models.User) (string, string, error)
 	SendMfaCodeVerificationEmail(ctx context.Context, user *models.User, mfaCode string) error
-	VerifyMfaCode(ctx context.Context, token, code string) error
+	VerifyMfaCode(ctx context.Context, token, code string) (*models.MfaCode, error)
 
 	SendEmailVerificationEmail(ctx context.Context, email string) error
 	VerifyEmailByToken(ctx context.Context, token string) error
@@ -216,7 +220,7 @@ func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPasswo
 	}
 
 	if !time.Now().UTC().Before(passwordReset.ExpiresAt) {
-		return errors.New("time is expired")
+		return ErrTimeIsExpired
 	}
 
 	hashedPassword, err := utils.HashPassword(newPassword)
@@ -289,8 +293,40 @@ func (s *userService) SendMfaCodeVerificationEmail(ctx context.Context, user *mo
 	)
 }
 
-func (s *userService) VerifyMfaCode(ctx context.Context, token, code string) error {
-	return nil
+func (s *userService) VerifyMfaCode(ctx context.Context, token, code string) (*models.MfaCode, error) {
+	mfaCode, err := s.mfaRepo.GetByTokenHash(
+		ctx,
+		utils.HashToken(token),
+	)
+	s.logger.Debug("mfaCode from repo", "mfaCode", mfaCode)
+
+	if err != nil {
+		if errors.Is(err, repository.ErrMfaTokenNotFound) {
+			return nil, err
+		}
+
+		s.logger.Error("VerifyMfaCode", "err", err)
+		return nil, fmt.Errorf("failed to verify token")
+	}
+
+	if !time.Now().UTC().Before(mfaCode.ExpiresAt) {
+		return nil, ErrTimeIsExpired
+	}
+
+	if codeHash := utils.HashToken(code); codeHash != mfaCode.CodeHash {
+		s.logger.Debug("invalid code hash", "codeHash", codeHash, "mfaCode.CodeHash", mfaCode.CodeHash)
+		return nil, ErrInvalidMfaCode
+	}
+
+	err = s.mfaRepo.Save(
+		ctx,
+		mfaCode.UserId,
+		mfaCode.TokenHash,
+		mfaCode.CodeHash,
+		time.Now().UTC(),
+	)
+
+	return mfaCode, err
 }
 
 func (s *userService) SendEmailVerificationEmail(ctx context.Context, email string) error {
@@ -343,7 +379,7 @@ func (s *userService) VerifyEmailByToken(ctx context.Context, token string) erro
 	}
 
 	if !time.Now().UTC().Before(emailVerification.ExpiresAt) {
-		return errors.New("time is expired")
+		return ErrTimeIsExpired
 	}
 
 	// Token is valid

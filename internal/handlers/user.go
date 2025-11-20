@@ -152,11 +152,62 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
-	// var requestBody struct {
-	// 	Username  string `json:"username"`
-	// 	TokenHash string `json:"token_hash"`
-	// 	CodeHash  string `json:"code_hash"`
-	// }
+	var requestBody struct {
+		Token string `json:"token"`
+		Code  string `json:"code"`
+	}
+
+	decodeJSONRequest(w, r, &requestBody)
+
+	ctx := r.Context()
+
+	mfaCode, err := h.userService.VerifyMfaCode(
+		ctx,
+		requestBody.Token,
+		requestBody.Code,
+	)
+
+	if err != nil {
+		apiError := NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, services.ErrTimeIsExpired):
+			apiError.Code = "MFA_CODE_EXPIRED"
+			apiError.Message = "Time is expired."
+
+			writeResponseJSON(w, apiError, http.StatusUnauthorized)
+		case errors.Is(err, services.ErrInvalidMfaCode):
+			apiError.Code = "MFA_CODE_INVALID"
+			apiError.Message = "Code is expired."
+
+			writeResponseJSON(w, apiError, http.StatusUnauthorized)
+		default:
+			writeResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	user, err := h.userService.GetById(
+		ctx,
+		mfaCode.UserId.String(),
+	)
+	if err != nil {
+		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	jwtToken, err := utils.CreateJWT(user)
+	if err != nil {
+		slog.Error("error", "err", err)
+		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"jwtToken": jwtToken,
+	}
+
+	writeResponseJSON(w, response, http.StatusAccepted) // TODO: what should be the reponse status?
 }
 
 func (h *UserHandler) GetUserInfoById(w http.ResponseWriter, r *http.Request) {
