@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
 	"git.riyt.dev/codeuniverse/internal/models"
@@ -43,7 +45,7 @@ func (pmcr *postgresMfaCodeRepository) Save(ctx context.Context, userId uuid.UUI
 	return err
 }
 
-func (pmcr *postgresMfaCodeRepository) GetByTokenHash(ctx context.Context, tokenHash string) (mfaCode *models.MfaCode, err error) {
+func (pmcr *postgresMfaCodeRepository) GetByTokenHash(ctx context.Context, tokenHash string) (*models.MfaCode, error) {
 	query := `
 		SELECT id, user_id, token_hash, code_hash, expires_at, created_at
 		FROM mfa_codes
@@ -51,8 +53,8 @@ func (pmcr *postgresMfaCodeRepository) GetByTokenHash(ctx context.Context, token
 		LIMIT 1;
 	`
 
-	mfaCode = new(models.MfaCode)
-	err = pmcr.db.QueryRowContext(ctx, query, tokenHash).Scan(
+	mfaCode := new(models.MfaCode)
+	err := pmcr.db.QueryRowContext(ctx, query, tokenHash).Scan(
 		&mfaCode.ID,
 		&mfaCode.UserId,
 		&mfaCode.TokenHash,
@@ -61,5 +63,12 @@ func (pmcr *postgresMfaCodeRepository) GetByTokenHash(ctx context.Context, token
 		&mfaCode.CreatedAt,
 	)
 
-	return
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repository.ErrMfaTokenNotFound
+		}
+		return nil, fmt.Errorf("failed to scan mfaCode data into *model.MfaCode: %w", err)
+	}
+
+	return mfaCode, nil
 }
