@@ -33,7 +33,9 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		PasswordConfirm string `json:"confirm"`
 	}
 
-	decodeJSONRequest(w, r, &requestBody)
+	if !decodeJSONRequest(w, r, &requestBody) {
+		return
+	}
 
 	if requestBody.Password != requestBody.PasswordConfirm {
 		apiError := NewAPIError(
@@ -88,7 +90,9 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	decodeJSONRequest(w, r, &requestBody)
+	if !decodeJSONRequest(w, r, &requestBody) {
+		return
+	}
 
 	ctx := r.Context()
 
@@ -157,7 +161,9 @@ func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
 		Code  string `json:"code"`
 	}
 
-	decodeJSONRequest(w, r, &requestBody)
+	if !decodeJSONRequest(w, r, &requestBody) {
+		return
+	}
 
 	ctx := r.Context()
 
@@ -215,7 +221,9 @@ func (h *UserHandler) GetUserInfoById(w http.ResponseWriter, r *http.Request) {
 		Id *string `json:"id"`
 	}
 
-	decodeJSONRequest(w, r, &requestBody)
+	if !decodeJSONRequest(w, r, &requestBody) {
+		return
+	}
 
 	if requestBody.Id == nil {
 		http.Error(w, "Invalid request body: id is required", http.StatusBadRequest)
@@ -255,10 +263,12 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	users, err := h.userService.GetAllUsers(ctx, offset, limit)
 	if err != nil {
+		// TODO refactor
 		http.Error(w, "failed to fetch users"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// TODO refactor
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusFound)
 
@@ -278,27 +288,27 @@ func (h *UserHandler) PasswordResetRequest(w http.ResponseWriter, r *http.Reques
 		Email string `json:"email"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if !decodeJSONRequest(w, r, &requestBody) {
 		return
 	}
 
 	ctx := r.Context()
 
-	err = h.userService.SendPasswordResetEmail(
+	err := h.userService.SendPasswordResetEmail(
 		ctx,
 		requestBody.Email,
 	)
-	if err != nil {
-		http.Error(w, "failed to send email", http.StatusInternalServerError)
+
+	if err != nil && !errors.Is(err, repository.ErrUserNotFound) {
+		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
+	reponse := map[string]string{
+		"message": "Email is sent.",
+	}
 
-	fmt.Fprint(w, "email is sent")
+	writeResponseJSON(w, reponse, http.StatusAccepted)
 }
 
 func (h *UserHandler) PasswordResetByToken(w http.ResponseWriter, r *http.Request) {

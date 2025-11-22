@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/mail"
 	"time"
 
 	"git.riyt.dev/codeuniverse/internal/mailer"
@@ -77,7 +78,10 @@ func NewUserService(
 }
 
 func (s *userService) Create(ctx context.Context, username, password, email string) (*models.User, error) {
-	// TODO: Validate email
+	if !s.isEmailValid(email) {
+		return nil, ErrInvalidEmail
+	}
+
 	// TODO: Validate username
 	// TODO: Validate password
 
@@ -123,6 +127,15 @@ func (s *userService) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+func (s *userService) GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error) {
+	users, err := s.userRepo.GetUsers(ctx, offset, limit)
+	if err != nil {
+		return nil, fmt.Errorf("service failed to get from userRepo: %w", err)
+	}
+
+	return users, nil
+}
+
 func (s *userService) GetById(ctx context.Context, id string) (*models.User, error) {
 	if err := uuid.Validate(id); err != nil {
 		return nil, fmt.Errorf("provided id is not a valid uuid: %w", err)
@@ -133,50 +146,48 @@ func (s *userService) GetById(ctx context.Context, id string) (*models.User, err
 		return nil, fmt.Errorf("failed to create uuid from id: %w", err)
 	}
 
-	user, err := s.userRepo.GetByID(ctx, newId)
-	if err != nil {
-		return nil, fmt.Errorf("service error getting user info: %w", err)
+	getFn := func(ctx context.Context) (*models.User, error) {
+		return s.userRepo.GetByID(ctx, newId)
 	}
 
-	return user, nil
-}
-
-func (s *userService) GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error) {
-	users, err := s.userRepo.GetUsers(ctx, offset, limit)
-	if err != nil {
-		return nil, fmt.Errorf("service failed to get from userRepo: %w", err)
-	}
-
-	return users, nil
+	return s.getByFunc(ctx, getFn)
 }
 
 func (s *userService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	user, err := s.userRepo.GetByEmail(ctx, email)
-	if err != nil {
-		slog.Error("failed to get user info by email", "err", err)
-		return nil, fmt.Errorf("failed to get user by email")
+	getFn := func(ctx context.Context) (*models.User, error) {
+		return s.userRepo.GetByEmail(ctx, email)
 	}
-	return user, nil
+
+	return s.getByFunc(ctx, getFn)
 }
 
 func (s *userService) GetByUsername(ctx context.Context, username string) (*models.User, error) {
-	user, err := s.userRepo.GetByUsername(ctx, username)
+	getFn := func(ctx context.Context) (*models.User, error) {
+		return s.userRepo.GetByUsername(ctx, username)
+	}
+
+	return s.getByFunc(ctx, getFn)
+}
+
+func (s *userService) getByFunc(ctx context.Context, getFn func(ctx context.Context) (*models.User, error)) (*models.User, error) {
+	user, err := getFn(ctx)
+
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrUserNotFound):
 			return nil, err
 		default:
-			slog.Error("failed to get user info by username", "err", err)
+			s.logger.Error("failed to get user", "err", err, "fn", getFn)
+
 			return nil, fmt.Errorf("internal server error")
 		}
 	}
 
-	return user, nil
+	return user, err
 }
 
 func (s *userService) SendPasswordResetEmail(ctx context.Context, email string) error {
 	user, err := s.GetByEmail(ctx, email)
-	fmt.Println(user, err)
 	if err != nil {
 		return err
 	}
@@ -402,11 +413,16 @@ func (s *userService) VerifyEmailByToken(ctx context.Context, token string) erro
 }
 
 func (s *userService) isEmailValid(email string) bool {
-	return false
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }
 
 func (s *userService) isUsernameValid(username string) bool {
-	return false
+	if len(username) < 3 || len(username) > 25 {
+		return false
+	}
+
+	return true
 }
 
 func (s *userService) isPasswordValid(password string) bool {

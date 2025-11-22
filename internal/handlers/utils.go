@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func decodeJSONRequest(w http.ResponseWriter, r *http.Request, requestBody any) {
+func decodeJSONRequest(w http.ResponseWriter, r *http.Request, requestBody any) bool {
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
 		apiError := NewAPIError(
@@ -14,6 +14,9 @@ func decodeJSONRequest(w http.ResponseWriter, r *http.Request, requestBody any) 
 		)
 
 		writeResponseJSON(w, apiError, http.StatusBadRequest)
-		return
+
+		return false
 	}
+
+	return true
 }
