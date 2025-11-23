@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"git.riyt.dev/codeuniverse/internal/handlers"
+	"git.riyt.dev/codeuniverse/internal/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -21,7 +22,13 @@ func authRouter(
 
 	r.Route("/login", func(r chi.Router) {
 		r.Post("/", userHandler.Login)
-		r.Post("/mfa", userHandler.MfaVerification)
+
+		r.Route("/mfa", func(r chi.Router) {
+			r.Use(middleware.MfaTokenMiddleware)
+
+			r.Post("/", userHandler.MfaVerification)
+			r.Post("/resend", userHandler.ResendMfaVerification)
+		})
 	})
 
 	r.Group(func(r chi.Router) {
