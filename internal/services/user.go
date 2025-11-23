@@ -40,6 +40,7 @@ type UserService interface {
 	SendPasswordResetEmail(ctx context.Context, email string) error
 	ResetPasswordByToken(ctx context.Context, token, newPassword string) error
 
+	GetMfaCodeByToken(ctx context.Context, token string) (*models.MfaCode, error)
 	CreateMfaCodeAndToken(ctx context.Context, user *models.User) (string, string, error)
 	SendMfaCodeVerificationEmail(ctx context.Context, user *models.User, mfaCode string) error
 	VerifyMfaCode(ctx context.Context, token, code string) (*models.MfaCode, error)
@@ -256,6 +257,25 @@ func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPasswo
 	)
 }
 
+func (s *userService) GetMfaCodeByToken(ctx context.Context, token string) (*models.MfaCode, error) {
+	mfaCode, err := s.mfaRepo.GetByTokenHash(
+		ctx,
+		utils.HashToken(token),
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrMfaTokenNotFound):
+			return nil, err
+		default:
+			s.logger.Error("GetMfaCodeByToken failed to get mfaCode", "err", err)
+			return nil, repository.ErrInternalServerError
+		}
+	}
+
+	return mfaCode, nil
+}
+
 func (s *userService) CreateMfaCodeAndToken(ctx context.Context, user *models.User) (string, string, error) {
 	token, err := utils.GenerateToken(32)
 	if err != nil {
@@ -309,15 +329,13 @@ func (s *userService) VerifyMfaCode(ctx context.Context, token, code string) (*m
 		ctx,
 		utils.HashToken(token),
 	)
-	s.logger.Debug("mfaCode from repo", "mfaCode", mfaCode)
 
 	if err != nil {
 		if errors.Is(err, repository.ErrMfaTokenNotFound) {
 			return nil, err
 		}
 
-		s.logger.Error("VerifyMfaCode", "err", err)
-		return nil, fmt.Errorf("failed to verify token")
+		return nil, repository.ErrInternalServerError
 	}
 
 	if !time.Now().UTC().Before(mfaCode.ExpiresAt) {
@@ -329,10 +347,15 @@ func (s *userService) VerifyMfaCode(ctx context.Context, token, code string) (*m
 		return nil, ErrInvalidMfaCode
 	}
 
+	newToken, err := utils.GenerateToken(32)
+	if err != nil {
+		return nil, err
+	}
+
 	err = s.mfaRepo.Save(
 		ctx,
 		mfaCode.UserId,
-		mfaCode.TokenHash,
+		utils.HashToken(newToken),
 		mfaCode.CodeHash,
 		time.Now().UTC(),
 	)
@@ -386,6 +409,7 @@ func (s *userService) SendEmailVerificationEmail(ctx context.Context, email stri
 func (s *userService) VerifyEmailByToken(ctx context.Context, token string) error {
 	emailVerification, err := s.emailVerificationRepo.GetByTokenHash(ctx, utils.HashToken(token))
 	if err != nil {
+		s.logger.Debug("emailVerification", "emailVerification", emailVerification, "err", err)
 		return err
 	}
 
@@ -393,8 +417,6 @@ func (s *userService) VerifyEmailByToken(ctx context.Context, token string) erro
 		return ErrTimeIsExpired
 	}
 
-	// Token is valid
-	// update
 	err = s.userRepo.UpdateVerify(
 		ctx,
 		emailVerification.UserId,

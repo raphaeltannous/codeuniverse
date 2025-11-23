@@ -7,12 +7,12 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"git.riyt.dev/codeuniverse/internal/middleware"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils"
+	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
 )
 
 type UserHandler struct {
@@ -33,17 +33,17 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		PasswordConfirm string `json:"confirm"`
 	}
 
-	if !decodeJSONRequest(w, r, &requestBody) {
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
 		return
 	}
 
 	if requestBody.Password != requestBody.PasswordConfirm {
-		apiError := NewAPIError(
+		apiError := handlersutils.NewAPIError(
 			"PASSWORD_MISMATCH",
 			"Passwords do not match.",
 		)
 
-		writeResponseJSON(w, apiError, http.StatusConflict)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusConflict)
 		return
 	}
 
@@ -57,7 +57,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		apiError := NewAPIError(
+		apiError := handlersutils.NewAPIError(
 			"INTERNAL_SERVER_ERROR",
 			"Internal server error. Please contact support.",
 		)
@@ -67,10 +67,10 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 			apiError.Code = "USER_ALREADY_EXISTS"
 			apiError.Message = "User already exists."
 
-			writeResponseJSON(w, apiError, http.StatusConflict)
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusConflict)
 
 		default:
-			writeResponseJSON(w, apiError, http.StatusInternalServerError)
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
 		}
 
 		return
@@ -81,7 +81,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		"username": user.Username,
 	}
 
-	writeResponseJSON(w, response, http.StatusAccepted)
+	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +90,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	if !decodeJSONRequest(w, r, &requestBody) {
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
 		return
 	}
 
@@ -102,7 +102,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		apiError := NewAPIError(
+		apiError := handlersutils.NewAPIError(
 			"INTERNAL_SERVER_ERROR",
 			"Internal Server Error.",
 		)
@@ -110,29 +110,29 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, repository.ErrUserNotFound):
 			apiError.Code = "INVALID_CREDENTIALS"
-			apiError.Message = "Invalid Credentials."
+			apiError.Message = "Invalid credentials."
 
-			writeResponseJSON(w, apiError, http.StatusUnauthorized)
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
 		default:
-			writeResponseJSON(w, apiError, http.StatusInternalServerError)
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
 		}
 
 		return
 	}
 
 	if !utils.CheckPassword(user.PasswordHash, requestBody.Password) {
-		apiError := NewAPIError(
+		apiError := handlersutils.NewAPIError(
 			"INVALID_CREDENTIALS",
 			"Invalid Credentials.",
 		)
 
-		writeResponseJSON(w, apiError, http.StatusUnauthorized)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
 		return
 	}
 
 	mfaCode, token, err := h.userService.CreateMfaCodeAndToken(ctx, user)
 	if err != nil {
-		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
@@ -143,7 +143,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		slog.Error("login handler error: send mfa code email", "err", err)
-		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
@@ -152,16 +152,16 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		"mfaToken": token,
 	}
 
-	writeResponseJSON(w, response, http.StatusAccepted) // TODO what should the return status be?
+	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted) // TODO what should the return status be?
 }
 
 func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
-	var requestBody struct {
-		Token string `json:"token"`
-		Code  string `json:"code"`
-	}
+	var requestBody middleware.MfaRequestBody
 
-	if !decodeJSONRequest(w, r, &requestBody) {
+	if val, ok := r.Context().Value("requestBody").(middleware.MfaRequestBody); ok {
+		requestBody = val
+	} else {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
@@ -174,20 +174,20 @@ func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		apiError := NewInternalServerAPIError()
+		apiError := handlersutils.NewInternalServerAPIError()
 		switch {
 		case errors.Is(err, services.ErrTimeIsExpired):
 			apiError.Code = "MFA_CODE_EXPIRED"
 			apiError.Message = "Time is expired."
 
-			writeResponseJSON(w, apiError, http.StatusUnauthorized)
-		case errors.Is(err, services.ErrInvalidMfaCode):
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+		case errors.Is(err, services.ErrInvalidMfaCode), errors.Is(err, repository.ErrMfaTokenNotFound):
 			apiError.Code = "MFA_CODE_INVALID"
-			apiError.Message = "Code is expired."
+			apiError.Message = "Invalid code."
 
-			writeResponseJSON(w, apiError, http.StatusUnauthorized)
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
 		default:
-			writeResponseJSON(w, apiError, http.StatusInternalServerError)
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
 		}
 
 		return
@@ -198,14 +198,14 @@ func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
 		mfaCode.UserId.String(),
 	)
 	if err != nil {
-		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
 	jwtToken, err := utils.CreateJWT(user)
 	if err != nil {
 		slog.Error("error", "err", err)
-		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
@@ -213,7 +213,78 @@ func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
 		"jwtToken": jwtToken,
 	}
 
-	writeResponseJSON(w, response, http.StatusAccepted) // TODO: what should be the reponse status?
+	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted) // TODO: what should be the reponse status?
+}
+
+func (h *UserHandler) ResendMfaVerification(w http.ResponseWriter, r *http.Request) {
+	var requestBody middleware.MfaRequestBody
+
+	if val, ok := r.Context().Value("requestBody").(middleware.MfaRequestBody); ok {
+		requestBody = val
+	} else {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	ctx := r.Context()
+
+	mfaCode, err := h.userService.GetMfaCodeByToken(
+		ctx,
+		requestBody.Token,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrMfaTokenNotFound):
+			apiError := handlersutils.NewAPIError(
+				"INVALID_MFA_TOKEN",
+				"Invalid Mfa Token.",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+		default:
+			handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	user, err := h.userService.GetById(
+		ctx,
+		mfaCode.UserId.String(),
+	)
+
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	newCode, newToken, err := h.userService.CreateMfaCodeAndToken(
+		ctx,
+		user,
+	)
+
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.userService.SendMfaCodeVerificationEmail(
+		ctx,
+		user,
+		newCode,
+	)
+
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"newToken": newToken,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted) // TODO: correct status?
 }
 
 func (h *UserHandler) GetUserInfoById(w http.ResponseWriter, r *http.Request) {
@@ -221,7 +292,7 @@ func (h *UserHandler) GetUserInfoById(w http.ResponseWriter, r *http.Request) {
 		Id *string `json:"id"`
 	}
 
-	if !decodeJSONRequest(w, r, &requestBody) {
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
 		return
 	}
 
@@ -288,7 +359,7 @@ func (h *UserHandler) PasswordResetRequest(w http.ResponseWriter, r *http.Reques
 		Email string `json:"email"`
 	}
 
-	if !decodeJSONRequest(w, r, &requestBody) {
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
 		return
 	}
 
@@ -300,7 +371,7 @@ func (h *UserHandler) PasswordResetRequest(w http.ResponseWriter, r *http.Reques
 	)
 
 	if err != nil && !errors.Is(err, repository.ErrUserNotFound) {
-		writeResponseJSON(w, NewInternalServerAPIError(), http.StatusInternalServerError)
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
@@ -308,7 +379,7 @@ func (h *UserHandler) PasswordResetRequest(w http.ResponseWriter, r *http.Reques
 		"message": "Email is sent.",
 	}
 
-	writeResponseJSON(w, reponse, http.StatusAccepted)
+	handlersutils.WriteResponseJSON(w, reponse, http.StatusAccepted)
 }
 
 func (h *UserHandler) PasswordResetByToken(w http.ResponseWriter, r *http.Request) {
@@ -355,29 +426,41 @@ func (h *UserHandler) VerifyEmailByToken(w http.ResponseWriter, r *http.Request)
 		Token string `json:"token"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
 		return
 	}
 
-	time.Sleep(3 * time.Second)
-
 	ctx := r.Context()
 
-	err = h.userService.VerifyEmailByToken(
+	err := h.userService.VerifyEmailByToken(
 		ctx,
 		requestBody.Token,
 	)
 
 	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, services.ErrTimeIsExpired):
+			apiError.Code = "TIME_IS_EXPIRED"
+			apiError.Message = "Time is expired."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+		case errors.Is(err, repository.ErrEmailVerificationNotFound):
+			apiError.Code = "INVALID_TOKEN"
+			apiError.Message = "Invalid link."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
 		slog.Error("failed to verify email", "err", err)
-		http.Error(w, "failed to verify email"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
+	response := map[string]string{
+		"message": "Email is verified.",
+	}
 
-	fmt.Fprint(w, "email is verified")
+	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
 }
