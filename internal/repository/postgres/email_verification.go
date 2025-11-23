@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"git.riyt.dev/codeuniverse/internal/models"
@@ -43,7 +44,7 @@ func (pevr *postgresEmailVerificationRepository) Save(
 func (pevr *postgresEmailVerificationRepository) GetByTokenHash(
 	ctx context.Context,
 	hash string,
-) (emailVerification *models.EmailVerification, err error) {
+) (*models.EmailVerification, error) {
 	query := `
 		SELECT id, user_id, token_hash, expires_at, created_at
 		FROM email_verifications
@@ -51,8 +52,8 @@ func (pevr *postgresEmailVerificationRepository) GetByTokenHash(
 		LIMIT 1;
 	`
 
-	emailVerification = new(models.EmailVerification)
-	err = pevr.db.QueryRowContext(ctx, query, hash).Scan(
+	emailVerification := new(models.EmailVerification)
+	err := pevr.db.QueryRowContext(ctx, query, hash).Scan(
 		&emailVerification.ID,
 		&emailVerification.UserId,
 		&emailVerification.Hash,
@@ -60,5 +61,13 @@ func (pevr *postgresEmailVerificationRepository) GetByTokenHash(
 		&emailVerification.CreatedAt,
 	)
 
-	return
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repository.ErrEmailVerificationNotFound
+		}
+
+		return nil, repository.ErrInternalServerError
+	}
+
+	return emailVerification, nil
 }
