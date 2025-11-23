@@ -1,4 +1,4 @@
-package handlers
+package handlersutils
 
 type APIError struct {
 	Code    string `json:"code,omitempty"`
