@@ -83,16 +83,9 @@ func (s *userService) Create(ctx context.Context, username, password, email stri
 		return nil, ErrInvalidEmail
 	}
 
-	// TODO: Validate username
-	// TODO: Validate password
-
-	// if email == "" {
-	// 	return uuid.UUID{}, ErrEmptyEmail
-	// }
-
-	// if username == "" {
-	// 	return uuid.UUID{}, ErrEmptyUsername
-	// }
+	if !s.isUsernameValid(username) {
+		return nil, ErrInvalidUsername
+	}
 
 	if len(password) < 8 {
 		return nil, ErrWeakPasswordLength
@@ -198,15 +191,19 @@ func (s *userService) SendPasswordResetEmail(ctx context.Context, email string) 
 		return err
 	}
 
-	s.passwordResetRepo.Save(
+	err = s.passwordResetRepo.Save(
 		ctx,
 		user.ID,
 		utils.HashToken(token),
 		time.Now().UTC().Add(10*time.Minute),
 	)
+	if err != nil {
+		return err
+	}
 
 	resetPasswordTmplData := templates.NewResetPasswordTmplData(
 		user.Username,
+		// TODO: is there a better way to point to application url?
 		fmt.Sprintf("http://localhost:8080/accounts/password/reset?token=%s", token),
 		"10",
 	)
@@ -249,10 +246,15 @@ func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPasswo
 		return err
 	}
 
+	newToken, err := utils.GenerateToken(16)
+	if err != nil {
+		return err
+	}
+
 	return s.passwordResetRepo.Save(
 		ctx,
 		passwordReset.UserId,
-		passwordReset.Hash,
+		utils.HashToken(newToken),
 		time.Now().UTC(),
 	)
 }
@@ -448,5 +450,11 @@ func (s *userService) isUsernameValid(username string) bool {
 }
 
 func (s *userService) isPasswordValid(password string) bool {
+	// TODO: I think these functions should return map[string]string or an error.
+	// for example isPasswordValid:
+	// -> errors.New("weak password lenght")
+	// -> errors.New("weak password")
+	// -> errors.New("password does not validate all rules")
+	// and so on.
 	return false
 }

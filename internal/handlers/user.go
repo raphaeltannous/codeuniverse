@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -57,10 +56,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		apiError := handlersutils.NewAPIError(
-			"INTERNAL_SERVER_ERROR",
-			"Internal server error. Please contact support.",
-		)
+		apiError := handlersutils.NewInternalServerAPIError()
 
 		switch {
 		case errors.Is(err, repository.ErrUserAlreadyExists):
@@ -76,9 +72,14 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO should send token
+	jwtToken, err := utils.CreateJWT(user)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
 	response := map[string]string{
-		"username": user.Username,
+		"jwtToken": jwtToken,
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
@@ -142,7 +143,6 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		mfaCode,
 	)
 	if err != nil {
-		slog.Error("login handler error: send mfa code email", "err", err)
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
@@ -287,38 +287,6 @@ func (h *UserHandler) ResendMfaVerification(w http.ResponseWriter, r *http.Reque
 	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted) // TODO: correct status?
 }
 
-func (h *UserHandler) GetUserInfoById(w http.ResponseWriter, r *http.Request) {
-	var requestBody struct {
-		Id *string `json:"id"`
-	}
-
-	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
-		return
-	}
-
-	if requestBody.Id == nil {
-		http.Error(w, "Invalid request body: id is required", http.StatusBadRequest)
-		return
-	}
-
-	ctx := r.Context()
-
-	user, err := h.userService.GetById(ctx, *requestBody.Id)
-	if err != nil {
-		if strings.Contains(err.Error(), "does not exists") {
-			http.Error(w, err.Error(), http.StatusConflict)
-			return
-		}
-		http.Error(w, "Failed to fetch user info: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusFound)
-
-	json.NewEncoder(w).Encode(user)
-}
-
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -334,24 +302,23 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	users, err := h.userService.GetAllUsers(ctx, offset, limit)
 	if err != nil {
-		// TODO refactor
-		http.Error(w, "failed to fetch users"+err.Error(), http.StatusInternalServerError)
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
-	// TODO refactor
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusFound)
-
-	json.NewEncoder(w).Encode(users)
+	handlersutils.WriteResponseJSON(w, users, http.StatusFound)
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	response := map[string]string{
+		"message": "Bye!",
+	}
 
+	handlersutils.WriteResponseJSON(w, response, http.StatusContinue)
 }
 
 func (h *UserHandler) RefreshJWTToken(w http.ResponseWriter, r *http.Request) {
-
+	handlersutils.WriteResponseJSON(w, handlersutils.NewAPIError("NOT_IMPLEMENTED", "Not Implemented."), http.StatusAccepted)
 }
 
 func (h *UserHandler) PasswordResetRequest(w http.ResponseWriter, r *http.Request) {
@@ -389,36 +356,52 @@ func (h *UserHandler) PasswordResetByToken(w http.ResponseWriter, r *http.Reques
 		PasswordConfirm string `json:"confirm"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
 		return
 	}
 
 	if requestBody.Password != requestBody.PasswordConfirm {
-		http.Error(w, "passwords do not match", http.StatusConflict)
+		apiError := handlersutils.NewAPIError(
+			"PASSWORDS_DO_NOT_MATCH",
+			"Passwords do not match.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusConflict)
 		return
 	}
 
 	ctx := r.Context()
 
-	err = h.userService.ResetPasswordByToken(
+	err := h.userService.ResetPasswordByToken(
 		ctx,
 		requestBody.Token,
 		requestBody.Password,
 	)
 
 	if err != nil {
-		slog.Error("failed to reset password", "err", err)
-		http.Error(w, "failed to reset password", http.StatusInternalServerError)
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, services.ErrTimeIsExpired):
+			apiError.Code = "TIME_EXPIRED"
+			apiError.Message = "Time is expired."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+		case errors.Is(err, repository.ErrPasswordResetNotFound):
+			apiError.Code = "INVALID_TOKEN"
+			apiError.Message = "Invalid Token."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
+	reponse := map[string]string{
+		"message": "Password is changed.",
+	}
 
-	fmt.Fprint(w, "password is reset")
-
+	handlersutils.WriteResponseJSON(w, reponse, http.StatusAccepted)
 }
 
 func (h *UserHandler) VerifyEmailByToken(w http.ResponseWriter, r *http.Request) {
