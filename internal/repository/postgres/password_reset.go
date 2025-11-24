@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"git.riyt.dev/codeuniverse/internal/models"
@@ -38,7 +39,7 @@ func (pprr *postgresPasswordResetRepository) Save(ctx context.Context, userId uu
 func (pprr *postgresPasswordResetRepository) GetByTokenHash(
 	ctx context.Context,
 	hash string,
-) (passwordReset *models.PasswordReset, err error) {
+) (*models.PasswordReset, error) {
 	query := `
 		SELECT id, user_id, token_hash, expires_at, created_at
 		FROM password_resets
@@ -46,8 +47,8 @@ func (pprr *postgresPasswordResetRepository) GetByTokenHash(
 		LIMIT 1;
 	`
 
-	passwordReset = new(models.PasswordReset)
-	err = pprr.db.QueryRowContext(ctx, query, hash).Scan(
+	passwordReset := new(models.PasswordReset)
+	err := pprr.db.QueryRowContext(ctx, query, hash).Scan(
 		&passwordReset.ID,
 		&passwordReset.UserId,
 		&passwordReset.Hash,
@@ -55,5 +56,13 @@ func (pprr *postgresPasswordResetRepository) GetByTokenHash(
 		&passwordReset.CreatedAt,
 	)
 
-	return
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repository.ErrPasswordResetNotFound
+		}
+
+		return nil, err
+	}
+
+	return passwordReset, nil
 }
