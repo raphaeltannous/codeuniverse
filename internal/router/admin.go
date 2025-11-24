@@ -18,8 +18,6 @@ func adminRouter(userHandler *handlers.UserHandler) http.Handler {
 		fmt.Fprint(w, "pong")
 	})
 
-	r.Post("/user", userHandler.GetUserInfoById)
-
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.OffsetMiddleware)
 		r.Use(middleware.LimitMiddleware)
