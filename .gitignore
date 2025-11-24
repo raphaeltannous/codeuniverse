@@ -27,8 +27,8 @@
 
 !frontend
 
-!.sapmle-data/
-!.sample-data/**
+!scripts/
+!scripts/**
 
 !internal/mailer/templates/html/*.html
 
