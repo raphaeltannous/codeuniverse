@@ -30,6 +30,9 @@
 !scripts/
 !scripts/**
 
+!problems-data/
+!problems-data/**
+
 !internal/mailer/templates/html/*.html
 
 # ...even if they are in subdirectories
