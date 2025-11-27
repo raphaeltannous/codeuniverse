@@ -14,7 +14,7 @@ var (
 	ErrInvalidSlug = errors.New("invalid slug")
 )
 
-type ProblemsService interface {
+type ProblemService interface {
 	Create(ctx context.Context, problem *models.Problem) (*models.Problem, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 
@@ -26,7 +26,7 @@ type ProblemsService interface {
 	UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error)
 }
 
-type problemsService struct {
+type problemService struct {
 	problemRepository repository.ProblemRepository
 
 	logger *slog.Logger
@@ -34,34 +34,42 @@ type problemsService struct {
 
 func NewProblemService(
 	problemRepository repository.ProblemRepository,
-) ProblemsService {
-	return &problemsService{
+) ProblemService {
+	return &problemService{
 		problemRepository: problemRepository,
 
 		logger: slog.Default().With("package", "problemsService"),
 	}
 }
 
-func (s *problemsService) Create(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
-	return nil, nil
+func (s *problemService) Create(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
+	uuid, err := s.problemRepository.Create(ctx, problem)
+	if err != nil {
+		s.logger.Error("failed to create problem", "problem", problem, "err", err)
+		return nil, repository.ErrInternalServerError
+	}
+
+	problem.ID = uuid
+
+	return problem, nil
 }
 
-func (s *problemsService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *problemService) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (s *problemsService) GetById(ctx context.Context, uuidString string) (*models.Problem, error) {
+func (s *problemService) GetById(ctx context.Context, uuidString string) (*models.Problem, error) {
 	return nil, nil
 }
 
-func (s *problemsService) GetBySlug(ctx context.Context, slug string) (*models.Problem, error) {
+func (s *problemService) GetBySlug(ctx context.Context, slug string) (*models.Problem, error) {
 	return nil, nil
 }
 
-func (s *problemsService) GetAllProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error) {
+func (s *problemService) GetAllProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error) {
 	return nil, nil
 }
 
-func (s *problemsService) UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
+func (s *problemService) UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
 	return nil, nil
 }

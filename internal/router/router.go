@@ -10,6 +10,7 @@ import (
 
 func Service(
 	userHandler *handlers.UserHandler,
+	problemsHandler *handlers.ProblemHanlder,
 
 	authMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
@@ -20,6 +21,8 @@ func Service(
 
 	r.Mount("/api", apiRouter(
 		userHandler,
+		problemsHandler,
+
 		authMiddleware,
 	))
 
@@ -28,6 +31,7 @@ func Service(
 
 func apiRouter(
 	userHandler *handlers.UserHandler,
+	problemsHandler *handlers.ProblemHanlder,
 
 	authMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
@@ -39,7 +43,7 @@ func apiRouter(
 	r.Mount("/problems", problemsRouter(authMiddleware))
 	r.Mount("/submissions", submissionsRouter(authMiddleware))
 
-	r.Mount("/admin", adminRouter(userHandler, authMiddleware))
+	r.Mount("/admin", adminRouter(userHandler, problemsHandler, authMiddleware))
 
 	return r
 }
