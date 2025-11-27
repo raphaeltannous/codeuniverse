@@ -13,14 +13,38 @@ type postgresProblemRepository struct {
 	db *sql.DB
 }
 
-var _ repository.ProblemRepository = (*postgresProblemRepository)(nil)
+func NewProblemRepository(db *sql.DB) repository.ProblemRepository {
+	return &postgresProblemRepository{db: db}
+}
 
 func (ppr *postgresProblemRepository) GetProblems(ctx context.Context, limit, offset int) ([]*models.Problem, error) {
 	return nil, nil
 }
 
 func (ppr *postgresProblemRepository) Create(ctx context.Context, problem *models.Problem) (uuid.UUID, error) {
-	return uuid.UUID{}, nil
+	query := `
+		INSERT INTO problems (title, slug, description, difficulty, tags, hints, code_snippets, test_cases, is_paid, is_public)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING id;
+	`
+	err := ppr.db.QueryRowContext(
+		ctx,
+		query,
+		problem.Title,
+		problem.Slug,
+		problem.Description,
+		problem.Difficulty,
+		problem.Tags,
+		problem.Hints,
+		problem.CodeSnippets,
+		problem.TestCases,
+		problem.IsPaid,
+		problem.IsPublic,
+	).Scan(
+		&problem.ID,
+	)
+
+	return problem.ID, err
 }
 
 func (ppr *postgresProblemRepository) Delete(ctx context.Context, id uuid.UUID) error {

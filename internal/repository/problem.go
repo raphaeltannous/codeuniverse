@@ -45,6 +45,5 @@ type ProblemRepository interface {
 }
 
 var (
-	ErrProblemNotFound      = errors.New("problem not found")
-	ErrProblemAlreadyExists = errors.New("problem already exists")
+	ErrProblemNotFound = errors.New("problem not found")
 )
