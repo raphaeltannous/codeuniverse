@@ -1,0 +1,43 @@
+{
+	"title": "Remove Element",
+	"description": "\u003cp\u003eGiven an integer array \u003ccode\u003enums\u003c/code\u003e and an integer \u003ccode\u003eval\u003c/code\u003e, remove all occurrences of \u003ccode\u003eval\u003c/code\u003e in \u003ccode\u003enums\u003c/code\u003e \u003ca href=\"https://en.wikipedia.org/wiki/In-place_algorithm\" target=\"_blank\"\u003e\u003cstrong\u003ein-place\u003c/strong\u003e\u003c/a\u003e. The order of the elements may be changed. Then return \u003cem\u003ethe number of elements in \u003c/em\u003e\u003ccode\u003enums\u003c/code\u003e\u003cem\u003e which are not equal to \u003c/em\u003e\u003ccode\u003eval\u003c/code\u003e.\u003c/p\u003e\n\n\u003cp\u003eConsider the number of elements in \u003ccode\u003enums\u003c/code\u003e which are not equal to \u003ccode\u003eval\u003c/code\u003e be \u003ccode\u003ek\u003c/code\u003e, to get accepted, you need to do the following things:\u003c/p\u003e\n\n\u003cul\u003e\n\t\u003cli\u003eChange the array \u003ccode\u003enums\u003c/code\u003e such that the first \u003ccode\u003ek\u003c/code\u003e elements of \u003ccode\u003enums\u003c/code\u003e contain the elements which are not equal to \u003ccode\u003eval\u003c/code\u003e. The remaining elements of \u003ccode\u003enums\u003c/code\u003e are not important as well as the size of \u003ccode\u003enums\u003c/code\u003e.\u003c/li\u003e\n\t\u003cli\u003eReturn \u003ccode\u003ek\u003c/code\u003e.\u003c/li\u003e\n\u003c/ul\u003e\n\n\u003cp\u003e\u003cstrong\u003eCustom Judge:\u003c/strong\u003e\u003c/p\u003e\n\n\u003cp\u003eThe judge will test your solution with the following code:\u003c/p\u003e\n\n\u003cpre\u003e\nint[] nums = [...]; // Input array\nint val = ...; // Value to remove\nint[] expectedNums = [...]; // The expected answer with correct length.\n                            // It is sorted with no values equaling val.\n\nint k = removeElement(nums, val); // Calls your implementation\n\nassert k == expectedNums.length;\nsort(nums, 0, k); // Sort the first k elements of nums\nfor (int i = 0; i \u0026lt; actualLength; i++) {\n    assert nums[i] == expectedNums[i];\n}\n\u003c/pre\u003e\n\n\u003cp\u003eIf all assertions pass, then your solution will be \u003cstrong\u003eaccepted\u003c/strong\u003e.\u003c/p\u003e\n\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u003cstrong class=\"example\"\u003eExample 1:\u003c/strong\u003e\u003c/p\u003e\n\n\u003cpre\u003e\n\u003cstrong\u003eInput:\u003c/strong\u003e nums = [3,2,2,3], val = 3\n\u003cstrong\u003eOutput:\u003c/strong\u003e 2, nums = [2,2,_,_]\n\u003cstrong\u003eExplanation:\u003c/strong\u003e Your function should return k = 2, with the first two elements of nums being 2.\nIt does not matter what you leave beyond the returned k (hence they are underscores).\n\u003c/pre\u003e\n\n\u003cp\u003e\u003cstrong class=\"example\"\u003eExample 2:\u003c/strong\u003e\u003c/p\u003e\n\n\u003cpre\u003e\n\u003cstrong\u003eInput:\u003c/strong\u003e nums = [0,1,2,2,3,0,4,2], val = 2\n\u003cstrong\u003eOutput:\u003c/strong\u003e 5, nums = [0,1,4,0,3,_,_,_]\n\u003cstrong\u003eExplanation:\u003c/strong\u003e Your function should return k = 5, with the first five elements of nums containing 0, 0, 1, 3, and 4.\nNote that the five elements can be returned in any order.\nIt does not matter what you leave beyond the returned k (hence they are underscores).\n\u003c/pre\u003e\n\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eConstraints:\u003c/strong\u003e\u003c/p\u003e\n\n\u003cul\u003e\n\t\u003cli\u003e\u003ccode\u003e0 \u0026lt;= nums.length \u0026lt;= 100\u003c/code\u003e\u003c/li\u003e\n\t\u003cli\u003e\u003ccode\u003e0 \u0026lt;= nums[i] \u0026lt;= 50\u003c/code\u003e\u003c/li\u003e\n\t\u003cli\u003e\u003ccode\u003e0 \u0026lt;= val \u0026lt;= 100\u003c/code\u003e\u003c/li\u003e\n\u003c/ul\u003e\n",
+	"difficulty": "Easy",
+	"isPaid": false,
+	"isPublic": true,
+	"hints": [
+		"The problem statement clearly asks us to modify the array in-place and it also says that the element beyond the new length of the array can be anything. Given an element, we need to remove all the occurrences of it from the array. We don't technically need to \u003cb\u003eremove\u003c/b\u003e that element per-say, right?",
+		"We can move all the occurrences of this element to the end of the array. Use two pointers!\r\n\u003cbr\u003e\u003cimg src=\"https://assets.leetcode.com/uploads/2019/10/20/hint_remove_element.png\" width=\"500\"/\u003e",
+		"Yet another direction of thought is to consider the elements to be removed as non-existent. In a single pass, if we keep copying the visible elements in-place, that should also solve this problem for us."
+	],
+	"exampleTestcaseList": [
+		"[3,2,2,3]\n3",
+		"[0,1,2,2,3,0,4,2]\n2"
+	],
+	"codeSnippets": [
+		{
+			"code": "class Solution {\npublic:\n    int removeElement(vector\u003cint\u003e\u0026 nums, int val) {\n        \n    }\n};",
+			"languageName": "C++",
+			"languageSlug": "cpp"
+		},
+		{
+			"code": "class Solution:\n    def removeElement(self, nums: List[int], val: int) -\u003e int:\n        ",
+			"languageName": "Python3",
+			"languageSlug": "python3"
+		},
+		{
+			"code": "/**\n * @param {number[]} nums\n * @param {number} val\n * @return {number}\n */\nvar removeElement = function(nums, val) {\n    \n};",
+			"languageName": "JavaScript",
+			"languageSlug": "javascript"
+		},
+		{
+			"code": "function removeElement(nums: number[], val: number): number {\n    \n};",
+			"languageName": "TypeScript",
+			"languageSlug": "typescript"
+		},
+		{
+			"code": "func removeElement(nums []int, val int) int {\n    \n}",
+			"languageName": "Go",
+			"languageSlug": "golang"
+		}
+	]
+}
