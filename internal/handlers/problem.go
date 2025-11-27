@@ -65,13 +65,27 @@ func (h *ProblemHanlder) CreateProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlersutils.WriteResponseJSON(w, problem, http.StatusAccepted)
+	response := map[string]string{
+		"message": "Problem is created.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
 }
 
 // GET
 // Optional params: offset limit search.
 func (h *ProblemHanlder) GetAllProblems(w http.ResponseWriter, r *http.Request) {
-	handlersutils.Unimplemented(w, r)
+	ctx := r.Context()
+
+	offset, limit := 0, 50
+
+	problems, err := h.pS.GetAllProblems(ctx, offset, limit)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, problems, http.StatusAccepted)
 }
 
 // GET

@@ -16,7 +16,6 @@ type Problem struct {
 	Description string `db:"description" json:"description"`
 	Difficulty  string `db:"difficulty" json:"difficulty"`
 
-	Tags  []string `db:"tags" json:"tags"`
 	Hints []string `db:"hints" json:"hints"`
 
 	CodeSnippets []byte `db:"code_snippets" json:"codeSnippets"`

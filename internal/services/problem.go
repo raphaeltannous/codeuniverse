@@ -67,7 +67,15 @@ func (s *problemService) GetBySlug(ctx context.Context, slug string) (*models.Pr
 }
 
 func (s *problemService) GetAllProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error) {
-	return nil, nil
+	problems, err := s.problemRepository.GetProblems(
+		ctx,
+		offset,
+		limit,
+	)
+	if err != nil {
+		return nil, repository.ErrInternalServerError
+	}
+	return problems, nil
 }
 
 func (s *problemService) UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error) {

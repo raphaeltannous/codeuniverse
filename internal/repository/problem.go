@@ -9,7 +9,7 @@ import (
 )
 
 type ProblemRepository interface {
-	GetProblems(ctx context.Context, limit, offset int) ([]*models.Problem, error)
+	GetProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error)
 
 	Create(ctx context.Context, problem *models.Problem) (uuid.UUID, error)
 	Delete(ctx context.Context, id uuid.UUID) error
