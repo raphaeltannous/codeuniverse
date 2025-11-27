@@ -36,6 +36,7 @@ func authRouter(
 
 		r.Post("/logout", userHandler.Logout)
 		r.Post("/refresh", userHandler.RefreshJWTToken)
+		r.Get("/status", userHandler.JWTTokenStatus)
 	})
 
 	r.Route("/password", func(r chi.Router) {

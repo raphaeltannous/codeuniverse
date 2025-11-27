@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 
 	"git.riyt.dev/codeuniverse/internal/handlers"
@@ -9,14 +8,15 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func adminRouter(userHandler *handlers.UserHandler) http.Handler {
+func adminRouter(
+	userHandler *handlers.UserHandler,
+
+	authMiddleware func(next http.Handler) http.Handler,
+) http.Handler {
 	r := chi.NewRouter()
 
+	r.Use(authMiddleware)
 	r.Use(middleware.AdminOnly)
-
-	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "pong")
-	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.OffsetMiddleware)

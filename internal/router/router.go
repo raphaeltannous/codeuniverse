@@ -36,12 +36,10 @@ func apiRouter(
 	r.Mount("/health", heathRouter())
 	r.Mount("/auth", authRouter(userHandler, authMiddleware))
 
-	// Private
-	r.Group(func(r chi.Router) {
-		r.Use(authMiddleware)
+	r.Mount("/problems", problemsRouter(authMiddleware))
+	r.Mount("/submissions", submissionsRouter(authMiddleware))
 
-		r.Mount("/admin", adminRouter(userHandler))
-	})
+	r.Mount("/admin", adminRouter(userHandler, authMiddleware))
 
 	return r
 }

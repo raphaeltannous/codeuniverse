@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"git.riyt.dev/codeuniverse/internal/middleware"
 	"git.riyt.dev/codeuniverse/internal/repository"
@@ -319,6 +317,14 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) RefreshJWTToken(w http.ResponseWriter, r *http.Request) {
 	handlersutils.WriteResponseJSON(w, handlersutils.NewAPIError("NOT_IMPLEMENTED", "Not Implemented."), http.StatusAccepted)
+}
+
+func (h *UserHandler) JWTTokenStatus(w http.ResponseWriter, r *http.Request) {
+	response := map[string]string{
+		"message": "Token is valid.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
 }
 
 func (h *UserHandler) PasswordResetRequest(w http.ResponseWriter, r *http.Request) {

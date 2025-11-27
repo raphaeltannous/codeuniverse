@@ -47,6 +47,8 @@ type UserService interface {
 
 	SendEmailVerificationEmail(ctx context.Context, email string) error
 	VerifyEmailByToken(ctx context.Context, token string) error
+
+	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
 }
 
 type userService struct {
@@ -73,7 +75,7 @@ func NewUserService(
 		passwordResetRepo:     passwordResetRepo,
 		emailVerificationRepo: emailVerificationRepo,
 
-		logger:  slog.Default().With("package", "postgres.UserRepository"),
+		logger:  slog.Default().With("package", "userService"),
 		mailMan: mailMan,
 	}
 }
@@ -457,4 +459,8 @@ func (s *userService) isPasswordValid(password string) bool {
 	// -> errors.New("password does not validate all rules")
 	// and so on.
 	return false
+}
+
+func (s *userService) UpdateRole(ctx context.Context, id uuid.UUID, role string) error {
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils"
+	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -16,37 +17,54 @@ func AuthMiddleware(next http.Handler, userService services.UserService) http.Ha
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, "missing token", http.StatusUnauthorized)
+			apiError := handlersutils.NewAPIError(
+				"MISSING_TOKEN",
+				"Missing Token.",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		token, err := utils.ValidateJWT(tokenString)
-		if err != nil {
-			http.Error(w, "invalid token", http.StatusUnauthorized)
-			return
-		}
+		if err != nil || !token.Valid {
+			apiError := handlersutils.NewAPIError(
+				"INVALID_TOKEN",
+				"Invalid Token.",
+			)
 
-		if !token.Valid {
-			http.Error(w, "invalid or expired token", http.StatusUnauthorized)
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			http.Error(w, "invalid claims", http.StatusUnauthorized)
+			apiError := handlersutils.NewAPIError(
+				"INVALID_Claims",
+				"Invalid Claims.",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
 			return
 		}
 
-		username := claims["username"].(string)
+		username := claims["username"].(string) // TODO: check ok?
+
 		user, err := userService.GetByUsername(r.Context(), username)
 		if err != nil {
-			http.Error(w, "username not found", http.StatusUnauthorized)
+			apiError := handlersutils.NewAPIError(
+				"INVALID_TOKEN_USER",
+				"User not found.",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
 			return
 		}
 
 		ctx := context.WithValue(r.Context(), UserCtxKey, user)
+		r = r.WithContext(ctx)
 
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, r)
 	})
 }
