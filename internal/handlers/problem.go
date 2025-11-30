@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
+	"git.riyt.dev/codeuniverse/internal/middleware"
 	"git.riyt.dev/codeuniverse/internal/models"
+	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
+	"github.com/go-chi/chi/v5"
 )
 
 type ProblemHanlder struct {
@@ -24,8 +28,8 @@ func (h *ProblemHanlder) CreateProblem(w http.ResponseWriter, r *http.Request) {
 		Title       string `json:"title"`
 		Description string `json:"description"`
 		Difficulty  string `json:"difficulty"`
-		IsPaid      bool   `json:"is_paid"`
-		IsPublic    bool   `json:"is_public"`
+		IsPaid      bool   `json:"isPaid"`
+		IsPublic    bool   `json:"isPublic"`
 
 		Hints []string `json:"hints"`
 
@@ -74,10 +78,18 @@ func (h *ProblemHanlder) CreateProblem(w http.ResponseWriter, r *http.Request) {
 
 // GET
 // Optional params: offset limit search.
-func (h *ProblemHanlder) GetAllProblems(w http.ResponseWriter, r *http.Request) {
+func (h *ProblemHanlder) GetProblems(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	offset, limit := 0, 50
+	offset, ok := ctx.Value("offset").(int)
+	if !ok {
+		offset = middleware.OffsetDefault
+	}
+
+	limit, ok := ctx.Value("limit").(int)
+	if !ok {
+		limit = middleware.LimitDefault
+	}
 
 	problems, err := h.pS.GetAllProblems(ctx, offset, limit)
 	if err != nil {
@@ -90,7 +102,31 @@ func (h *ProblemHanlder) GetAllProblems(w http.ResponseWriter, r *http.Request) 
 
 // GET
 func (h *ProblemHanlder) GetProblem(w http.ResponseWriter, r *http.Request) {
-	handlersutils.Unimplemented(w, r)
+	slug := chi.URLParam(r, "problemSlug")
+
+	ctx := r.Context()
+
+	problem, err := h.pS.GetBySlug(
+		ctx,
+		slug,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrProblemNotFound):
+			apiError.Code = "PROBLEM_NOT_FOUND"
+			apiError.Message = "Problem not found."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, problem, http.StatusAccepted)
 }
 
 // PUT

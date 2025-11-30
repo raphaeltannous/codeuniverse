@@ -34,7 +34,7 @@ func adminRouter(
 			r.Use(middleware.LimitMiddleware)
 			// TODO r.Use(middleware.SearchMiddleware)
 
-			r.Get("/", problemsHandler.GetAllProblems)
+			r.Get("/", problemsHandler.GetProblems)
 		})
 
 		r.Post("/", problemsHandler.CreateProblem)

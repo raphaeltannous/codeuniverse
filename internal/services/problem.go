@@ -24,6 +24,9 @@ type ProblemService interface {
 	GetAllProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error)
 
 	UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error)
+
+	Submit(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error)
+	Test(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error)
 }
 
 type problemService struct {
@@ -63,7 +66,21 @@ func (s *problemService) GetById(ctx context.Context, uuidString string) (*model
 }
 
 func (s *problemService) GetBySlug(ctx context.Context, slug string) (*models.Problem, error) {
-	return nil, nil
+	problem, err := s.problemRepository.GetBySlug(
+		ctx,
+		slug,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrProblemNotFound):
+			return nil, err
+		}
+
+		s.logger.Error("failed to get err", "func", "GetBySlug", "err", err)
+		return nil, repository.ErrInternalServerError
+	}
+
+	return problem, nil
 }
 
 func (s *problemService) GetAllProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error) {
@@ -79,5 +96,13 @@ func (s *problemService) GetAllProblems(ctx context.Context, offset, limit int) 
 }
 
 func (s *problemService) UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
+	return nil, nil
+}
+
+func (s *problemService) Submit(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error) {
+	return nil, nil
+}
+
+func (s *problemService) Test(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error) {
 	return nil, nil
 }

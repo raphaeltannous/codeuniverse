@@ -40,7 +40,7 @@ func apiRouter(
 	r.Mount("/health", heathRouter())
 	r.Mount("/auth", authRouter(userHandler, authMiddleware))
 
-	r.Mount("/problems", problemsRouter(authMiddleware))
+	r.Mount("/problems", problemsRouter(problemsHandler, authMiddleware))
 	r.Mount("/submissions", submissionsRouter(authMiddleware))
 
 	r.Mount("/admin", adminRouter(userHandler, problemsHandler, authMiddleware))

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"strings"
 	"time"
 
@@ -18,14 +17,14 @@ type Problem struct {
 
 	Hints []string `db:"hints" json:"hints"`
 
-	CodeSnippets []byte `db:"code_snippets" json:"codeSnippets"`
-	TestCases    []byte `db:"test_cases" json:"testcases"`
+	CodeSnippets []CodeSnippet `db:"code_snippets" json:"codeSnippets"`
+	TestCases    []string      `db:"test_cases" json:"testcases"`
 
 	IsPaid   *bool `db:"is_paid" json:"isPaid"`
 	IsPublic *bool `db:"is_public" json:"isPublic"`
 
-	CreatedAt time.Time `db:"created_at" json:"createdAt"`
-	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
+	CreatedAt time.Time `db:"created_at" json:"-"`
+	UpdatedAt time.Time `db:"updated_at" json:"-"`
 }
 
 type CodeSnippet struct {
@@ -46,16 +45,6 @@ func NewProblem(
 	codeSnippets []CodeSnippet,
 	TestCases []string,
 ) (*Problem, error) {
-	codeSnippetsBytes, err := json.Marshal(codeSnippets)
-	if err != nil {
-		return nil, err
-	}
-
-	testCasesBytes, err := json.Marshal(TestCases)
-	if err != nil {
-		return nil, err
-	}
-
 	problem := &Problem{
 		Title:       title,
 		Slug:        generateSlug(title),
@@ -66,8 +55,8 @@ func NewProblem(
 
 		Hints: hints,
 
-		CodeSnippets: codeSnippetsBytes,
-		TestCases:    testCasesBytes,
+		CodeSnippets: codeSnippets,
+		TestCases:    TestCases,
 	}
 
 	return problem, nil

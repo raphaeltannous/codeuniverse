@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 
 	"git.riyt.dev/codeuniverse/internal/models"
@@ -116,7 +118,11 @@ func (ppr *postgresProblemRepository) GetByID(ctx context.Context, id uuid.UUID)
 }
 
 func (ppr *postgresProblemRepository) GetBySlug(ctx context.Context, slug string) (*models.Problem, error) {
-	return nil, nil
+	return ppr.getProblemByColumn(
+		ctx,
+		"slug",
+		slug,
+	)
 }
 
 func (ppr *postgresProblemRepository) GetByNumber(ctx context.Context, number int) (*models.Problem, error) {
@@ -220,12 +226,55 @@ func (ppr *postgresProblemRepository) updateColumnValue(ctx context.Context, id 
 	)
 }
 
+func (ppr *postgresProblemRepository) getProblemByColumn(ctx context.Context, column string, value any) (*models.Problem, error) {
+	query := fmt.Sprintf(
+		`
+		SELECT
+			id,
+
+			title,
+			slug,
+			description,
+			difficulty,
+
+			to_json(hints) AS hints,
+
+			code_snippets,
+			test_cases,
+
+			is_paid,
+			is_public,
+
+			created_at,
+			updated_at
+		FROM problems
+		WHERE %s = $1;
+		`,
+		column,
+	)
+
+	row := ppr.db.QueryRowContext(ctx, query, value)
+
+	problem := new(models.Problem)
+	if err := ppr.scanProblemFunc(row, problem); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repository.ErrProblemNotFound
+		}
+
+		return nil, err
+	}
+
+	return problem, nil
+}
+
 type problemScanner interface {
 	Scan(dest ...any) error
 }
 
 func (ppr *postgresProblemRepository) scanProblemFunc(scanner problemScanner, problem *models.Problem) error {
 	var hintsBytes []byte
+	var codeSnippetsBytes []byte
+	var testCasesBytes []byte
 
 	err := scanner.Scan(
 		&problem.ID,
@@ -237,8 +286,8 @@ func (ppr *postgresProblemRepository) scanProblemFunc(scanner problemScanner, pr
 
 		&hintsBytes,
 
-		&problem.CodeSnippets,
-		&problem.TestCases,
+		&codeSnippetsBytes,
+		&testCasesBytes,
 
 		&problem.IsPaid,
 		&problem.IsPublic,
@@ -261,6 +310,30 @@ func (ppr *postgresProblemRepository) scanProblemFunc(scanner problemScanner, pr
 	}
 
 	problem.Hints = hints
+
+	var codeSnippets []models.CodeSnippet
+
+	if len(codeSnippetsBytes) == 0 || string(hintsBytes) == "null" {
+		codeSnippets = []models.CodeSnippet{}
+	} else {
+		if err := json.Unmarshal(codeSnippetsBytes, &codeSnippets); err != nil {
+			return err
+		}
+	}
+
+	problem.CodeSnippets = codeSnippets
+
+	var testCases []string
+
+	if len(testCasesBytes) == 0 || string(testCasesBytes) == "null" {
+		testCases = []string{}
+	} else {
+		if err := json.Unmarshal(testCasesBytes, &testCases); err != nil {
+			return err
+		}
+	}
+
+	problem.TestCases = testCases
 
 	return nil
 }
