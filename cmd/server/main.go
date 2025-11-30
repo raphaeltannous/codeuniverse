@@ -86,7 +86,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    ":3333",
-		Handler: service(db, mailMan),
+		Handler: service(db, mailMan, *judge),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -112,7 +112,11 @@ func main() {
 	}
 }
 
-func service(db *sql.DB, mailMan mailer.Mailer) http.Handler {
+func service(
+	db *sql.DB,
+	mailMan mailer.Mailer,
+	judge judger.Judge,
+) http.Handler {
 	// repos
 	userRepo := postgres.NewUserRepository(db)
 	problemRepository := postgres.NewProblemRepository(db)
@@ -132,6 +136,8 @@ func service(db *sql.DB, mailMan mailer.Mailer) http.Handler {
 
 	problemService := services.NewProblemService(
 		problemRepository,
+
+		judge,
 	)
 
 	// handlers

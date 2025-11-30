@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"git.riyt.dev/codeuniverse/internal/judger"
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"github.com/google/uuid"
@@ -26,21 +27,25 @@ type ProblemService interface {
 	UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error)
 
 	Submit(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error)
-	Test(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error)
+	Run(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error)
 }
 
 type problemService struct {
 	problemRepository repository.ProblemRepository
 
+	judge  judger.Judge
 	logger *slog.Logger
 }
 
 func NewProblemService(
 	problemRepository repository.ProblemRepository,
+
+	judge judger.Judge,
 ) ProblemService {
 	return &problemService{
 		problemRepository: problemRepository,
 
+		judge:  judge,
 		logger: slog.Default().With("package", "problemsService"),
 	}
 }
@@ -103,6 +108,11 @@ func (s *problemService) Submit(ctx context.Context, problemSlug, languageSlug, 
 	return nil, nil
 }
 
-func (s *problemService) Test(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error) {
-	return nil, nil
+func (s *problemService) Run(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error) {
+	return nil, s.judge.Run(
+		ctx,
+		problemSlug,
+		languageSlug,
+		code,
+	)
 }

@@ -10,7 +10,7 @@ import (
 
 func Service(
 	userHandler *handlers.UserHandler,
-	problemsHandler *handlers.ProblemHanlder,
+	problemsHandler *handlers.ProblemHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
@@ -31,7 +31,7 @@ func Service(
 
 func apiRouter(
 	userHandler *handlers.UserHandler,
-	problemsHandler *handlers.ProblemHanlder,
+	problemsHandler *handlers.ProblemHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {

@@ -12,18 +12,18 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type ProblemHanlder struct {
+type ProblemHandler struct {
 	pS services.ProblemService
 }
 
-func NewProblemsHandlers(pS services.ProblemService) *ProblemHanlder {
-	return &ProblemHanlder{
+func NewProblemsHandlers(pS services.ProblemService) *ProblemHandler {
+	return &ProblemHandler{
 		pS: pS,
 	}
 }
 
 // POST
-func (h *ProblemHanlder) CreateProblem(w http.ResponseWriter, r *http.Request) {
+func (h *ProblemHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
 		Title       string `json:"title"`
 		Description string `json:"description"`
@@ -78,7 +78,7 @@ func (h *ProblemHanlder) CreateProblem(w http.ResponseWriter, r *http.Request) {
 
 // GET
 // Optional params: offset limit search.
-func (h *ProblemHanlder) GetProblems(w http.ResponseWriter, r *http.Request) {
+func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	offset, ok := ctx.Value("offset").(int)
@@ -101,7 +101,7 @@ func (h *ProblemHanlder) GetProblems(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET
-func (h *ProblemHanlder) GetProblem(w http.ResponseWriter, r *http.Request) {
+func (h *ProblemHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "problemSlug")
 
 	ctx := r.Context()
@@ -130,11 +130,35 @@ func (h *ProblemHanlder) GetProblem(w http.ResponseWriter, r *http.Request) {
 }
 
 // PUT
-func (h *ProblemHanlder) UpdateProblem(w http.ResponseWriter, r *http.Request) {
+func (h *ProblemHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	handlersutils.Unimplemented(w, r)
 }
 
 // DELETE
-func (h *ProblemHanlder) DeleteProblem(w http.ResponseWriter, r *http.Request) {
+func (h *ProblemHandler) DeleteProblem(w http.ResponseWriter, r *http.Request) {
 	handlersutils.Unimplemented(w, r)
+}
+
+// POST
+func (h *ProblemHandler) Run(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		ProblemSlug  string `json:"problemSlug"`
+		LanguageSlug string `json:"languageSlug"`
+		Code         string `json:"code"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+
+	h.pS.Run(
+		ctx,
+		requestBody.ProblemSlug,
+		requestBody.LanguageSlug,
+		requestBody.Code,
+	)
+
+	handlersutils.WriteResponseJSON(w, requestBody, http.StatusAccepted)
 }

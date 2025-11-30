@@ -9,7 +9,7 @@ import (
 )
 
 func problemsRouter(
-	problemsHandler *handlers.ProblemHanlder,
+	problemsHandler *handlers.ProblemHandler,
 	authMiddleware func(next http.Handler) http.Handler,
 ) chi.Router {
 	r := chi.NewRouter()
@@ -26,6 +26,10 @@ func problemsRouter(
 				r.Post("/", handlersutils.Unimplemented)
 
 				r.Get("/{submissionId}/check", handlersutils.Unimplemented)
+			})
+
+			r.Route("/run", func(r chi.Router) {
+				r.Post("/", problemsHandler.Run)
 			})
 
 			r.Route("/notes", func(r chi.Router) {

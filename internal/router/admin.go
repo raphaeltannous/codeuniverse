@@ -10,7 +10,7 @@ import (
 
 func adminRouter(
 	userHandler *handlers.UserHandler,
-	problemsHandler *handlers.ProblemHanlder,
+	problemsHandler *handlers.ProblemHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {

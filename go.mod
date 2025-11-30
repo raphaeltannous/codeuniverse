@@ -6,6 +6,7 @@ ignore (
 	./.development
 	./.json-sample-data
 	./frontend
+	./problems-data
 )
 
 require (
