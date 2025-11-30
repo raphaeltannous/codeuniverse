@@ -5,35 +5,35 @@
 	"isPaid": false,
 	"isPublic": true,
 	"hints": [],
-	"exampleTestcaseList": [
+	"testCases": [
 		"[1,2,3]",
 		"[0]"
 	],
 	"codeSnippets": [
 		{
 			"code": "class Solution {\npublic:\n    vector\u003cvector\u003cint\u003e\u003e subsets(vector\u003cint\u003e\u0026 nums) {\n        \n    }\n};",
-			"lang": "C++",
-			"langSlug": "cpp"
+			"languageName": "C++",
+			"languageSlug": "cpp"
 		},
 		{
 			"code": "class Solution:\n    def subsets(self, nums: List[int]) -\u003e List[List[int]]:\n        ",
-			"lang": "Python3",
-			"langSlug": "python3"
+			"languageName": "Python3",
+			"languageSlug": "python3"
 		},
 		{
 			"code": "/**\n * @param {number[]} nums\n * @return {number[][]}\n */\nvar subsets = function(nums) {\n    \n};",
-			"lang": "JavaScript",
-			"langSlug": "javascript"
+			"languageName": "JavaScript",
+			"languageSlug": "javascript"
 		},
 		{
 			"code": "function subsets(nums: number[]): number[][] {\n    \n};",
-			"lang": "TypeScript",
-			"langSlug": "typescript"
+			"languageName": "TypeScript",
+			"languageSlug": "typescript"
 		},
 		{
 			"code": "func subsets(nums []int) [][]int {\n    \n}",
-			"lang": "Go",
-			"langSlug": "golang"
+			"languageName": "Go",
+			"languageSlug": "golang"
 		}
 	]
 }

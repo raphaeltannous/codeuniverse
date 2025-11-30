@@ -4,35 +4,35 @@
 	"difficulty": "Medium",
 	"isPaid": false,
 	"isPublic": true,
-	"exampleTestcaseList": [
+	"testCases": [
 		"[1,2,2]",
 		"[0]"
 	],
 	"codeSnippets": [
 		{
 			"code": "class Solution {\npublic:\n    vector\u003cvector\u003cint\u003e\u003e subsetsWithDup(vector\u003cint\u003e\u0026 nums) {\n        \n    }\n};",
-			"lang": "C++",
-			"langSlug": "cpp"
+			"languageName": "C++",
+			"languageSlug": "cpp"
 		},
 		{
 			"code": "class Solution:\n    def subsetsWithDup(self, nums: List[int]) -\u003e List[List[int]]:\n        ",
-			"lang": "Python3",
-			"langSlug": "python3"
+			"languageName": "Python3",
+			"languageSlug": "python3"
 		},
 		{
 			"code": "/**\n * @param {number[]} nums\n * @return {number[][]}\n */\nvar subsetsWithDup = function(nums) {\n    \n};",
-			"lang": "JavaScript",
-			"langSlug": "javascript"
+			"languageName": "JavaScript",
+			"languageSlug": "javascript"
 		},
 		{
 			"code": "function subsetsWithDup(nums: number[]): number[][] {\n    \n};",
-			"lang": "TypeScript",
-			"langSlug": "typescript"
+			"languageName": "TypeScript",
+			"languageSlug": "typescript"
 		},
 		{
 			"code": "func subsetsWithDup(nums []int) [][]int {\n    \n}",
-			"lang": "Go",
-			"langSlug": "golang"
+			"languageName": "Go",
+			"languageSlug": "golang"
 		}
 	]
 }

@@ -9,7 +9,7 @@
 		"We can move all the occurrences of this element to the end of the array. Use two pointers!\r\n\u003cbr\u003e\u003cimg src=\"https://assets.leetcode.com/uploads/2019/10/20/hint_remove_element.png\" width=\"500\"/\u003e",
 		"Yet another direction of thought is to consider the elements to be removed as non-existent. In a single pass, if we keep copying the visible elements in-place, that should also solve this problem for us."
 	],
-	"exampleTestcaseList": [
+	"testCases": [
 		"[3,2,2,3]\n3",
 		"[0,1,2,2,3,0,4,2]\n2"
 	],
