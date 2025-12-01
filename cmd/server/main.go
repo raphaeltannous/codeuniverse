@@ -120,6 +120,7 @@ func service(
 	// repos
 	userRepo := postgres.NewUserRepository(db)
 	problemRepository := postgres.NewProblemRepository(db)
+	runRepository := postgres.NewRunRepository(db)
 	mfaRepo := postgres.NewMfaCodeRepository(db)
 	passwordResetRepo := postgres.NewPasswordResetRepository(db)
 	emailVerificationRepo := postgres.NewEmailVerificationRepository(db)
@@ -136,6 +137,7 @@ func service(
 
 	problemService := services.NewProblemService(
 		problemRepository,
+		runRepository,
 
 		judge,
 	)

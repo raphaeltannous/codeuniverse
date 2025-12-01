@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -153,12 +154,43 @@ func (h *ProblemHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	h.pS.Run(
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	problem, err := h.pS.GetBySlug(
 		ctx,
 		requestBody.ProblemSlug,
-		requestBody.LanguageSlug,
-		requestBody.Code,
 	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
 
-	handlersutils.WriteResponseJSON(w, requestBody, http.StatusAccepted)
+	handlerChannel := make(chan string)
+
+	go func() {
+		h.pS.Run(
+			context.WithoutCancel(ctx),
+			user,
+			problem,
+			requestBody.LanguageSlug,
+			requestBody.Code,
+			handlerChannel,
+		)
+	}()
+
+	runId := <-handlerChannel
+	if runId == repository.ErrInternalServerError.Error() {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"runId": runId,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusCreated)
 }

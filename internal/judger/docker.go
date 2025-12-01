@@ -3,17 +3,13 @@ package judger
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
-	"os"
-	"path/filepath"
 
 	"git.riyt.dev/codeuniverse/internal/logger"
-	"github.com/docker/docker/api/types/container"
+	"git.riyt.dev/codeuniverse/internal/models"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
 )
 
 var supportedLanguages = map[string]string{
@@ -28,6 +24,13 @@ var (
 	ErrLanguageNotSupported = errors.New("language not supported")
 )
 
+const problemsDataDir = "problems-data"
+
+type languageJudge interface {
+	Run(ctx context.Context, run *models.Run, problemSlug string) error
+	Submit(ctx context.Context, problemSlug, code string) error
+}
+
 type Judge struct {
 	Cli    *client.Client
 	logger *slog.Logger
@@ -41,7 +44,7 @@ func NewJudge() (*Judge, error) {
 
 	return &Judge{
 		Cli:    cli,
-		logger: slog.Default().With("package", "judge"),
+		logger: slog.Default().With("package", "judge.Judge"),
 	}, nil
 }
 
@@ -93,95 +96,14 @@ func (judge *Judge) pullImage(ctx context.Context, wantedImage string) error {
 	return err
 }
 
-func (judge *Judge) Run(ctx context.Context, problemSlug, languageSlug, code string) error {
-	if _, ok := supportedLanguages[languageSlug]; !ok {
+func (judge *Judge) Run(ctx context.Context, run *models.Run, problemSlug string) error {
+	if _, ok := supportedLanguages[run.Language]; !ok {
 		return ErrLanguageNotSupported
 	}
 
-	runWorkspace, err := os.MkdirTemp("", "run-*")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(runWorkspace)
-	judge.logger.Debug("new runWorkspace", "workspace", runWorkspace)
-
-	// test file
-	mainTestFile := filepath.Join("problems-data", problemSlug, "go", "main_test.go")
-	dstPath := filepath.Join(runWorkspace, "main_test.go")
-
-	data, err := os.ReadFile(mainTestFile)
-	if err != nil {
-		return err
+	lJ := map[string]func(cli *client.Client) languageJudge{
+		"golang": newGolangJudge,
 	}
 
-	if err := os.WriteFile(dstPath, data, 0644); err != nil {
-		return err
-	}
-
-	// user file
-	mainPath := filepath.Join(runWorkspace, "main.go")
-	if err := os.WriteFile(mainPath, []byte(code), 0644); err != nil {
-		return err
-	}
-
-	// go mod file
-
-	modeContent := "module codeUniverse\n\ngo 1.25.4\n"
-	modPath := filepath.Join(runWorkspace, "go.mod")
-	if err := os.WriteFile(modPath, []byte(modeContent), 0644); err != nil {
-		return err
-	}
-
-	resp, err := judge.Cli.ContainerCreate(
-		ctx,
-		&container.Config{
-			Image:           supportedLanguages[languageSlug],
-			Cmd:             []string{"go", "test", "-v", "."},
-			NetworkDisabled: true,
-			WorkingDir:      "/app",
-		},
-		&container.HostConfig{
-			NetworkMode:    "none",
-			ReadonlyRootfs: false,
-			AutoRemove:     true,
-
-			Resources: container.Resources{
-				Memory:     256 * 1024 * 1024,
-				MemorySwap: 256 * 1024 * 1024,
-				CPUQuota:   50000,
-				CPUPeriod:  100000,
-			},
-
-			Binds: []string{runWorkspace + ":/app:rw"},
-		},
-		nil,
-		nil,
-		"",
-	)
-
-	if err := judge.Cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-		panic(err)
-	}
-
-	statusCh, errCh := judge.Cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
-
-	select {
-	case status := <-statusCh:
-		// status.StatusCode has the container exit code
-		fmt.Println("Container exited with code:", status.StatusCode)
-	case err := <-errCh:
-		return fmt.Errorf("container wait error: %w", err)
-	case <-ctx.Done():
-		_ = judge.Cli.ContainerKill(context.Background(), resp.ID, "SIGKILL")
-		return fmt.Errorf("execution timed out")
-	}
-
-	out, err := judge.Cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
-	if err != nil {
-		panic(err)
-	}
-
-	stdcopy.StdCopy(os.Stdout, os.Stderr, out)
-	judge.logger.Debug("achieved final destiny")
-	return nil
+	return lJ[run.Language](judge.Cli).Run(ctx, run, problemSlug)
 }

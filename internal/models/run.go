@@ -24,3 +24,21 @@ type Run struct {
 	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 }
+
+func NewRun(
+	userId uuid.UUID,
+	problemId uuid.UUID,
+
+	language string,
+	code string,
+	status string,
+) *Run {
+	return &Run{
+		UserId:    userId,
+		ProblemId: problemId,
+
+		Language: language,
+		Code:     code,
+		Status:   status,
+	}
+}

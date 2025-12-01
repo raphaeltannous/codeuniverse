@@ -49,7 +49,11 @@ func AuthMiddleware(next http.Handler, userService services.UserService) http.Ha
 			return
 		}
 
-		username := claims["username"].(string) // TODO: check ok?
+		username, ok := claims["username"].(string)
+		if !ok {
+			handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+			return
+		}
 
 		user, err := userService.GetByUsername(r.Context(), username)
 		if err != nil {

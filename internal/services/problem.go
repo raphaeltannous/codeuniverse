@@ -27,11 +27,12 @@ type ProblemService interface {
 	UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error)
 
 	Submit(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error)
-	Run(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error)
+	Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
 }
 
 type problemService struct {
 	problemRepository repository.ProblemRepository
+	runRepository     repository.RunRepository
 
 	judge  judger.Judge
 	logger *slog.Logger
@@ -39,11 +40,13 @@ type problemService struct {
 
 func NewProblemService(
 	problemRepository repository.ProblemRepository,
+	runRepository repository.RunRepository,
 
 	judge judger.Judge,
 ) ProblemService {
 	return &problemService{
 		problemRepository: problemRepository,
+		runRepository:     runRepository,
 
 		judge:  judge,
 		logger: slog.Default().With("package", "problemsService"),
@@ -108,11 +111,40 @@ func (s *problemService) Submit(ctx context.Context, problemSlug, languageSlug, 
 	return nil, nil
 }
 
-func (s *problemService) Run(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error) {
-	return nil, s.judge.Run(
-		ctx,
-		problemSlug,
+func (s *problemService) Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error {
+	run := models.NewRun(
+		user.ID,
+		problem.ID,
 		languageSlug,
 		code,
+		"PENDING",
 	)
+
+	run, err := s.runRepository.Create(
+		ctx,
+		run,
+	)
+	if err != nil {
+		handlerChannel <- repository.ErrInternalServerError.Error()
+		return err
+	}
+
+	handlerChannel <- run.ID.String()
+	close(handlerChannel)
+
+	s.judge.Run(
+		ctx,
+		run,
+		problem.Slug,
+	)
+
+	if err := s.runRepository.UpdateAcceptanceStatus(ctx, run.ID, run.IsAccepted); err != nil {
+		return err
+	}
+
+	if err := s.runRepository.UpdateStatus(ctx, run.ID, run.Status); err != nil {
+		return err
+	}
+
+	return nil
 }
