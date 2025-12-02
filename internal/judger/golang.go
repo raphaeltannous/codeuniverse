@@ -27,10 +27,10 @@ func newGolangJudge(cli *client.Client) languageJudge {
 }
 
 func (g *golangJudge) Run(ctx context.Context, run *models.Run, problemSlug string) error {
-	problemTestDir := filepath.Join(problemsDataDir, problemSlug, "golang")
+	problemTestDir := filepath.Join(problemsDataDir, problemSlug, "go")
 	srcDir := os.DirFS(problemTestDir)
 
-	runWorkspace, err := os.MkdirTemp("", "run-golang-*")
+	runWorkspace, err := os.MkdirTemp("", "run-go-*")
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (g *golangJudge) Run(ctx context.Context, run *models.Run, problemSlug stri
 	resp, err := g.cli.ContainerCreate(
 		ctx,
 		&container.Config{
-			Image:           supportedLanguages[run.Language],
+			Image:           SupportedLanguages[run.Language].containerImage,
 			Cmd:             []string{"go", "test", "-timeout", "7s", "-json", "."},
 			NetworkDisabled: true,
 			WorkingDir:      "/app",

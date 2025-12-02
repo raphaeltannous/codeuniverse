@@ -76,7 +76,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer judge.Cli.Close()
+	defer judge.Close()
 
 	db, err := database.Connect()
 	if err != nil {
