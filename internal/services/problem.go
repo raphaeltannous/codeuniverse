@@ -88,6 +88,17 @@ func (s *problemService) GetBySlug(ctx context.Context, slug string) (*models.Pr
 		return nil, repository.ErrInternalServerError
 	}
 
+	// Filtering snippets based on the available snippets in judger.problemsDataDir
+	allowedSnippets := make([]models.CodeSnippet, 0, len(problem.CodeSnippets))
+	for _, snippet := range problem.CodeSnippets {
+		if language, ok := judger.SupportedLanguages[snippet.LanguageSlug]; ok {
+			if language.DoesItHaveTests(problem.Slug) {
+				allowedSnippets = append(allowedSnippets, snippet)
+			}
+		}
+	}
+	problem.CodeSnippets = allowedSnippets
+
 	return problem, nil
 }
 
@@ -132,11 +143,15 @@ func (s *problemService) Run(ctx context.Context, user *models.User, problem *mo
 	handlerChannel <- run.ID.String()
 	close(handlerChannel)
 
-	s.judge.Run(
+	err = s.judge.Run(
 		ctx,
 		run,
 		problem.Slug,
 	)
+	if err != nil {
+		s.logger.Error("failed to run judge", "err", err)
+		return err
+	}
 
 	if err := s.runRepository.UpdateAcceptanceStatus(ctx, run.ID, run.IsAccepted); err != nil {
 		return err
