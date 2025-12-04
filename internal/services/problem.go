@@ -26,13 +26,14 @@ type ProblemService interface {
 
 	UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error)
 
-	Submit(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error)
+	Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
 	Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
 }
 
 type problemService struct {
-	problemRepository repository.ProblemRepository
-	runRepository     repository.RunRepository
+	problemRepository    repository.ProblemRepository
+	runRepository        repository.RunRepository
+	submissionRepository repository.SubmissionRepository
 
 	judge  judger.Judge
 	logger *slog.Logger
@@ -41,12 +42,14 @@ type problemService struct {
 func NewProblemService(
 	problemRepository repository.ProblemRepository,
 	runRepository repository.RunRepository,
+	submissionRepository repository.SubmissionRepository,
 
 	judge judger.Judge,
 ) ProblemService {
 	return &problemService{
-		problemRepository: problemRepository,
-		runRepository:     runRepository,
+		problemRepository:    problemRepository,
+		runRepository:        runRepository,
+		submissionRepository: submissionRepository,
 
 		judge:  judge,
 		logger: slog.Default().With("package", "problemsService"),
@@ -118,8 +121,47 @@ func (s *problemService) UpdateProblem(ctx context.Context, problem *models.Prob
 	return nil, nil
 }
 
-func (s *problemService) Submit(ctx context.Context, problemSlug, languageSlug, code string) (*models.Submission, error) {
-	return nil, nil
+func (s *problemService) Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error {
+	submission := models.NewSubmission(
+		user.ID,
+		problem.ID,
+
+		languageSlug,
+		code,
+		"PENDING",
+	)
+
+	submission, err := s.submissionRepository.Create(
+		ctx,
+		submission,
+	)
+	if err != nil {
+		handlerChannel <- repository.ErrInternalServerError.Error()
+		close(handlerChannel)
+		return err
+	}
+	handlerChannel <- submission.ID.String()
+	close(handlerChannel)
+
+	err = s.judge.Submit(
+		ctx,
+		submission,
+		problem.Slug,
+	)
+	if err != nil {
+		s.logger.Error("failed to submit judge", "err", err)
+		return err
+	}
+
+	if err := s.submissionRepository.UpdateAcceptanceStatus(ctx, submission.ID, submission.IsAccepted); err != nil {
+		return err
+	}
+
+	if err := s.submissionRepository.UpdateStatus(ctx, submission.ID, submission.Status); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *problemService) Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error {

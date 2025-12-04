@@ -194,3 +194,58 @@ func (h *ProblemHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusCreated)
 }
+
+// POST
+func (h *ProblemHandler) Submit(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		ProblemSlug  string `json:"problemSlug"`
+		LanguageSlug string `json:"languageSlug"`
+		Code         string `json:"code"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	problem, err := h.pS.GetBySlug(
+		ctx,
+		requestBody.ProblemSlug,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlerChannel := make(chan string)
+
+	go func() {
+		h.pS.Submit(
+			context.WithoutCancel(ctx),
+			user,
+			problem,
+			requestBody.LanguageSlug,
+			requestBody.Code,
+			handlerChannel,
+		)
+	}()
+
+	submissionId := <-handlerChannel
+	if submissionId == repository.ErrInternalServerError.Error() {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"submissionId": submissionId,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusCreated)
+}

@@ -23,7 +23,7 @@ func problemsRouter(
 			r.Use(authMiddleware)
 
 			r.Route("/submit", func(r chi.Router) {
-				r.Post("/", handlersutils.Unimplemented)
+				r.Post("/", problemsHandler.Submit)
 
 				r.Get("/{submissionId}/check", handlersutils.Unimplemented)
 			})
