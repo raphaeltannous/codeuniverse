@@ -2,11 +2,10 @@ package judger
 
 import (
 	"errors"
-	"io/fs"
+	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/docker/docker/client"
 )
@@ -18,7 +17,23 @@ type Language struct {
 	logger         *slog.Logger
 }
 
-const problemsDataDir = "problems-data"
+var problemsDataDir string
+
+func init() {
+	problemsDataDir = os.Getenv("CODEUNIVERSE_PROBLEMS_DATA_DIR")
+
+	if problemsDataDir == "" {
+		log.Fatal("CODEUNIVERSE_PROBLEMS_DATA_DIR is not set.")
+	}
+
+	absPath, err := filepath.Abs(problemsDataDir)
+	if err != nil {
+		log.Fatal("failed to convert CODEUNIVERSE_PROBLEMS_DATA_DIR to absolute path.")
+	}
+
+	problemsDataDir = absPath
+	slog.Info("problemsDataDir is updated.", "problemsDataDir", problemsDataDir)
+}
 
 var SupportedLanguages = map[string]Language{
 	"c++": {
@@ -80,36 +95,4 @@ func (l *Language) DoesItHaveTests(problemSlug string) bool {
 	}
 
 	return isDir
-}
-
-func (l *Language) copyRunToWorkspace(problemSlug, workspace string) error {
-	return l.copyToWorkspace(problemSlug, workspace, "run")
-}
-
-func (l *Language) copySubmitToWorkspace(problemSlug, workspace string) error {
-	return l.copyToWorkspace(problemSlug, workspace, "submit")
-}
-
-func (l *Language) copyToWorkspace(problemSlug, workspace, executionType string) error {
-	problemTestDir := filepath.Join(problemsDataDir, problemSlug, l.internalSlug)
-	srcDir := os.DirFS(problemTestDir)
-
-	err := os.CopyFS(workspace, srcDir)
-	if err != nil {
-		return err
-	}
-
-	return filepath.WalkDir(workspace, func(path string, de fs.DirEntry, err error) error {
-		if !de.IsDir() {
-			filename := de.Name()
-
-			if strings.HasSuffix(filename, "."+executionType+".tmpl") {
-				if err := os.Rename(path, path[:len(path)-len("."+executionType+".tmpl")]); err != nil {
-					return err
-				}
-			}
-		}
-
-		return nil
-	})
 }

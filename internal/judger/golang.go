@@ -3,7 +3,7 @@ package judger
 import (
 	"context"
 	"errors"
-	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -32,7 +32,43 @@ func (g *golangJudge) Run(ctx context.Context, run *models.Run, problemSlug stri
 	if !ok {
 		return errors.New("unsupported language")
 	}
-	l.copyRunToWorkspace(problemSlug, runWorkspace)
+	problemTestDir := filepath.Join(problemsDataDir, "problems", problemSlug, l.internalSlug)
+	srcDir := os.DirFS(problemTestDir)
+
+	err = os.CopyFS(runWorkspace, srcDir)
+	if err != nil {
+		return err
+	}
+
+	utilsDir := os.DirFS(filepath.Join(problemsDataDir, "utils", l.internalSlug))
+	err = os.CopyFS(filepath.Join(runWorkspace, "utils"), utilsDir)
+	if err != nil {
+		return err
+	}
+
+	solutionsDir := os.DirFS(filepath.Join(problemsDataDir, "solutions", l.internalSlug, problemSlug))
+	err = os.CopyFS(filepath.Join(runWorkspace, "solutions"), solutionsDir)
+	if err != nil {
+		return err
+	}
+
+	srcTestFile, err := os.Open(filepath.Join(problemsDataDir, "problems", problemSlug, "example-tests.txt"))
+	if err != nil {
+		return err
+	}
+
+	dstTestFile, err := os.Create(filepath.Join(runWorkspace, "tests.txt"))
+	if err != nil {
+		return nil
+	}
+
+	_, err = io.Copy(dstTestFile, srcTestFile)
+	if err != nil {
+		return nil
+	}
+
+	srcTestFile.Close()
+	dstTestFile.Close()
 
 	userSubmittedCode := filepath.Join(runWorkspace, "main.go")
 	if run.Code[:12] != "package main" {
@@ -43,7 +79,7 @@ func (g *golangJudge) Run(ctx context.Context, run *models.Run, problemSlug stri
 	}
 
 	modFile := filepath.Join(runWorkspace, "go.mod")
-	if err := os.WriteFile(modFile, g.getModContent(problemSlug), 0644); err != nil {
+	if err := os.WriteFile(modFile, g.getModContent(), 0644); err != nil {
 		return err
 	}
 	g.logger.Debug("finished settinp up workspace")
@@ -107,13 +143,49 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 		return err
 	}
 	defer os.RemoveAll(submitWorkspace)
-	g.logger.Debug("creating run workspace", "runWorkspace", submitWorkspace)
+	g.logger.Debug("creating run workspace", "submitWorkspace", submitWorkspace)
 
 	l, ok := SupportedLanguages["golang"]
 	if !ok {
 		return errors.New("unsupported language")
 	}
-	l.copySubmitToWorkspace(problemSlug, submitWorkspace)
+	problemTestDir := filepath.Join(problemsDataDir, "problems", problemSlug, l.internalSlug)
+	srcDir := os.DirFS(problemTestDir)
+
+	err = os.CopyFS(submitWorkspace, srcDir)
+	if err != nil {
+		return err
+	}
+
+	utilsDir := os.DirFS(filepath.Join(problemsDataDir, "utils", l.internalSlug))
+	err = os.CopyFS(filepath.Join(submitWorkspace, "utils"), utilsDir)
+	if err != nil {
+		return err
+	}
+
+	solutionsDir := os.DirFS(filepath.Join(problemsDataDir, "solutions", l.internalSlug, problemSlug))
+	err = os.CopyFS(filepath.Join(submitWorkspace, "solutions"), solutionsDir)
+	if err != nil {
+		return err
+	}
+
+	srcTestFile, err := os.Open(filepath.Join(problemsDataDir, "problems", problemSlug, "tests.txt"))
+	if err != nil {
+		return err
+	}
+
+	dstTestFile, err := os.Create(filepath.Join(submitWorkspace, "tests.txt"))
+	if err != nil {
+		return nil
+	}
+
+	_, err = io.Copy(dstTestFile, srcTestFile)
+	if err != nil {
+		return nil
+	}
+
+	srcTestFile.Close()
+	dstTestFile.Close()
 
 	userSubmittedCode := filepath.Join(submitWorkspace, "main.go")
 	if submission.Code[:12] != "package main" {
@@ -124,7 +196,7 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 	}
 
 	modFile := filepath.Join(submitWorkspace, "go.mod")
-	if err := os.WriteFile(modFile, g.getModContent(problemSlug), 0644); err != nil {
+	if err := os.WriteFile(modFile, g.getModContent(), 0644); err != nil {
 		return err
 	}
 	g.logger.Debug("finished settinp up workspace")
@@ -182,8 +254,8 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 	return nil
 }
 
-func (g *golangJudge) getModContent(moduleName string) []byte {
-	return fmt.Appendf(nil, "module %s\n\ngo 1.25.4", moduleName)
+func (g *golangJudge) getModContent() []byte {
+	return []byte("module codeuniverse.riyt.dev\n\ngo 1.25.4")
 }
 
 func newGolangJudge(cli *client.Client) languageJudge {
