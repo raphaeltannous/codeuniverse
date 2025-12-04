@@ -18,7 +18,7 @@ func (p *python3Judge) Run(ctx context.Context, run *models.Run, problemSlug str
 	panic("unimplemented")
 }
 
-func (p *python3Judge) Submit(ctx context.Context, problemSlug string, code string) error {
+func (p *python3Judge) Submit(ctx context.Context, submission *models.Submission, problemSlug string) error {
 	panic("unimplemented")
 }
 

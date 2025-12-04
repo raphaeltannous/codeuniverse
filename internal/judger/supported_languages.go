@@ -82,7 +82,15 @@ func (l *Language) DoesItHaveTests(problemSlug string) bool {
 	return isDir
 }
 
-func (l *Language) CopyRunToWorkspace(problemSlug, workspace string) error {
+func (l *Language) copyRunToWorkspace(problemSlug, workspace string) error {
+	return l.copyToWorkspace(problemSlug, workspace, "run")
+}
+
+func (l *Language) copySubmitToWorkspace(problemSlug, workspace string) error {
+	return l.copyToWorkspace(problemSlug, workspace, "submit")
+}
+
+func (l *Language) copyToWorkspace(problemSlug, workspace, executionType string) error {
 	problemTestDir := filepath.Join(problemsDataDir, problemSlug, l.internalSlug)
 	srcDir := os.DirFS(problemTestDir)
 
@@ -95,8 +103,8 @@ func (l *Language) CopyRunToWorkspace(problemSlug, workspace string) error {
 		if !de.IsDir() {
 			filename := de.Name()
 
-			if strings.HasSuffix(filename, ".tmpl") {
-				if err := os.Rename(path, path[:len(path)-len(".tmpl")]); err != nil {
+			if strings.HasSuffix(filename, "."+executionType+".tmpl") {
+				if err := os.Rename(path, path[:len(path)-len("."+executionType+".tmpl")]); err != nil {
 					return err
 				}
 			}

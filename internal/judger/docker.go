@@ -18,7 +18,7 @@ var (
 
 type languageJudge interface {
 	Run(ctx context.Context, run *models.Run, problemSlug string) error
-	Submit(ctx context.Context, problemSlug, code string) error
+	Submit(ctx context.Context, submission *models.Submission, problemSlug string) error
 }
 
 type Judge struct {
@@ -97,4 +97,13 @@ func (judge *Judge) Run(ctx context.Context, run *models.Run, problemSlug string
 	}
 
 	return language.new(judge.cli).Run(ctx, run, problemSlug)
+}
+
+func (judge *Judge) Submit(ctx context.Context, submission *models.Submission, problemSlug string) error {
+	language, ok := SupportedLanguages[submission.Language]
+	if !ok {
+		return ErrLanguageNotSupported
+	}
+
+	return language.new(judge.cli).Submit(ctx, submission, problemSlug)
 }

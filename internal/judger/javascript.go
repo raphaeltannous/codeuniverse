@@ -18,7 +18,7 @@ func (j *javascriptJudge) Run(ctx context.Context, run *models.Run, problemSlug 
 	panic("unimplemented")
 }
 
-func (j *javascriptJudge) Submit(ctx context.Context, problemSlug string, code string) error {
+func (j *javascriptJudge) Submit(ctx context.Context, submission *models.Submission, problemSlug string) error {
 	panic("unimplemented")
 }
 
