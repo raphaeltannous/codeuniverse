@@ -2,9 +2,11 @@ package judger
 
 import (
 	"errors"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/docker/docker/client"
 )
@@ -78,4 +80,28 @@ func (l *Language) DoesItHaveTests(problemSlug string) bool {
 	}
 
 	return isDir
+}
+
+func (l *Language) CopyRunToWorkspace(problemSlug, workspace string) error {
+	problemTestDir := filepath.Join(problemsDataDir, problemSlug, l.internalSlug)
+	srcDir := os.DirFS(problemTestDir)
+
+	err := os.CopyFS(workspace, srcDir)
+	if err != nil {
+		return err
+	}
+
+	return filepath.WalkDir(workspace, func(path string, de fs.DirEntry, err error) error {
+		if !de.IsDir() {
+			filename := de.Name()
+
+			if strings.HasSuffix(filename, ".tmpl") {
+				if err := os.Rename(path, path[:len(path)-len(".tmpl")]); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }

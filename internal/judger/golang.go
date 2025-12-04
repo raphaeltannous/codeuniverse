@@ -60,7 +60,7 @@ func (g *golangJudge) Run(ctx context.Context, run *models.Run, problemSlug stri
 		ctx,
 		&container.Config{
 			Image:           SupportedLanguages[run.Language].containerImage,
-			Cmd:             []string{"go", "test", "-timeout", "7s", "-json", "."},
+			Cmd:             []string{"go", "test", "-timeout", "7s", "."},
 			NetworkDisabled: true,
 			WorkingDir:      "/app",
 		},
