@@ -67,7 +67,7 @@ var SupportedLanguages = map[string]Language{
 }
 
 func (l *Language) DoesItHaveTests(problemSlug string) bool {
-	workspaceDir := filepath.Join(problemsDataDir, problemSlug, l.internalSlug)
+	workspaceDir := filepath.Join(problemsDataDir, "problems", problemSlug, l.internalSlug)
 
 	object, err := os.Stat(workspaceDir)
 	if err != nil {
