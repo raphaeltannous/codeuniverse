@@ -7,7 +7,7 @@ import (
 )
 
 type Submission struct {
-	ID uuid.UUID `db:"id" json:"-"`
+	ID uuid.UUID `db:"id" json:"id"`
 
 	UserId    uuid.UUID `db:"user_id" json:"-"`
 	ProblemId uuid.UUID `db:"problem_id" json:"-"`
@@ -22,7 +22,7 @@ type Submission struct {
 	IsAccepted bool `db:"is_accepted" json:"isAccepted"`
 
 	CreatedAt time.Time `db:"created_at" json:"createdAt"`
-	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
+	UpdatedAt time.Time `db:"updated_at" json:"-"`
 }
 
 func NewSubmission(

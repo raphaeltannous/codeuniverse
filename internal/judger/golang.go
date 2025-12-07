@@ -2,9 +2,7 @@ package judger
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -233,13 +231,13 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 
 	select {
 	case status := <-statusCh:
-		runningTime := time.Since(startTime)
+		runningTime := float64(time.Since(startTime).Milliseconds())
 		g.logger.Warn("status", "status", status)
 
 		if status.StatusCode == 0 {
 			submission.IsAccepted = true
 			submission.Status = "ACCEPTED"
-			submission.ExecutionTime = float64(runningTime.Milliseconds())
+			submission.ExecutionTime = runningTime
 		} else {
 			submission.IsAccepted = false
 			submission.Status = "FAILED"

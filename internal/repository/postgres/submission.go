@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
@@ -84,7 +85,7 @@ func (p *postgresSubmissionRepository) UpdateStatus(ctx context.Context, id uuid
 
 func (p *postgresSubmissionRepository) GetById(ctx context.Context, id uuid.UUID) (*models.Submission, error) {
 	query := `
-		SELECT id, status, execution_time, memory_usage, is_accepted
+		SELECT id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
 		FROM submissions
 		WHERE id = $1;
 	`
@@ -108,7 +109,37 @@ func (p *postgresSubmissionRepository) GetById(ctx context.Context, id uuid.UUID
 }
 
 func (p *postgresSubmissionRepository) GetProblemSubmissions(ctx context.Context, userId uuid.UUID, problemId uuid.UUID) ([]*models.Submission, error) {
-	panic("unimplemented")
+	query := `
+		SELECT id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
+		FROM submissions
+		WHERE user_id = $1 AND problem_id = $2;
+	`
+
+	rows, err := p.db.QueryContext(
+		ctx,
+		query,
+		userId,
+		problemId,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to query all problems: %w", err)
+	}
+	defer rows.Close()
+
+	var submissions []*models.Submission
+	for rows.Next() {
+		submission := new(models.Submission)
+
+		err := p.scanSubmissionFunc(rows, submission)
+		if err != nil {
+			return nil, fmt.Errorf("faild to scan into problem: %w", err)
+		}
+
+		submissions = append(submissions, submission)
+	}
+
+	return submissions, nil
 }
 
 func (p *postgresSubmissionRepository) updateColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
@@ -125,6 +156,14 @@ func (p *postgresSubmissionRepository) updateColumnValue(ctx context.Context, id
 func (p *postgresSubmissionRepository) scanSubmissionFunc(scanner postgresScanner, submission *models.Submission) error {
 	return scanner.Scan(
 		&submission.ID,
+		&submission.Language,
+		&submission.Code,
+		&submission.Status,
+		&submission.ExecutionTime,
+		&submission.MemoryUsage,
+		&submission.IsAccepted,
+		&submission.CreatedAt,
+		&submission.UpdatedAt,
 	)
 }
 

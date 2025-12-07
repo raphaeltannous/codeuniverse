@@ -28,6 +28,8 @@ type ProblemService interface {
 
 	Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
 	Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
+
+	GetSubmissions(ctx context.Context, user *models.User, problem *models.Problem) ([]*models.Submission, error)
 }
 
 type problemService struct {
@@ -208,4 +210,18 @@ func (s *problemService) Run(ctx context.Context, user *models.User, problem *mo
 	}
 
 	return nil
+}
+
+func (s *problemService) GetSubmissions(ctx context.Context, user *models.User, problem *models.Problem) ([]*models.Submission, error) {
+	submissions, err := s.submissionRepository.GetProblemSubmissions(
+		ctx,
+		user.ID,
+		problem.ID,
+	)
+	if err != nil {
+
+		s.logger.Error("repository error", "err", err)
+	}
+
+	return submissions, err
 }

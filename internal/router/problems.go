@@ -32,6 +32,12 @@ func problemsRouter(
 				r.Post("/", problemsHandler.Run)
 			})
 
+			r.Route("/submissions", func(r chi.Router) {
+				r.Get("/", problemsHandler.GetSubmissions)
+
+				r.Get("/{submissionId}", handlersutils.Unimplemented)
+			})
+
 			r.Route("/notes", func(r chi.Router) {
 				r.Get("/", handlersutils.Unimplemented)
 				r.Post("/", handlersutils.Unimplemented)

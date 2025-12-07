@@ -249,3 +249,50 @@ func (h *ProblemHandler) Submit(w http.ResponseWriter, r *http.Request) {
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusCreated)
 }
+
+// GET
+func (h *ProblemHandler) GetSubmissions(w http.ResponseWriter, r *http.Request) {
+	problemSlug := chi.URLParam(r, "problemSlug")
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	problem, err := h.pS.GetBySlug(
+		ctx,
+		problemSlug,
+	)
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrProblemNotFound):
+			apiError.Code = "PROBLEM_NOT_FOUND"
+			apiError.Message = "Problem not found."
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	submissions, err := h.pS.GetSubmissions(
+		ctx,
+		user,
+		problem,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"FAILED_TO_GET_SUBMISSIONS.",
+			"Failed to get submissions.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, submissions, http.StatusOK)
+}
