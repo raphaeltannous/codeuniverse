@@ -2,11 +2,14 @@ package judger
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"github.com/docker/docker/api/types/container"
@@ -93,13 +96,14 @@ func (g *golangJudge) Run(ctx context.Context, run *models.Run, problemSlug stri
 			WorkingDir:      "/app",
 		},
 		&container.HostConfig{
-			AutoRemove: true,
+			AutoRemove: false,
 			Binds:      []string{runWorkspace + ":/app:rw"},
 		},
 		nil,
 		nil,
 		"",
 	)
+	defer g.cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true})
 
 	if err := g.cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
 		panic(err)
@@ -210,14 +214,16 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 			WorkingDir:      "/app",
 		},
 		&container.HostConfig{
-			AutoRemove: true,
+			AutoRemove: false,
 			Binds:      []string{submitWorkspace + ":/app:rw"},
 		},
 		nil,
 		nil,
 		"",
 	)
+	defer g.cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true})
 
+	startTime := time.Now()
 	if err := g.cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
 		panic(err)
 	}
@@ -227,10 +233,13 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 
 	select {
 	case status := <-statusCh:
+		runningTime := time.Since(startTime)
 		g.logger.Warn("status", "status", status)
+
 		if status.StatusCode == 0 {
 			submission.IsAccepted = true
 			submission.Status = "ACCEPTED"
+			submission.ExecutionTime = float64(runningTime.Milliseconds())
 		} else {
 			submission.IsAccepted = false
 			submission.Status = "FAILED"
@@ -242,6 +251,7 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 		submission.IsAccepted = false
 		submission.Status = "TIME EXCEED LIMIT"
 	}
+
 	g.logger.Debug("container is finished")
 
 	out, err := g.cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})

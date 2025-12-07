@@ -161,6 +161,10 @@ func (s *problemService) Submit(ctx context.Context, user *models.User, problem 
 		return err
 	}
 
+	if err := s.submissionRepository.UpdateExecutionTime(ctx, submission.ID, submission.ExecutionTime); err != nil {
+		return err
+	}
+
 	return nil
 }
 
