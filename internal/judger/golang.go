@@ -240,6 +240,7 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 			submission.ExecutionTime = runningTime
 		} else {
 			submission.IsAccepted = false
+			submission.ExecutionTime = runningTime
 			submission.Status = "FAILED"
 		}
 	case <-errCh:
