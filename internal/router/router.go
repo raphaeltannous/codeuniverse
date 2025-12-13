@@ -13,6 +13,7 @@ func Service(
 	problemsHandler *handlers.ProblemHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
+	problemMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -24,6 +25,7 @@ func Service(
 		problemsHandler,
 
 		authMiddleware,
+		problemMiddleware,
 	))
 
 	return r
@@ -34,13 +36,14 @@ func apiRouter(
 	problemsHandler *handlers.ProblemHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
+	problemMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
 	r.Mount("/health", heathRouter())
 	r.Mount("/auth", authRouter(userHandler, authMiddleware))
 
-	r.Mount("/problems", problemsRouter(problemsHandler, authMiddleware))
+	r.Mount("/problems", problemsRouter(problemsHandler, authMiddleware, problemMiddleware))
 	r.Mount("/submissions", submissionsRouter(authMiddleware))
 
 	r.Mount("/admin", adminRouter(userHandler, problemsHandler, authMiddleware))

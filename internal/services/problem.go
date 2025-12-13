@@ -30,12 +30,18 @@ type ProblemService interface {
 	Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
 
 	GetSubmissions(ctx context.Context, user *models.User, problem *models.Problem) ([]*models.Submission, error)
+
+	CreateNote(ctx context.Context, note *models.ProblemNote) error
+	DeleteNote(ctx context.Context, note *models.ProblemNote) error
+	GetNote(ctx context.Context, user *models.User, problem *models.Problem) (*models.ProblemNote, error)
+	UpdateNote(ctx context.Context, note *models.ProblemNote, markdown string) error
 }
 
 type problemService struct {
-	problemRepository    repository.ProblemRepository
-	runRepository        repository.RunRepository
-	submissionRepository repository.SubmissionRepository
+	problemRepository     repository.ProblemRepository
+	problemNoteRepository repository.ProblemNoteRepository
+	runRepository         repository.RunRepository
+	submissionRepository  repository.SubmissionRepository
 
 	judge  judger.Judge
 	logger *slog.Logger
@@ -43,15 +49,17 @@ type problemService struct {
 
 func NewProblemService(
 	problemRepository repository.ProblemRepository,
+	problemNoteRepository repository.ProblemNoteRepository,
 	runRepository repository.RunRepository,
 	submissionRepository repository.SubmissionRepository,
 
 	judge judger.Judge,
 ) ProblemService {
 	return &problemService{
-		problemRepository:    problemRepository,
-		runRepository:        runRepository,
-		submissionRepository: submissionRepository,
+		problemRepository:     problemRepository,
+		problemNoteRepository: problemNoteRepository,
+		runRepository:         runRepository,
+		submissionRepository:  submissionRepository,
 
 		judge:  judge,
 		logger: slog.Default().With("package", "problemsService"),
@@ -224,4 +232,22 @@ func (s *problemService) GetSubmissions(ctx context.Context, user *models.User, 
 	}
 
 	return submissions, err
+}
+
+func (s *problemService) CreateNote(ctx context.Context, note *models.ProblemNote) error {
+	note, err := s.problemNoteRepository.Create(ctx, note)
+
+	return err
+}
+
+func (s *problemService) DeleteNote(ctx context.Context, note *models.ProblemNote) error {
+	return s.problemNoteRepository.Delete(ctx, note.ID)
+}
+
+func (s *problemService) GetNote(ctx context.Context, user *models.User, problem *models.Problem) (*models.ProblemNote, error) {
+	return s.problemNoteRepository.Get(ctx, user.ID, problem.ID)
+}
+
+func (s *problemService) UpdateNote(ctx context.Context, note *models.ProblemNote, markdown string) error {
+	return s.problemNoteRepository.UpdateMarkdown(ctx, note, markdown)
 }

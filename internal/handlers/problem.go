@@ -10,7 +10,6 @@ import (
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
-	"github.com/go-chi/chi/v5"
 )
 
 type ProblemHandler struct {
@@ -103,27 +102,11 @@ func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 
 // GET
 func (h *ProblemHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "problemSlug")
-
 	ctx := r.Context()
 
-	problem, err := h.pS.GetBySlug(
-		ctx,
-		slug,
-	)
-
-	if err != nil {
-		apiError := handlersutils.NewInternalServerAPIError()
-		switch {
-		case errors.Is(err, repository.ErrProblemNotFound):
-			apiError.Code = "PROBLEM_NOT_FOUND"
-			apiError.Message = "Problem not found."
-
-			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
-		default:
-			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
-		}
-
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
@@ -160,11 +143,8 @@ func (h *ProblemHandler) Run(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	problem, err := h.pS.GetBySlug(
-		ctx,
-		requestBody.ProblemSlug,
-	)
-	if err != nil {
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
@@ -215,11 +195,8 @@ func (h *ProblemHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	problem, err := h.pS.GetBySlug(
-		ctx,
-		requestBody.ProblemSlug,
-	)
-	if err != nil {
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
@@ -252,7 +229,6 @@ func (h *ProblemHandler) Submit(w http.ResponseWriter, r *http.Request) {
 
 // GET
 func (h *ProblemHandler) GetSubmissions(w http.ResponseWriter, r *http.Request) {
-	problemSlug := chi.URLParam(r, "problemSlug")
 	ctx := r.Context()
 
 	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
@@ -261,21 +237,9 @@ func (h *ProblemHandler) GetSubmissions(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	problem, err := h.pS.GetBySlug(
-		ctx,
-		problemSlug,
-	)
-	if err != nil {
-		apiError := handlersutils.NewInternalServerAPIError()
-		switch {
-		case errors.Is(err, repository.ErrProblemNotFound):
-			apiError.Code = "PROBLEM_NOT_FOUND"
-			apiError.Message = "Problem not found."
-			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
-		default:
-			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
-		}
-
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
@@ -295,4 +259,133 @@ func (h *ProblemHandler) GetSubmissions(w http.ResponseWriter, r *http.Request) 
 	}
 
 	handlersutils.WriteResponseJSON(w, submissions, http.StatusOK)
+}
+
+// POST
+func (h *ProblemHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Markdown string `json:"markdown"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	note := models.NewProblemNote(user.ID, problem.ID, requestBody.Markdown)
+	err := h.pS.CreateNote(
+		ctx,
+		note,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrProblemNoteAlreadyExists):
+			apiError.Code = "PROBLEM_NOTE_ALREADY_EXISTS"
+			apiError.Message = "Problem note already exists."
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	response := map[string]string{
+		"message": "Problem note created.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+// DELETE
+func (h *ProblemHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
+}
+
+// GET
+func (h *ProblemHandler) GetNote(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	note, err := h.pS.GetNote(
+		ctx,
+		user,
+		problem,
+	)
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrProblemNoteNotFound):
+			apiError.Code = "PROBLEM_NOTE_NOT_FOUND"
+			apiError.Message = "Problem note not found."
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, note, http.StatusOK)
+}
+
+// PUT
+func (h *ProblemHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Markdown string `json:"markdown"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	note := models.NewProblemNote(user.ID, problem.ID, requestBody.Markdown)
+	err := h.pS.UpdateNote(ctx, note, note.Markdown)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Problem note updated.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }

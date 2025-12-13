@@ -120,6 +120,7 @@ func service(
 	// repos
 	userRepo := postgres.NewUserRepository(db)
 	problemRepository := postgres.NewProblemRepository(db)
+	problemNoteRepository := postgres.NewProblemNoteRepository(db)
 	runRepository := postgres.NewRunRepository(db)
 	submissionRepository := postgres.NewSubmissionRepository(db)
 	mfaRepo := postgres.NewMfaCodeRepository(db)
@@ -138,6 +139,7 @@ func service(
 
 	problemService := services.NewProblemService(
 		problemRepository,
+		problemNoteRepository,
 		runRepository,
 		submissionRepository,
 
@@ -152,11 +154,15 @@ func service(
 	authMiddleware := func(next http.Handler) http.Handler {
 		return middleware.AuthMiddleware(next, userService)
 	}
+	problemMiddleware := func(next http.Handler) http.Handler {
+		return middleware.ProblemMiddleware(next, problemService)
+	}
 
 	return router.Service(
 		userHandler,
 		problemHandler,
 
 		authMiddleware,
+		problemMiddleware,
 	)
 }

@@ -10,13 +10,17 @@ import (
 
 func problemsRouter(
 	problemsHandler *handlers.ProblemHandler,
+
 	authMiddleware func(next http.Handler) http.Handler,
+	problemMiddleware func(next http.Handler) http.Handler,
 ) chi.Router {
 	r := chi.NewRouter()
 
 	r.Get("/", problemsHandler.GetProblems)
 
 	r.Route("/{problemSlug}", func(r chi.Router) {
+		r.Use(problemMiddleware)
+
 		r.Get("/", problemsHandler.GetProblem)
 
 		r.Group(func(r chi.Router) {
@@ -30,6 +34,8 @@ func problemsRouter(
 
 			r.Route("/run", func(r chi.Router) {
 				r.Post("/", problemsHandler.Run)
+
+				r.Get("/{runId}/check", handlersutils.Unimplemented)
 			})
 
 			r.Route("/submissions", func(r chi.Router) {
@@ -39,9 +45,9 @@ func problemsRouter(
 			})
 
 			r.Route("/notes", func(r chi.Router) {
-				r.Get("/", handlersutils.Unimplemented)
-				r.Post("/", handlersutils.Unimplemented)
-				r.Put("/", handlersutils.Unimplemented)
+				r.Get("/", problemsHandler.GetNote)
+				r.Post("/", problemsHandler.CreateProblem)
+				r.Put("/", problemsHandler.UpdateNote)
 				r.Delete("/", handlersutils.Unimplemented)
 			})
 		})
