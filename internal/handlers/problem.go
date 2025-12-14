@@ -10,6 +10,8 @@ import (
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type ProblemHandler struct {
@@ -261,6 +263,80 @@ func (h *ProblemHandler) GetSubmissions(w http.ResponseWriter, r *http.Request) 
 	handlersutils.WriteResponseJSON(w, submissions, http.StatusOK)
 }
 
+// GET
+func (h *ProblemHandler) GetSubmission(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	submissionId, err := uuid.Parse(chi.URLParam(r, "submissionId"))
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_SUBMISSION_ID",
+			"Invalid submission id.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		return
+	}
+
+	submission, err := h.pS.GetSubmission(
+		ctx,
+		user,
+		submissionId,
+	)
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"FAILED_TO_GET_SUBMISSION.",
+			"Failed to get submission.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, submission, http.StatusOK)
+}
+
+// GET
+func (h *ProblemHandler) GetRun(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	runId, err := uuid.Parse(chi.URLParam(r, "runId"))
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_RUN_ID",
+			"Invalid run id.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		return
+	}
+
+	run, err := h.pS.GetRun(
+		ctx,
+		user,
+		runId,
+	)
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"FAILED_TO_GET_RUN.",
+			"Failed to get run.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, run, http.StatusOK)
+}
+
 // POST
 func (h *ProblemHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
@@ -308,7 +384,7 @@ func (h *ProblemHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		"message": "Problem note created.",
 	}
 
-	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+	handlersutils.WriteResponseJSON(w, response, http.StatusCreated)
 }
 
 // DELETE
@@ -376,8 +452,13 @@ func (h *ProblemHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	note := models.NewProblemNote(user.ID, problem.ID, requestBody.Markdown)
-	err := h.pS.UpdateNote(ctx, note, note.Markdown)
+	note, err := h.pS.GetNote(ctx, user, problem)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.pS.UpdateNote(ctx, note, requestBody.Markdown)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return

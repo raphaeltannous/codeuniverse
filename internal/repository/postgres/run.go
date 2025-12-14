@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
@@ -84,7 +85,7 @@ func (p *postgresRunRepository) UpdateAcceptanceStatus(ctx context.Context, id u
 
 func (p *postgresRunRepository) GetById(ctx context.Context, id uuid.UUID) (*models.Run, error) {
 	query := `
-		SELECT id, status, execution_time, memory_usage, is_accepted
+		SELECT id, user_id, problem_id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
 		FROM runs
 		WHERE id = $1;
 	`
@@ -101,6 +102,7 @@ func (p *postgresRunRepository) GetById(ctx context.Context, id uuid.UUID) (*mod
 			return nil, repository.ErrRunNotFound
 		}
 
+		fmt.Println(err)
 		return nil, repository.ErrInternalServerError
 	}
 
@@ -121,5 +123,15 @@ func (p *postgresRunRepository) updateColumnValue(ctx context.Context, id uuid.U
 func (p *postgresRunRepository) scanRunFunc(scanner postgresScanner, run *models.Run) error {
 	return scanner.Scan(
 		&run.ID,
+		&run.UserId,
+		&run.ProblemId,
+		&run.Language,
+		&run.Code,
+		&run.Status,
+		&run.ExecutionTime,
+		&run.MemoryUsage,
+		&run.IsAccepted,
+		&run.CreatedAt,
+		&run.UpdatedAt,
 	)
 }

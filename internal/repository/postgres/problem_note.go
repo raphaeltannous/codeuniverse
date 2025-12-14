@@ -108,14 +108,27 @@ func (p *postgresProblemNoteRepository) UpdateMarkdown(ctx context.Context, note
 }
 
 func (p *postgresProblemNoteRepository) scanProblemNoteFunc(scanner postgresScanner, note *models.ProblemNote) error {
-	return scanner.Scan(
+	var markdown *string
+
+	err := scanner.Scan(
 		&note.ID,
 		&note.UserId,
 		&note.ProblemId,
-		&note.Markdown,
+		&markdown,
 		&note.CreatedAt,
 		&note.UpdatedAt,
 	)
+	if err != nil {
+		return err
+	}
+
+	if markdown == nil {
+		note.Markdown = ""
+	} else {
+		note.Markdown = *markdown
+	}
+
+	return nil
 }
 
 func NewProblemNoteRepository(db *sql.DB) repository.ProblemNoteRepository {

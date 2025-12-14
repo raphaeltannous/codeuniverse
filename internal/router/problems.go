@@ -29,13 +29,13 @@ func problemsRouter(
 			r.Route("/submit", func(r chi.Router) {
 				r.Post("/", problemsHandler.Submit)
 
-				r.Get("/{submissionId}/check", handlersutils.Unimplemented)
+				r.Get("/{submissionId}/check", problemsHandler.GetSubmission)
 			})
 
 			r.Route("/run", func(r chi.Router) {
 				r.Post("/", problemsHandler.Run)
 
-				r.Get("/{runId}/check", handlersutils.Unimplemented)
+				r.Get("/{runId}/check", problemsHandler.GetRun)
 			})
 
 			r.Route("/submissions", func(r chi.Router) {
@@ -46,7 +46,7 @@ func problemsRouter(
 
 			r.Route("/notes", func(r chi.Router) {
 				r.Get("/", problemsHandler.GetNote)
-				r.Post("/", problemsHandler.CreateProblem)
+				r.Post("/", problemsHandler.CreateNote)
 				r.Put("/", problemsHandler.UpdateNote)
 				r.Delete("/", handlersutils.Unimplemented)
 			})

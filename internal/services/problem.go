@@ -29,6 +29,9 @@ type ProblemService interface {
 	Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
 	Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
 
+	GetRun(ctx context.Context, user *models.User, runId uuid.UUID) (*models.Run, error)
+
+	GetSubmission(ctx context.Context, user *models.User, submissionId uuid.UUID) (*models.Submission, error)
 	GetSubmissions(ctx context.Context, user *models.User, problem *models.Problem) ([]*models.Submission, error)
 
 	CreateNote(ctx context.Context, note *models.ProblemNote) error
@@ -218,6 +221,42 @@ func (s *problemService) Run(ctx context.Context, user *models.User, problem *mo
 	}
 
 	return nil
+}
+
+func (s *problemService) GetRun(ctx context.Context, user *models.User, runId uuid.UUID) (*models.Run, error) {
+	run, err := s.runRepository.GetById(
+		ctx,
+		runId,
+	)
+	if err != nil {
+		s.logger.Error("failed to get run", "err", err)
+		return nil, err
+	}
+
+	if run.UserId != user.ID {
+		s.logger.Error("User requesting run for another user", "user.ID", user.ID, "run.UserId", run.UserId)
+		return nil, errors.New("Access denied.")
+	}
+
+	return run, nil
+}
+
+func (s *problemService) GetSubmission(ctx context.Context, user *models.User, submissionId uuid.UUID) (*models.Submission, error) {
+	submission, err := s.submissionRepository.GetById(
+		ctx,
+		submissionId,
+	)
+	if err != nil {
+		s.logger.Error("failed to get submission", "err", err)
+		return nil, err
+	}
+
+	if submission.UserId != user.ID {
+		s.logger.Error("User requesting submission for another user", "user.ID", user.ID, "submission.UserId", submission.UserId)
+		return nil, errors.New("Access denied.")
+	}
+
+	return submission, nil
 }
 
 func (s *problemService) GetSubmissions(ctx context.Context, user *models.User, problem *models.Problem) ([]*models.Submission, error) {

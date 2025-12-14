@@ -85,7 +85,7 @@ func (p *postgresSubmissionRepository) UpdateStatus(ctx context.Context, id uuid
 
 func (p *postgresSubmissionRepository) GetById(ctx context.Context, id uuid.UUID) (*models.Submission, error) {
 	query := `
-		SELECT id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
+		SELECT id, user_id, problem_id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
 		FROM submissions
 		WHERE id = $1;
 	`
@@ -110,7 +110,7 @@ func (p *postgresSubmissionRepository) GetById(ctx context.Context, id uuid.UUID
 
 func (p *postgresSubmissionRepository) GetProblemSubmissions(ctx context.Context, userId uuid.UUID, problemId uuid.UUID) ([]*models.Submission, error) {
 	query := `
-		SELECT id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
+		SELECT id, user_id, problem_id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
 		FROM submissions
 		WHERE user_id = $1 AND problem_id = $2;
 	`
@@ -156,6 +156,8 @@ func (p *postgresSubmissionRepository) updateColumnValue(ctx context.Context, id
 func (p *postgresSubmissionRepository) scanSubmissionFunc(scanner postgresScanner, submission *models.Submission) error {
 	return scanner.Scan(
 		&submission.ID,
+		&submission.UserId,
+		&submission.ProblemId,
 		&submission.Language,
 		&submission.Code,
 		&submission.Status,

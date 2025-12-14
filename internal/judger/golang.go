@@ -122,10 +122,10 @@ func (g *golangJudge) Run(ctx context.Context, run *models.Run, problemSlug stri
 		}
 	case <-errCh:
 		run.IsAccepted = false
-		run.Status = "Internal Server Error. Please Contact Support."
+		run.Status = "ERROR"
 	case <-ctx.Done():
 		run.IsAccepted = false
-		run.Status = "TIME EXCEED LIMIT"
+		run.Status = "TIME LIMIT EXCEEDED"
 	}
 	g.logger.Debug("container is finished")
 
