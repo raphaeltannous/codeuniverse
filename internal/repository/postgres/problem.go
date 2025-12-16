@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
@@ -63,10 +62,8 @@ func (ppr *postgresProblemRepository) GetProblems(ctx context.Context, offset, l
 
 		err := ppr.scanProblemFunc(rows, problem)
 		if err != nil {
-			slog.Debug("scanning problem error", "err", err)
 			return nil, repository.ErrInternalServerError
 		}
-		slog.Debug("repository", "problem", problem)
 
 		problems = append(problems, problem)
 	}
@@ -224,6 +221,57 @@ func (ppr *postgresProblemRepository) updateColumnValue(ctx context.Context, id 
 		column,
 		value,
 	)
+}
+
+func (ppr *postgresProblemRepository) Search(ctx context.Context, title string) ([]*models.Problem, error) {
+	query := `
+		SELECT
+			id,
+
+			title,
+			slug,
+			description,
+			difficulty,
+
+			to_json(hints) AS hints,
+
+			code_snippets,
+			test_cases,
+
+			is_paid,
+			is_public,
+
+			created_at,
+			updated_at
+		FROM problems
+		WHERE
+			title ILIKE '%' || $1 || '%'
+			OR slug ILIKE '%' || $1 || '%';
+	`
+
+	rows, err := ppr.db.QueryContext(
+		ctx,
+		query,
+		title,
+	)
+	if err != nil {
+		return nil, repository.ErrInternalServerError
+	}
+	defer rows.Close()
+
+	var problems []*models.Problem
+	for rows.Next() {
+		problem := new(models.Problem)
+
+		err := ppr.scanProblemFunc(rows, problem)
+		if err != nil {
+			return nil, repository.ErrInternalServerError
+		}
+
+		problems = append(problems, problem)
+	}
+
+	return problems, nil
 }
 
 func (ppr *postgresProblemRepository) getProblemByColumn(ctx context.Context, column string, value any) (*models.Problem, error) {

@@ -39,9 +39,7 @@ type ProblemRepository interface {
 	UpdatePublic(ctx context.Context, id uuid.UUID, status bool) error
 	UpdatePaid(ctx context.Context, id uuid.UUID, status bool) error
 
-	// TODO:
-	// - Search capabilities.
-	// - Get all problems?
+	Search(ctx context.Context, title string) ([]*models.Problem, error)
 }
 
 var (

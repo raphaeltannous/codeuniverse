@@ -38,6 +38,8 @@ type ProblemService interface {
 	DeleteNote(ctx context.Context, note *models.ProblemNote) error
 	GetNote(ctx context.Context, user *models.User, problem *models.Problem) (*models.ProblemNote, error)
 	UpdateNote(ctx context.Context, note *models.ProblemNote, markdown string) error
+
+	Search(ctx context.Context, search string) ([]*models.Problem, error)
 }
 
 type problemService struct {
@@ -119,6 +121,7 @@ func (s *problemService) GetBySlug(ctx context.Context, slug string) (*models.Pr
 }
 
 func (s *problemService) GetAllProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error) {
+	s.logger.Debug("offset and limit", "offset", offset, "limit", limit)
 	problems, err := s.problemRepository.GetProblems(
 		ctx,
 		offset,
@@ -229,7 +232,9 @@ func (s *problemService) GetRun(ctx context.Context, user *models.User, runId uu
 		runId,
 	)
 	if err != nil {
-		s.logger.Error("failed to get run", "err", err)
+		if !errors.Is(err, repository.ErrRunNotFound) {
+			s.logger.Error("repository: failed to get run", "err", err, "runId", runId)
+		}
 		return nil, err
 	}
 
@@ -247,13 +252,16 @@ func (s *problemService) GetSubmission(ctx context.Context, user *models.User, s
 		submissionId,
 	)
 	if err != nil {
-		s.logger.Error("failed to get submission", "err", err)
+		if !errors.Is(err, repository.ErrSubmissionNotFound) {
+			s.logger.Error("repository: failed to get submission", "err", err, "submissionId", submissionId)
+		}
+
 		return nil, err
 	}
 
 	if submission.UserId != user.ID {
 		s.logger.Error("User requesting submission for another user", "user.ID", user.ID, "submission.UserId", submission.UserId)
-		return nil, errors.New("Access denied.")
+		return nil, errors.New("Access denied.") // TODO: universal Access denied?
 	}
 
 	return submission, nil
@@ -266,27 +274,62 @@ func (s *problemService) GetSubmissions(ctx context.Context, user *models.User, 
 		problem.ID,
 	)
 	if err != nil {
-
-		s.logger.Error("repository error", "err", err)
+		s.logger.Error("repository: get submissions", "err", err, "user", user, "problem", problem)
+		return nil, err
 	}
 
-	return submissions, err
+	return submissions, nil
 }
 
 func (s *problemService) CreateNote(ctx context.Context, note *models.ProblemNote) error {
 	note, err := s.problemNoteRepository.Create(ctx, note)
+	if err != nil {
+		s.logger.Error("repository: create note", "err", err, "note", note)
+	}
 
 	return err
 }
 
 func (s *problemService) DeleteNote(ctx context.Context, note *models.ProblemNote) error {
-	return s.problemNoteRepository.Delete(ctx, note.ID)
+	err := s.problemNoteRepository.Delete(ctx, note.ID)
+	if err != nil {
+		s.logger.Error("repository: delete note", "err", err)
+	}
+
+	return err
 }
 
 func (s *problemService) GetNote(ctx context.Context, user *models.User, problem *models.Problem) (*models.ProblemNote, error) {
-	return s.problemNoteRepository.Get(ctx, user.ID, problem.ID)
+	problemNote, err := s.problemNoteRepository.Get(ctx, user.ID, problem.ID)
+	if err != nil {
+		s.logger.Error("repository: get problem note", "err", err)
+		return nil, err
+	}
+
+	return problemNote, nil
 }
 
 func (s *problemService) UpdateNote(ctx context.Context, note *models.ProblemNote, markdown string) error {
-	return s.problemNoteRepository.UpdateMarkdown(ctx, note, markdown)
+	err := s.problemNoteRepository.UpdateMarkdown(ctx, note, markdown)
+	if err != nil {
+		s.logger.Error("repository: update note", "err", err)
+	}
+
+	return err
+}
+
+func (s *problemService) Search(ctx context.Context, search string) ([]*models.Problem, error) {
+	s.logger.Debug("searching for problem", "search", search)
+
+	problems, err := s.problemRepository.Search(
+		ctx,
+		search,
+	)
+
+	if err != nil {
+		s.logger.Error("repository: search problem", "err", err)
+		return nil, err
+	}
+
+	return problems, nil
 }
