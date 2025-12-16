@@ -48,3 +48,14 @@ func LimitMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func SearchMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if searchParam := r.URL.Query().Get("search"); searchParam != "" {
+			ctx := context.WithValue(r.Context(), "search", searchParam)
+			r = r.WithContext(ctx)
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
