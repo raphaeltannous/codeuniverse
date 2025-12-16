@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"git.riyt.dev/codeuniverse/internal/handlers"
+	"git.riyt.dev/codeuniverse/internal/middleware"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
 	"github.com/go-chi/chi/v5"
 )
@@ -16,7 +17,13 @@ func problemsRouter(
 ) chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/", problemsHandler.GetProblems)
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.OffsetMiddleware)
+		r.Use(middleware.LimitMiddleware)
+		r.Use(middleware.SearchMiddleware)
+
+		r.Get("/", problemsHandler.GetProblems)
+	})
 
 	r.Route("/{problemSlug}", func(r chi.Router) {
 		r.Use(problemMiddleware)
