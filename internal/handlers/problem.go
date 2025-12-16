@@ -93,7 +93,14 @@ func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 		limit = middleware.LimitDefault
 	}
 
-	problems, err := h.pS.GetAllProblems(ctx, offset, limit)
+	search, ok := ctx.Value("search").(string)
+	var problems []*models.Problem
+	var err error
+	if ok {
+		problems, err = h.pS.Search(ctx, search)
+	} else {
+		problems, err = h.pS.GetAllProblems(ctx, offset, limit)
+	}
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
