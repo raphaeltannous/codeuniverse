@@ -46,6 +46,7 @@ func apiRouter(
 	r.Mount("/problems", problemsRouter(problemsHandler, authMiddleware, problemMiddleware))
 	r.Mount("/submissions", submissionsRouter(authMiddleware))
 
+	r.Mount("/profile", profileRouter(userHandler, authMiddleware))
 	r.Mount("/admin", adminRouter(userHandler, problemsHandler, authMiddleware))
 
 	return r
