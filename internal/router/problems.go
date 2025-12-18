@@ -10,7 +10,7 @@ import (
 )
 
 func problemsRouter(
-	problemsHandler *handlers.ProblemHandler,
+	problemHandler *handlers.ProblemHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
@@ -22,39 +22,39 @@ func problemsRouter(
 		r.Use(middleware.LimitMiddleware)
 		r.Use(middleware.SearchMiddleware)
 
-		r.Get("/", problemsHandler.GetProblems)
+		r.Get("/", problemHandler.GetProblems)
 	})
 
 	r.Route("/{problemSlug}", func(r chi.Router) {
 		r.Use(problemMiddleware)
 
-		r.Get("/", problemsHandler.GetProblem)
+		r.Get("/", problemHandler.GetProblem)
 
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware)
 
 			r.Route("/submit", func(r chi.Router) {
-				r.Post("/", problemsHandler.Submit)
+				r.Post("/", problemHandler.Submit)
 
-				r.Get("/{submissionId}/check", problemsHandler.GetSubmission)
+				r.Get("/{submissionId}/check", problemHandler.GetSubmission)
 			})
 
 			r.Route("/run", func(r chi.Router) {
-				r.Post("/", problemsHandler.Run)
+				r.Post("/", problemHandler.Run)
 
-				r.Get("/{runId}/check", problemsHandler.GetRun)
+				r.Get("/{runId}/check", problemHandler.GetRun)
 			})
 
 			r.Route("/submissions", func(r chi.Router) {
-				r.Get("/", problemsHandler.GetSubmissions)
+				r.Get("/", problemHandler.GetSubmissions)
 
 				r.Get("/{submissionId}", handlersutils.Unimplemented)
 			})
 
 			r.Route("/notes", func(r chi.Router) {
-				r.Get("/", problemsHandler.GetNote)
-				r.Post("/", problemsHandler.CreateNote)
-				r.Put("/", problemsHandler.UpdateNote)
+				r.Get("/", problemHandler.GetNote)
+				r.Post("/", problemHandler.CreateNote)
+				r.Put("/", problemHandler.UpdateNote)
 				r.Delete("/", handlersutils.Unimplemented)
 			})
 		})
