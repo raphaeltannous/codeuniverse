@@ -61,7 +61,7 @@ func (pur *postgresUserRepository) Create(ctx context.Context, user *models.User
 		RETURNING id;
 	`
 
-	row := pur.db.QueryRowContext(
+	row := getExecutor(ctx, pur.db).QueryRowContext(
 		ctx,
 		query,
 		user.Username,
@@ -202,6 +202,53 @@ func (pur *postgresUserRepository) getUserByColumn(ctx context.Context, column s
 	}
 
 	return user, nil
+}
+
+func (pur *postgresUserRepository) Search(ctx context.Context, search string) ([]*models.User, error) {
+	query := `
+		SELECT
+			id,
+
+			username,
+			email,
+			password_hash,
+
+			is_verified,
+			is_active,
+
+			role,
+
+			created_at,
+			updated_at
+		FROM users
+		WHERE
+			username ILIKE '%' || $1 || '%'
+			OR email ILIKE '%' || $1 || '%';
+	`
+
+	rows, err := pur.db.QueryContext(
+		ctx,
+		query,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to query users by search: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		user := new(models.User)
+
+		err := scanUserFunc(rows, user)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan into user: %w", err)
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
 }
 
 func (pur *postgresUserRepository) updateColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {

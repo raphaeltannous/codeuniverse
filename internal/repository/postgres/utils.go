@@ -51,3 +51,11 @@ func updateColumnValue(
 
 	return nil
 }
+
+func getExecutor(ctx context.Context, db *sql.DB) postgresDbExecutor {
+	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
+		return tx
+	}
+
+	return db
+}

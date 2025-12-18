@@ -24,9 +24,7 @@ type UserRepository interface {
 	UpdateVerify(ctx context.Context, id uuid.UUID, status bool) error
 	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
 
-	// TODO:
-	// - Search Functionality
-	// - Get All Users?
+	Search(ctx context.Context, search string) ([]*models.User, error)
 }
 
 var (

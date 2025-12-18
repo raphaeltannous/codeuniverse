@@ -2,13 +2,14 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"github.com/google/uuid"
 )
 
 type UserProfileRepository interface {
-	GetInfo(ctx context.Context, userId uuid.UUID) (*models.UserProfile, error)
+	GetInfo(ctx context.Context, user *models.User) (*models.UserProfile, error)
 
 	Create(ctx context.Context, userId uuid.UUID) error
 
@@ -25,3 +26,7 @@ type UserProfileRepository interface {
 
 	UpdateLastActive(ctx context.Context, userId uuid.UUID) error
 }
+
+var (
+	ErrUserProfileNotFound = errors.New("user profile not found")
+)

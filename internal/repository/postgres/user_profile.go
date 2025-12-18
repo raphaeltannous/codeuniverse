@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
@@ -13,16 +15,70 @@ type postgresUserProfileRepository struct {
 	db *sql.DB
 }
 
-var _ repository.UserProfileRepository = (*postgresUserProfileRepository)(nil)
+func NewUserProfileRepository(db *sql.DB) repository.UserProfileRepository {
+	return &postgresUserProfileRepository{db: db}
+}
 
 func (pupr *postgresUserProfileRepository) Create(ctx context.Context, userId uuid.UUID) error {
-	// TODO
+	query := `
+		INSERT INTO user_profiles
+			(user_id)
+		VALUES ($1);
+	`
+
+	// TODO: should I do something about sql.Result?
+	_, err := getExecutor(ctx, pupr.db).ExecContext(
+		ctx,
+		query,
+		userId,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create user profile: %w", err)
+	}
+
 	return nil
 }
 
-func (pupr *postgresUserProfileRepository) GetInfo(ctx context.Context, userId uuid.UUID) (*models.UserProfile, error) {
-	// TODO
-	return nil, nil
+func (pupr *postgresUserProfileRepository) GetInfo(ctx context.Context, user *models.User) (*models.UserProfile, error) {
+	query := `
+		SELECT
+			user_id,
+
+			name,
+			bio,
+			avatar_url,
+			country,
+
+			preferred_language,
+
+			website_url,
+			github_url,
+			linkedin_url,
+
+			last_active,
+			created_at,
+			updated_at
+		FROM user_profiles
+		WHERE user_id = $1;
+	`
+
+	row := pupr.db.QueryRowContext(
+		ctx,
+		query,
+		user.ID,
+	)
+
+	userProfile := new(models.UserProfile)
+	if err := pupr.scanUserProfileFunc(row, userProfile); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repository.ErrUserProfileNotFound
+		}
+
+		return nil, fmt.Errorf("failed to scan userProfile into *model.UserProfile: %w", err)
+	}
+
+	return userProfile, nil
 }
 
 func (pupr *postgresUserProfileRepository) UpdateName(ctx context.Context, userId uuid.UUID, name string) error {
@@ -119,5 +175,23 @@ func (pupr *postgresUserProfileRepository) updateColumnValue(ctx context.Context
 		id,
 		column,
 		value,
+	)
+}
+
+func (pupr *postgresUserProfileRepository) scanUserProfileFunc(scanner postgresScanner, userProfile *models.UserProfile) error {
+	return scanner.Scan(
+		&userProfile.UserID,
+		&userProfile.Name,
+		&userProfile.Bio,
+		&userProfile.AvatarURL,
+		&userProfile.Country,
+		&userProfile.PreferredLanguage,
+		&userProfile.WebsiteURL,
+		&userProfile.GithubURL,
+		&userProfile.LinkedinURL,
+		&userProfile.XURL,
+		&userProfile.LastActive,
+		&userProfile.CreatedAt,
+		&userProfile.UpdatedAt,
 	)
 }
