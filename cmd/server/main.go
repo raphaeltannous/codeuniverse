@@ -119,6 +119,7 @@ func service(
 ) http.Handler {
 	// repos
 	userRepo := postgres.NewUserRepository(db)
+	userProfileRepo := postgres.NewUserProfileRepository(db)
 	problemRepository := postgres.NewProblemRepository(db)
 	problemNoteRepository := postgres.NewProblemNoteRepository(db)
 	runRepository := postgres.NewRunRepository(db)
@@ -127,12 +128,16 @@ func service(
 	passwordResetRepo := postgres.NewPasswordResetRepository(db)
 	emailVerificationRepo := postgres.NewEmailVerificationRepository(db)
 
+	dbTransactor := postgres.NewPostgreSQLTransactor(db)
+
 	// services
 	userService := services.NewUserService(
 		userRepo,
+		userProfileRepo,
 		mfaRepo,
 		passwordResetRepo,
 		emailVerificationRepo,
+		dbTransactor,
 
 		mailMan,
 	)

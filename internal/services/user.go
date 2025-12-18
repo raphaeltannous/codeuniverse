@@ -28,7 +28,7 @@ var (
 )
 
 type UserService interface {
-	Create(ctx context.Context, username, password, email string) (*models.User, error)
+	RegisterUser(ctx context.Context, username, password, email string) (*models.User, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 
 	GetById(ctx context.Context, uuidString string) (*models.User, error)
@@ -53,9 +53,12 @@ type UserService interface {
 
 type userService struct {
 	userRepo              repository.UserRepository
+	userProfileRepo       repository.UserProfileRepository
 	mfaRepo               repository.MfaCodeRepository
 	passwordResetRepo     repository.PasswordResetRepository
 	emailVerificationRepo repository.EmailVerificationRepository
+
+	dbTransactor repository.Transactor
 
 	logger  *slog.Logger
 	mailMan mailer.Mailer
@@ -63,24 +66,30 @@ type userService struct {
 
 func NewUserService(
 	userRepo repository.UserRepository,
+	userProfileRepo repository.UserProfileRepository,
 	mfaRepo repository.MfaCodeRepository,
 	passwordResetRepo repository.PasswordResetRepository,
 	emailVerificationRepo repository.EmailVerificationRepository,
+
+	dbTransactor repository.Transactor,
 
 	mailMan mailer.Mailer,
 ) UserService {
 	return &userService{
 		userRepo:              userRepo,
+		userProfileRepo:       userProfileRepo,
 		mfaRepo:               mfaRepo,
 		passwordResetRepo:     passwordResetRepo,
 		emailVerificationRepo: emailVerificationRepo,
+
+		dbTransactor: dbTransactor,
 
 		logger:  slog.Default().With("package", "userService"),
 		mailMan: mailMan,
 	}
 }
 
-func (s *userService) Create(ctx context.Context, username, password, email string) (*models.User, error) {
+func (s *userService) RegisterUser(ctx context.Context, username, password, email string) (*models.User, error) {
 	if !s.isEmailValid(email) {
 		return nil, ErrInvalidEmail
 	}
@@ -106,13 +115,22 @@ func (s *userService) Create(ctx context.Context, username, password, email stri
 		Role:         "user",
 	}
 
-	user, err = s.userRepo.Create(ctx, user)
+	err = s.dbTransactor.WithinTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		user, err = s.userRepo.Create(txCtx, user)
+		if err != nil {
+			return err
+		}
+
+		return s.userProfileRepo.Create(txCtx, user.ID)
+	})
+
 	if err != nil {
 		if errors.Is(err, repository.ErrUserAlreadyExists) {
 			return nil, err
 		}
 
-		s.logger.Error("creating user repo error", "err", err)
+		s.logger.Error("creating user repo error", "err", err, "user.ID", user.ID)
 		return nil, fmt.Errorf("service error creating user")
 	}
 

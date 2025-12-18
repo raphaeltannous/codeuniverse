@@ -46,7 +46,7 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	user, err := h.userService.Create(
+	user, err := h.userService.RegisterUser(
 		ctx,
 		requestBody.Username,
 		requestBody.Password,
@@ -452,4 +452,9 @@ func (h *UserHandler) VerifyEmailByToken(w http.ResponseWriter, r *http.Request)
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
+}
+
+// GET
+func (h *UserHandler) UserInfo(w http.ResponseWriter, r *http.Request) {
+
 }
