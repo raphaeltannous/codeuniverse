@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"git.riyt.dev/codeuniverse/internal/middleware"
+	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils"
@@ -455,6 +456,80 @@ func (h *UserHandler) VerifyEmailByToken(w http.ResponseWriter, r *http.Request)
 }
 
 // GET
-func (h *UserHandler) UserInfo(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	userProfile, err := h.userService.GetProfile(
+		ctx,
+		user,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrUserProfileNotFound):
+			apiError.Code = "USER_PROFILE_NOT_FOUND"
+			apiError.Message = "Failed to get user profile. Contact Support."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		}
+
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, userProfile, http.StatusOK)
+}
+
+func (h *UserHandler) GetAuthenticatedProfile(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	userProfile, err := h.userService.GetProfile(
+		ctx,
+		user,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrUserProfileNotFound):
+			apiError.Code = "USER_PROFILE_NOT_FOUND"
+			apiError.Message = "Failed to get user profile. Contact Support."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		}
+
+		return
+	}
+
+	response := struct {
+		Username   string `json:"username"`
+		AvatarUrl  string `json:"avatarUrl"`
+		IsVerified bool   `json:"isVerified"`
+		IsActive   bool   `json:"isActive"`
+		Role       string `json:"role"`
+	}{
+		Username:   user.Username,
+		AvatarUrl:  *userProfile.AvatarURL,
+		IsActive:   user.IsActive,
+		IsVerified: user.IsVerified,
+		Role:       user.Role,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }

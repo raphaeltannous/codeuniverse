@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"git.riyt.dev/codeuniverse/internal/handlers"
-	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -17,7 +16,7 @@ func profileRouter(
 
 	r.Use(authMiddleware)
 
-	r.Get("/me", handlersutils.Unimplemented)
+	r.Get("/me", userHandler.GetAuthenticatedProfile)
 
 	return r
 }

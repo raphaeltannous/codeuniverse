@@ -34,6 +34,7 @@ type UserService interface {
 	GetById(ctx context.Context, uuidString string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
+	GetProfile(ctx context.Context, user *models.User) (*models.UserProfile, error)
 
 	GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
 
@@ -181,6 +182,22 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 	}
 
 	return s.getByFunc(ctx, getFn)
+}
+
+func (s *userService) GetProfile(ctx context.Context, user *models.User) (*models.UserProfile, error) {
+	userProfile, err := s.userProfileRepo.GetInfo(ctx, user)
+	if err != nil {
+		s.logger.Error("failed to get userProfile", "err", err, "user", user)
+		return nil, err
+	}
+
+	if userProfile.AvatarURL == nil {
+		s.logger.Debug("user avatar not set")
+		defaultAvatarURL := "/api/static/default-avatar.png"
+		userProfile.AvatarURL = &defaultAvatarURL
+	}
+
+	return userProfile, err
 }
 
 func (s *userService) getByFunc(ctx context.Context, getFn func(ctx context.Context) (*models.User, error)) (*models.User, error) {

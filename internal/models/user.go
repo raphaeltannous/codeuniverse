@@ -10,8 +10,8 @@ type User struct {
 	ID uuid.UUID `db:"id" json:"-"`
 
 	Username     string `db:"username" json:"username"`
-	PasswordHash string `db:"password_hash" json:"password"`
-	Email        string `db:"email" json:"email"`
+	PasswordHash string `db:"password_hash" json:"-"`
+	Email        string `db:"email" json:"-"`
 
 	IsVerified bool `db:"is_verified" json:"isVerified"`
 	IsActive   bool `db:"is_active" json:"isActive"`

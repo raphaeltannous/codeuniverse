@@ -55,6 +55,7 @@ func (pupr *postgresUserProfileRepository) GetInfo(ctx context.Context, user *mo
 			website_url,
 			github_url,
 			linkedin_url,
+			x_url,
 
 			last_active,
 			created_at,
