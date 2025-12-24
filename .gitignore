@@ -34,6 +34,7 @@
 !problems-data/**
 
 !internal/mailer/templates/html/*.html
+!internal/services/assets/*.png
 
 # ...even if they are in subdirectories
 !*/
