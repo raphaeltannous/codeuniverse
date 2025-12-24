@@ -151,9 +151,12 @@ func service(
 		judge,
 	)
 
+	staticService := services.NewStaticService()
+
 	// handlers
 	userHandler := handlers.NewUserHandler(userService)
 	problemHandler := handlers.NewProblemsHandlers(problemService)
+	staticHandler := handlers.NewStaticHandler(staticService)
 
 	// middlewares
 	authMiddleware := func(next http.Handler) http.Handler {
@@ -166,6 +169,7 @@ func service(
 	return router.Service(
 		userHandler,
 		problemHandler,
+		staticHandler,
 
 		authMiddleware,
 		problemMiddleware,
