@@ -2,12 +2,16 @@ package services
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
 )
+
+//go:embed assets/default.png
+var defaultUserProfilePicture []byte
 
 var (
 	staticDir  string
@@ -21,11 +25,30 @@ var (
 func init() {
 	currentDir, err := os.Getwd()
 	if err != nil {
-		log.Fatal("failed to get current working directory: %w", err)
+		log.Fatalf("failed to get current working directory: %s", err)
 	}
 	staticDir = filepath.Join(currentDir, "static")
+	if _, err := os.Stat(staticDir); errors.Is(err, os.ErrNotExist) {
+		slog.Info("./static dir does not exists", "path", staticDir)
+		if err := os.Mkdir(staticDir, 0770); err != nil {
+			log.Fatalf("failed to create directory %s: %s", staticDir, err)
+		}
+	}
 
 	avatarsDir = filepath.Join(staticDir, "avatars")
+	if _, err := os.Stat(avatarsDir); errors.Is(err, os.ErrNotExist) {
+		slog.Info("./static dir does not exists", "path", avatarsDir)
+		if err := os.Mkdir(avatarsDir, 0770); err != nil {
+			log.Fatalf("failed to create directory %s: %s", avatarsDir, err)
+		}
+	}
+
+	slog.Info("writing default.png", "dstDir", avatarsDir)
+	defaultAvatarDst := filepath.Join(avatarsDir, "default.png")
+
+	if err := os.WriteFile(defaultAvatarDst, defaultUserProfilePicture, 0644); err != nil {
+		log.Fatalf("failed to write default.png to destination: %s", err)
+	}
 }
 
 type StaticService interface {
