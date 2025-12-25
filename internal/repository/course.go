@@ -13,6 +13,7 @@ type CourseRepository interface {
 	Delete(ctx context.Context, courseId uuid.UUID) error
 
 	Get(ctx context.Context, courseId uuid.UUID) (*models.Course, error)
+	GetAll(ctx context.Context) ([]*models.Course, error)
 
 	UpdateTitle(ctx context.Context, courseId uuid.UUID, title string) error
 	UpdateDescription(ctx context.Context, courseId uuid.UUID, description string) error
