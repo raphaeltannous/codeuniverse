@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE courses
-    ALTER COLUMN thumbnail_url SET DEFAULT 'default.png';
+    ALTER COLUMN thumbnail_url SET DEFAULT 'default.jpg';
 -- +goose StatementEnd
 
 -- +goose Down
