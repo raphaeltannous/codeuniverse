@@ -35,6 +35,7 @@
 
 !internal/mailer/templates/html/*.html
 !internal/services/assets/*.png
+!internal/services/assets/*.jpg
 
 # ...even if they are in subdirectories
 !*/
