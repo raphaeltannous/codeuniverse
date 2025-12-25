@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-//go:embed assets/default.png
+//go:embed assets/avatar-default.png
 var defaultUserProfilePicture []byte
 
 var (
