@@ -38,3 +38,22 @@ func (s *StaticHandler) GetAvatar(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	http.ServeFile(w, r, avatarPath)
 }
+
+// GET
+func (s *StaticHandler) GetCourseThumbnail(w http.ResponseWriter, r *http.Request) {
+	filename := chi.URLParam(r, "filename")
+	ctx := r.Context()
+
+	thumbnailPath, err := s.staticService.GetCourseThumbnail(ctx, filename)
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"THUMBNAIL_NOT_FOUND",
+			"Thumbnail not found.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	http.ServeFile(w, r, thumbnailPath)
+}

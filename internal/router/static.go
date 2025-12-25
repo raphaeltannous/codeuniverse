@@ -15,6 +15,7 @@ func staticRouter(
 	r := chi.NewRouter()
 
 	r.Get("/avatars/{filename}", staticHandler.GetAvatar)
+	r.Get("/courses/thumbnails/{filename}", staticHandler.GetCourseThumbnail)
 
 	return r
 }
