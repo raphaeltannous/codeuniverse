@@ -18,6 +18,7 @@ type SubmissionRepository interface {
 	UpdateAcceptanceStatus(ctx context.Context, id uuid.UUID, status bool) error
 
 	GetProblemSubmissions(ctx context.Context, userId, problemId uuid.UUID) ([]*models.Submission, error)
+	GetSubmissionsStats(ctx context.Context, userId uuid.UUID) (*models.SubmissionStats, error)
 
 	GetById(ctx context.Context, id uuid.UUID) (*models.Submission, error)
 }

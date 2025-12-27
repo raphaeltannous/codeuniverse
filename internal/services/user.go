@@ -55,6 +55,8 @@ type UserService interface {
 type userService struct {
 	userRepo              repository.UserRepository
 	userProfileRepo       repository.UserProfileRepository
+	submissionRepo        repository.SubmissionRepository
+	problemRepo           repository.ProblemRepository
 	mfaRepo               repository.MfaCodeRepository
 	passwordResetRepo     repository.PasswordResetRepository
 	emailVerificationRepo repository.EmailVerificationRepository
@@ -68,6 +70,8 @@ type userService struct {
 func NewUserService(
 	userRepo repository.UserRepository,
 	userProfileRepo repository.UserProfileRepository,
+	submissionRepo repository.SubmissionRepository,
+	problemRepo repository.ProblemRepository,
 	mfaRepo repository.MfaCodeRepository,
 	passwordResetRepo repository.PasswordResetRepository,
 	emailVerificationRepo repository.EmailVerificationRepository,
@@ -79,6 +83,8 @@ func NewUserService(
 	return &userService{
 		userRepo:              userRepo,
 		userProfileRepo:       userProfileRepo,
+		submissionRepo:        submissionRepo,
+		problemRepo:           problemRepo,
 		mfaRepo:               mfaRepo,
 		passwordResetRepo:     passwordResetRepo,
 		emailVerificationRepo: emailVerificationRepo,
@@ -195,6 +201,31 @@ func (s *userService) GetProfile(ctx context.Context, user *models.User) (*model
 		s.logger.Debug("user avatar not set")
 		defaultAvatarURL := "/api/static/default-avatar.png"
 		userProfile.AvatarURL = &defaultAvatarURL
+	}
+
+	submissionStats, err := s.submissionRepo.GetSubmissionsStats(ctx, user.ID)
+	if err != nil {
+		s.logger.Error("failed to get submissionStats", "err", err)
+		return nil, err
+	}
+	userProfile.SubmissionStats = *submissionStats
+
+	userProfile.EasyCount, err = s.problemRepo.GetEasyCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get easy count", "err", err)
+		return nil, err
+	}
+
+	userProfile.MediumCount, err = s.problemRepo.GetMediumCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get medium count", "err", err)
+		return nil, err
+	}
+
+	userProfile.HardCount, err = s.problemRepo.GetHardCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get hard count", "err", err)
+		return nil, err
 	}
 
 	return userProfile, err

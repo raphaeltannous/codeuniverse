@@ -11,6 +11,7 @@ import (
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
+	"github.com/go-chi/chi/v5"
 )
 
 type UserHandler struct {
@@ -488,6 +489,7 @@ func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	handlersutils.WriteResponseJSON(w, userProfile, http.StatusOK)
 }
 
+// GET
 func (h *UserHandler) GetAuthenticatedProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -532,4 +534,51 @@ func (h *UserHandler) GetAuthenticatedProfile(w http.ResponseWriter, r *http.Req
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+// GET
+func (h *UserHandler) GetPulbicUserProfile(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	username := chi.URLParam(r, "username")
+	user, err := h.userService.GetByUsername(
+		ctx,
+		username,
+	)
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrUserNotFound):
+			apiError.Code = "USER_NOT_FOUND"
+			apiError.Message = "User not found."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	userProfile, err := h.userService.GetProfile(
+		ctx,
+		user,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrUserProfileNotFound):
+			apiError.Code = "USER_PROFILE_NOT_FOUND"
+			apiError.Message = "Failed to get user profile. Contact Support."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		}
+
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, userProfile, http.StatusOK)
 }

@@ -27,6 +27,12 @@ type Problem struct {
 	UpdatedAt time.Time `db:"updated_at" json:"-"`
 }
 
+type ProblemStats struct {
+	EasyCount   int `json:"easyCount"`
+	MediumCount int `json:"mediumCount"`
+	HardCount   int `json:"hardCount"`
+}
+
 type CodeSnippet struct {
 	Code         string `json:"code"`
 	Language     string `json:"languageName"`

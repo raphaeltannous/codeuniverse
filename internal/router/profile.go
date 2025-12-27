@@ -14,9 +14,12 @@ func profileRouter(
 ) chi.Router {
 	r := chi.NewRouter()
 
-	r.Use(authMiddleware)
+	r.Group(func(r chi.Router) {
+		r.Use(authMiddleware)
 
-	r.Get("/me", userHandler.GetAuthenticatedProfile)
+		r.Get("/", userHandler.GetUserProfile)
+		r.Get("/me", userHandler.GetAuthenticatedProfile)
+	})
 
 	return r
 }

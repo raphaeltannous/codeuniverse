@@ -134,6 +134,8 @@ func service(
 	userService := services.NewUserService(
 		userRepo,
 		userProfileRepo,
+		submissionRepository,
+		problemRepository,
 		mfaRepo,
 		passwordResetRepo,
 		emailVerificationRepo,

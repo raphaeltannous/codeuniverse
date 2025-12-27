@@ -122,8 +122,16 @@ func (ppr *postgresProblemRepository) GetBySlug(ctx context.Context, slug string
 	)
 }
 
-func (ppr *postgresProblemRepository) GetByNumber(ctx context.Context, number int) (*models.Problem, error) {
-	return nil, nil
+func (ppr *postgresProblemRepository) GetEasyCount(ctx context.Context) (int, error) {
+	return ppr.getCountByLevel(ctx, "Easy")
+}
+
+func (ppr *postgresProblemRepository) GetHardCount(ctx context.Context) (int, error) {
+	return ppr.getCountByLevel(ctx, "Medium")
+}
+
+func (ppr *postgresProblemRepository) GetMediumCount(ctx context.Context) (int, error) {
+	return ppr.getCountByLevel(ctx, "Hard")
 }
 
 func (ppr *postgresProblemRepository) UpdateTitle(ctx context.Context, id uuid.UUID, title string) error {
@@ -384,4 +392,26 @@ func (ppr *postgresProblemRepository) scanProblemFunc(scanner problemScanner, pr
 	problem.TestCases = testCases
 
 	return nil
+}
+
+func (ppr *postgresProblemRepository) getCountByLevel(ctx context.Context, difficulty string) (int, error) {
+	query := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM problems
+		WHERE difficulty = '%s';
+	`, difficulty)
+
+	row := ppr.db.QueryRowContext(
+		ctx,
+		query,
+	)
+
+	var difficultyCount int
+	err := row.Scan(&difficultyCount)
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to query count for difficulty (%s): %w", difficulty, err)
+	}
+
+	return difficultyCount, nil
 }

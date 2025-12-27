@@ -16,7 +16,10 @@ type ProblemRepository interface {
 
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Problem, error)
 	GetBySlug(ctx context.Context, slug string) (*models.Problem, error)
-	GetByNumber(ctx context.Context, number int) (*models.Problem, error)
+
+	GetEasyCount(ctx context.Context) (int, error)
+	GetMediumCount(ctx context.Context) (int, error)
+	GetHardCount(ctx context.Context) (int, error)
 
 	UpdateTitle(ctx context.Context, id uuid.UUID, title string) error
 	UpdateSlug(ctx context.Context, id uuid.UUID, slug string) error

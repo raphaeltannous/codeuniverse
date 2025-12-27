@@ -142,6 +142,56 @@ func (p *postgresSubmissionRepository) GetProblemSubmissions(ctx context.Context
 	return submissions, nil
 }
 
+func (p *postgresSubmissionRepository) GetSubmissionsStats(ctx context.Context, userId uuid.UUID) (*models.SubmissionStats, error) {
+	query := `
+		SELECT
+		    COUNT(*) AS total_submissions,
+		    COUNT(*) FILTER (WHERE is_accepted = true) AS accepted_submissions,
+
+		    COUNT(DISTINCT problem_id) FILTER (WHERE is_accepted = true) AS problems_solved,
+
+		    COUNT(DISTINCT problem_id) FILTER (
+		        WHERE is_accepted = true AND p.difficulty = 'Easy'
+		    ) AS easy_solved,
+
+		    COUNT(DISTINCT problem_id) FILTER (
+		        WHERE is_accepted = true AND p.difficulty = 'Medium'
+		    ) AS medium_solved,
+
+		    COUNT(DISTINCT problem_id) FILTER (
+		        WHERE is_accepted = true AND p.difficulty = 'Hard'
+		    ) AS hard_solved
+		FROM submissions s
+		JOIN problems p ON p.id = s.problem_id
+		WHERE s.user_id = $1;
+	`
+
+	row := p.db.QueryRowContext(
+		ctx,
+		query,
+		userId,
+	)
+
+	submissionStats := new(models.SubmissionStats)
+	err := row.Scan(
+		&submissionStats.TotalSubmissions,
+		&submissionStats.AcceptedSubmissions,
+		&submissionStats.ProblemsSolved,
+		&submissionStats.EasySolved,
+		&submissionStats.MediumSolved,
+		&submissionStats.HardSolved,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repository.ErrUserNotFound
+		}
+
+		return nil, repository.ErrInternalServerError
+	}
+
+	return submissionStats, nil
+}
+
 func (p *postgresSubmissionRepository) updateColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
 	return updateColumnValue(
 		ctx,
