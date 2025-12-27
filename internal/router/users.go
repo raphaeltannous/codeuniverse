@@ -10,7 +10,7 @@ func usersRouter(
 ) chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/{username}/profile", userHandlers.GetPulbicUserProfile)
+	r.Get("/{username}/profile", userHandlers.GetPublicUserProfile)
 
 	return r
 }

@@ -537,7 +537,7 @@ func (h *UserHandler) GetAuthenticatedProfile(w http.ResponseWriter, r *http.Req
 }
 
 // GET
-func (h *UserHandler) GetPulbicUserProfile(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) GetPublicUserProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	username := chi.URLParam(r, "username")
