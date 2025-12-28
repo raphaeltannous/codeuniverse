@@ -4,10 +4,13 @@ import (
 	"context"
 	_ "embed"
 	"errors"
+	"io"
 	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/google/uuid"
 )
 
 //go:embed assets/avatar-default.png
@@ -71,6 +74,9 @@ func init() {
 type StaticService interface {
 	GetAvatar(ctx context.Context, filename string) (string, error)
 	GetCourseThumbnail(ctx context.Context, filename string) (string, error)
+
+	SaveAvatar(ctx context.Context, avatarSrc io.Reader, ext string) (string, error)
+	DeleteAvatar(ctx context.Context, avatarPath string) error
 }
 
 type staticService struct {
@@ -107,4 +113,35 @@ func (s *staticService) GetCourseThumbnail(ctx context.Context, filename string)
 
 	s.logger.Debug("thumbnail found", "filename", filename, "filePath", filePath)
 	return filePath, nil
+}
+
+func (s *staticService) SaveAvatar(ctx context.Context, avatarSrc io.Reader, ext string) (string, error) {
+	uniqueFilename := uuid.New().String() + ext
+
+	avatarPath := filepath.Join(avatarsDir, uniqueFilename)
+	avatarDst, err := os.Create(avatarPath)
+	if err != nil {
+		s.logger.Error("failed to create avatarDst", "avatarPath", avatarPath, "err", err)
+		return "", nil
+	}
+	defer avatarDst.Close()
+
+	_, err = io.Copy(avatarDst, avatarSrc)
+
+	return uniqueFilename, err
+}
+
+func (s *staticService) DeleteAvatar(ctx context.Context, avatarPath string) error {
+	if avatarPath == "default.png" || avatarPath == "" {
+		return nil
+	}
+
+	avatarPath = filepath.Join(avatarsDir, avatarPath)
+	err := os.Remove(avatarPath)
+	if err != nil {
+		s.logger.Error("failed to delete avatarPath", "avatarPath", avatarPath)
+		return err
+	}
+
+	return nil
 }

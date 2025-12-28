@@ -18,7 +18,11 @@ func profileRouter(
 		r.Use(authMiddleware)
 
 		r.Get("/", userHandler.GetUserProfile)
+		r.Put("/", userHandler.UpdateUserProfile)
 		r.Get("/me", userHandler.GetAuthenticatedProfile)
+
+		r.Put("/avatar", userHandler.UploadAvatar)
+		r.Delete("/avatar", userHandler.DeleteAvatar)
 	})
 
 	return r

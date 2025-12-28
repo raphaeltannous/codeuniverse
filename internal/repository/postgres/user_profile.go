@@ -169,14 +169,39 @@ func (pupr *postgresUserProfileRepository) UpdateLastActive(ctx context.Context,
 }
 
 func (pupr *postgresUserProfileRepository) updateColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
-	return updateColumnValue(
-		ctx,
-		pupr.db,
-		"user_profiles",
-		id,
+	query := fmt.Sprintf(
+		`
+			UPDATE user_profiles
+			SET %s = $1
+			WHERE user_id = $2;
+		`,
 		column,
-		value,
 	)
+
+	if s, ok := value.(string); ok && s == "" {
+		value = nil
+	}
+
+	result, err := pupr.db.ExecContext(
+		ctx,
+		query,
+		value,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user_profiles.%s: %w", column, err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows from database: %w", err)
+	}
+
+	if rows != 1 {
+		return fmt.Errorf("expect single row affected, got %d rows affected", rows)
+	}
+
+	return nil
 }
 
 func (pupr *postgresUserProfileRepository) scanUserProfileFunc(scanner postgresScanner, userProfile *models.UserProfile) error {

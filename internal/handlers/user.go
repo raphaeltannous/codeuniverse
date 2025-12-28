@@ -4,6 +4,9 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"path/filepath"
+	"slices"
+	"strings"
 
 	"git.riyt.dev/codeuniverse/internal/middleware"
 	"git.riyt.dev/codeuniverse/internal/models"
@@ -15,12 +18,17 @@ import (
 )
 
 type UserHandler struct {
-	userService services.UserService
+	userService   services.UserService
+	staticService services.StaticService
 }
 
-func NewUserHandler(s services.UserService) *UserHandler {
+func NewUserHandler(
+	userService services.UserService,
+	staticService services.StaticService,
+) *UserHandler {
 	return &UserHandler{
-		userService: s,
+		userService:   userService,
+		staticService: staticService,
 	}
 }
 
@@ -581,4 +589,209 @@ func (h *UserHandler) GetPublicUserProfile(w http.ResponseWriter, r *http.Reques
 	}
 
 	handlersutils.WriteResponseJSON(w, userProfile, http.StatusOK)
+}
+
+// PUT
+func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
+	updatePatch := make(map[string]string)
+	if !handlersutils.DecodeJSONRequest(w, r, &updatePatch) {
+		return
+	}
+
+	ctx := r.Context()
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err := h.userService.UpdateUserProfilePatch(
+		ctx,
+		user,
+		updatePatch,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"FAILED_TO_UPDATE",
+			"Failed to update user profile.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		return
+	}
+
+	userProfile, err := h.userService.GetProfile(
+		ctx,
+		user,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrUserProfileNotFound):
+			apiError.Code = "USER_PROFILE_NOT_FOUND"
+			apiError.Message = "Failed to get user profile. Contact Support."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, userProfile, http.StatusOK)
+}
+
+func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	userProfile, err := h.userService.GetProfile(
+		ctx,
+		user,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrUserProfileNotFound):
+			apiError.Code = "USER_PROFILE_NOT_FOUND"
+			apiError.Message = "Failed to get user profile. Contact Support."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		}
+
+		return
+	}
+
+	err = r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"FAILED_TO_PARSE_FORM",
+			"Failed to parse form.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"NO_AVATAR_FILE_PROVIDED",
+			"No avatar file provided.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowedExts := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
+	valid := slices.Contains(allowedExts, ext)
+	if !valid {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_FILE_TYPE",
+			"Invalid file type.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	if header.Size > 5*1024*1024 {
+		apiError := handlersutils.NewAPIError(
+			"FILE_TOO_LARGE",
+			"File to large. (Max 5MB).",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	avatarUrl, err := h.staticService.SaveAvatar(
+		ctx,
+		file,
+		ext,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.userService.UpdateUserProfilePatch(
+		ctx,
+		user,
+		map[string]string{"avatarUrl": avatarUrl},
+	)
+	if err != nil {
+		h.staticService.DeleteAvatar(ctx, avatarUrl)
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	h.staticService.DeleteAvatar(ctx, *userProfile.AvatarURL)
+
+	response := map[string]string{
+		"avatarUrl": avatarUrl,
+		"message":   "Avatar uploaded successfully.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *UserHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	userProfile, err := h.userService.GetProfile(
+		ctx,
+		user,
+	)
+
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrUserProfileNotFound):
+			apiError.Code = "USER_PROFILE_NOT_FOUND"
+			apiError.Message = "Failed to get user profile. Contact Support."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		}
+
+		return
+	}
+
+	err = h.userService.UpdateUserProfilePatch(
+		ctx,
+		user,
+		map[string]string{"avatarUrl": "default.png"},
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	h.staticService.DeleteAvatar(ctx, *userProfile.AvatarURL)
+
+	response := map[string]string{
+		"message": "Avatar deleted.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }

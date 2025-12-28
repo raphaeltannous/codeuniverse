@@ -38,6 +38,8 @@ type UserService interface {
 
 	GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
 
+	UpdateUserProfilePatch(ctx context.Context, user *models.User, userProfileUpdatePatch map[string]string) error
+
 	SendPasswordResetEmail(ctx context.Context, email string) error
 	ResetPasswordByToken(ctx context.Context, token, newPassword string) error
 
@@ -155,6 +157,74 @@ func (s *userService) GetAllUsers(ctx context.Context, offset, limit int) ([]*mo
 	}
 
 	return users, nil
+}
+
+func (s *userService) UpdateUserProfilePatch(ctx context.Context, user *models.User, userProfileUpdatePatch map[string]string) error {
+	if avatarUrl, ok := userProfileUpdatePatch["avatarUrl"]; ok {
+		if err := s.userProfileRepo.UpdateAvatarURL(ctx, user.ID, avatarUrl); err != nil {
+			slog.Error("failed to update avatarUrl", "avatarUrl", avatarUrl, "user", user, "err", err)
+			return err
+		}
+		return nil
+	}
+
+	if name, ok := userProfileUpdatePatch["name"]; ok {
+		if err := s.userProfileRepo.UpdateName(ctx, user.ID, name); err != nil {
+			slog.Error("failed to update name", "name", name, "user", user, "err", err)
+			return err
+		}
+	}
+
+	if bio, ok := userProfileUpdatePatch["bio"]; ok {
+		if err := s.userProfileRepo.UpdateBio(ctx, user.ID, bio); err != nil {
+			slog.Error("failed to update bio", "bio", bio, "user", user, "err", err)
+			return err
+		}
+	}
+
+	if preferredLanguage, ok := userProfileUpdatePatch["preferredLanguage"]; ok {
+		if err := s.userProfileRepo.UpdatePreferredLanguage(ctx, user.ID, preferredLanguage); err != nil {
+			slog.Error("failed to update preferredLanguage", "preferredLanguage", preferredLanguage, "user", user, "err", err)
+			return err
+		}
+	}
+
+	if country, ok := userProfileUpdatePatch["country"]; ok {
+		if err := s.userProfileRepo.UpdateCountry(ctx, user.ID, country); err != nil {
+			slog.Error("failed to update country", "country", country, "user", user, "err", err)
+			return err
+		}
+	}
+
+	if websiteUrl, ok := userProfileUpdatePatch["websiteUrl"]; ok {
+		if err := s.userProfileRepo.UpdateWebsiteURL(ctx, user.ID, websiteUrl); err != nil {
+			slog.Error("failed to update websiteUrl", "websiteUrl", websiteUrl, "user", user, "err", err)
+			return err
+		}
+	}
+
+	if linkedinUrl, ok := userProfileUpdatePatch["linkedinUrl"]; ok {
+		if err := s.userProfileRepo.UpdateLinkedinURL(ctx, user.ID, linkedinUrl); err != nil {
+			slog.Error("failed to update linkedinUrl", "linkedinUrl", linkedinUrl, "user", user, "err", err)
+			return err
+		}
+	}
+
+	if xUrl, ok := userProfileUpdatePatch["xUrl"]; ok {
+		if err := s.userProfileRepo.UpdateXURL(ctx, user.ID, xUrl); err != nil {
+			slog.Error("failed to update xUrl", "xUrl", xUrl, "user", user, "err", err)
+			return err
+		}
+	}
+
+	if githubUrl, ok := userProfileUpdatePatch["githubUrl"]; ok {
+		if err := s.userProfileRepo.UpdateGithubURL(ctx, user.ID, githubUrl); err != nil {
+			slog.Error("failed to update githubUrl", "githubUrl", githubUrl, "user", user, "err", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *userService) GetById(ctx context.Context, id string) (*models.User, error) {

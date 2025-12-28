@@ -156,7 +156,7 @@ func service(
 	staticService := services.NewStaticService()
 
 	// handlers
-	userHandler := handlers.NewUserHandler(userService)
+	userHandler := handlers.NewUserHandler(userService, staticService)
 	problemHandler := handlers.NewProblemsHandlers(problemService)
 	staticHandler := handlers.NewStaticHandler(staticService)
 
