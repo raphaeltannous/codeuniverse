@@ -1,13 +1,32 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
+
+	"git.riyt.dev/codeuniverse/internal/models"
+	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
 )
 
 func AdminOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("admin middleware")
+		ctx := r.Context()
+
+		user, ok := ctx.Value(UserCtxKey).(*models.User)
+		if !ok {
+			handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+			return
+		}
+
+		if user.Role != "admin" {
+			apiError := handlersutils.NewAPIError(
+				"USER_NOT_ADMIN",
+				"Not an admin",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }

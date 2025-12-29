@@ -14,6 +14,12 @@ type UserRepository interface {
 
 	GetUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
 
+	GetAdminCount(ctx context.Context) (int, error)
+	GetUsersCount(ctx context.Context) (int, error)
+	GetUsersRegisteredLastNDaysCount(ctx context.Context, since int) (int, error)
+
+	GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error)
+
 	GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)

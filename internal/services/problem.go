@@ -24,6 +24,10 @@ type ProblemService interface {
 
 	GetAllProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error)
 
+	GetEasyCount(ctx context.Context) (int, error)
+	GetMediumCount(ctx context.Context) (int, error)
+	GetHardCount(ctx context.Context) (int, error)
+
 	UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error)
 
 	Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
@@ -33,6 +37,13 @@ type ProblemService interface {
 
 	GetSubmission(ctx context.Context, user *models.User, submissionId uuid.UUID) (*models.Submission, error)
 	GetSubmissions(ctx context.Context, user *models.User, problem *models.Problem) ([]*models.Submission, error)
+
+	GetSubmissionsCount(ctx context.Context) (int, error)
+	GetSubmissionsLastNDaysCount(ctx context.Context, since int) (int, error)
+	GetPendingSubmissionsCount(ctx context.Context) (int, error)
+	GetAcceptedSubmissionsCount(ctx context.Context) (int, error)
+	GetRecentSubmissions(ctx context.Context, count int) ([]*models.SubmissionActivity, error)
+	GetDailySubmissions(ctx context.Context, since int) ([]*models.DailySubmissions, error)
 
 	CreateNote(ctx context.Context, note *models.ProblemNote) error
 	DeleteNote(ctx context.Context, note *models.ProblemNote) error
@@ -131,6 +142,36 @@ func (s *problemService) GetAllProblems(ctx context.Context, offset, limit int) 
 		return nil, repository.ErrInternalServerError
 	}
 	return problems, nil
+}
+
+func (s *problemService) GetEasyCount(ctx context.Context) (int, error) {
+	count, err := s.problemRepository.GetEasyCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get easy count", "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
+}
+
+func (s *problemService) GetMediumCount(ctx context.Context) (int, error) {
+	count, err := s.problemRepository.GetMediumCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get medium count", "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
+}
+
+func (s *problemService) GetHardCount(ctx context.Context) (int, error) {
+	count, err := s.problemRepository.GetHardCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get hard count", "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
 }
 
 func (s *problemService) UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
@@ -279,6 +320,76 @@ func (s *problemService) GetSubmissions(ctx context.Context, user *models.User, 
 	}
 
 	return submissions, nil
+}
+
+func (s *problemService) GetSubmissionsCount(ctx context.Context) (int, error) {
+	count, err := s.submissionRepository.GetSubmissionsCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get submissions count", "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
+}
+
+func (s *problemService) GetSubmissionsLastNDaysCount(ctx context.Context, since int) (int, error) {
+	count, err := s.submissionRepository.GetSubmissionsLastNDaysCount(ctx, since)
+	if err != nil {
+		s.logger.Error("failed to get submissions count", "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
+}
+
+func (s *problemService) GetPendingSubmissionsCount(ctx context.Context) (int, error) {
+	count, err := s.submissionRepository.GetPendingSubmissionsCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get submissions count", "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
+}
+
+func (s *problemService) GetAcceptedSubmissionsCount(ctx context.Context) (int, error) {
+	count, err := s.submissionRepository.GetAcceptedSubmissionsCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get submissions count", "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
+}
+
+func (s *problemService) GetRecentSubmissions(ctx context.Context, count int) ([]*models.SubmissionActivity, error) {
+	submissionsActivities, err := s.submissionRepository.GetRecentSubmissions(ctx, 10)
+	if err != nil {
+		s.logger.Error("failed to get submissionsActivities", "err", err)
+		return nil, repository.ErrInternalServerError
+	}
+
+	return submissionsActivities, err
+}
+
+func (s *problemService) GetDailySubmissions(ctx context.Context, since int) ([]*models.DailySubmissions, error) {
+	var dailySubmissions []*models.DailySubmissions
+	var err error
+
+	if since == 1 {
+		dailySubmissions, err = s.submissionRepository.GetDailySubmissionsHours(ctx, 24)
+	} else {
+		dailySubmissions, err = s.submissionRepository.GetDailySubmissions(ctx, since)
+	}
+
+	if err != nil {
+		s.logger.Error("failed to get daily submissions", "since", since, "err", err)
+		return nil, repository.ErrInternalServerError
+	}
+
+	s.logger.Debug("daily submissions", "submissions", dailySubmissions)
+
+	return dailySubmissions, nil
 }
 
 func (s *problemService) CreateNote(ctx context.Context, note *models.ProblemNote) error {

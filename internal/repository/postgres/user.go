@@ -54,6 +54,100 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, offset, limit i
 	return users, nil
 }
 
+func (pur *postgresUserRepository) GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error) {
+	query := `
+		SELECT id, username, email, password_hash, is_verified, is_active, role, created_at, updated_at
+		FROM users
+		WHERE created_at >= NOW() - INTERVAL '24 hours'
+		ORDER BY created_at DESC
+		LIMIT $1;
+	`
+
+	rows, err := pur.db.QueryContext(
+		ctx,
+		query,
+		limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query recent registered users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		user := new(models.User)
+
+		err := scanUserFunc(rows, user)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan into user: %w", err)
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func (pur *postgresUserRepository) GetAdminCount(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM users
+		WHERE role = 'admin';
+	`
+
+	row := pur.db.QueryRowContext(
+		ctx,
+		query,
+	)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to get admin count: %w", err)
+	}
+
+	return count, nil
+}
+
+func (pur *postgresUserRepository) GetUsersCount(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM users;
+	`
+
+	row := pur.db.QueryRowContext(
+		ctx,
+		query,
+	)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to get users count: %w", err)
+	}
+
+	return count, nil
+}
+
+func (pur *postgresUserRepository) GetUsersRegisteredLastNDaysCount(ctx context.Context, since int) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM users
+		WHERE created_at >= NOW() - $1::INTERVAL;
+	`
+
+	row := pur.db.QueryRowContext(
+		ctx,
+		query,
+		fmt.Sprintf("%d days", since),
+	)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to get users count since %d days: %w", since, err)
+	}
+
+	return count, nil
+}
+
 func (pur *postgresUserRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
 	query := `
 		INSERT INTO users (username, password_hash, email, role)

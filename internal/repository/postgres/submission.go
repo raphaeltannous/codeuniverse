@@ -83,6 +83,194 @@ func (p *postgresSubmissionRepository) UpdateStatus(ctx context.Context, id uuid
 	)
 }
 
+func (p *postgresSubmissionRepository) GetSubmissionsCount(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM submissions;
+	`
+
+	row := p.db.QueryRowContext(ctx, query)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to get submissions count: %w", err)
+	}
+
+	return count, nil
+}
+
+func (p *postgresSubmissionRepository) GetSubmissionsLastNDaysCount(ctx context.Context, since int) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM submissions
+		WHERE created_at >= NOW() - $1::INTERVAL;
+	`
+
+	row := p.db.QueryRowContext(ctx, query, fmt.Sprintf("%d days", since))
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to get submissions count since %d days: %w", since, err)
+	}
+
+	return count, nil
+}
+
+func (p *postgresSubmissionRepository) GetPendingSubmissionsCount(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM submissions
+		WHERE status = 'PENDING';
+	`
+
+	row := p.db.QueryRowContext(ctx, query)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to get pending submissions count: %w", err)
+	}
+
+	return count, nil
+}
+
+func (p *postgresSubmissionRepository) GetAcceptedSubmissionsCount(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM submissions
+		WHERE status = 'ACCEPTED';
+	`
+
+	row := p.db.QueryRowContext(ctx, query)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to get accepted submissions count: %w", err)
+	}
+
+	return count, nil
+}
+
+func (p *postgresSubmissionRepository) GetRecentSubmissions(ctx context.Context, limit int) ([]*models.SubmissionActivity, error) {
+	query := `
+        SELECT
+            s.id,
+            u.username,
+            p.title as problem_title,
+            p.id as problem_id,
+            s.status,
+            s.created_at
+        FROM submissions s
+        JOIN users u ON u.id = s.user_id
+        JOIN problems p ON p.id = s.problem_id
+        WHERE s.created_at >= NOW() - INTERVAL '24 hours'
+        ORDER BY s.created_at DESC
+        LIMIT $1
+    `
+
+	rows, err := p.db.QueryContext(ctx, query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var submissions []*models.SubmissionActivity
+	for rows.Next() {
+		submission := new(models.SubmissionActivity)
+		if err := rows.Scan(
+			&submission.ID,
+			&submission.Username,
+			&submission.ProblemTitle,
+			&submission.ProblemId,
+			&submission.Status,
+			&submission.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		submissions = append(submissions, submission)
+	}
+
+	return submissions, nil
+}
+
+func (p *postgresSubmissionRepository) GetDailySubmissions(ctx context.Context, since int) ([]*models.DailySubmissions, error) {
+	query := `
+		SELECT
+			DATE(created_at) as date,
+			COUNT(*) as submissions,
+			COUNT(CASE WHEN status = 'ACCEPTED' THEN 1 END) as accepted
+		FROM submissions
+		WHERE created_at >= NOW() - $1::interval
+		GROUP BY DATE(created_at)
+		ORDER BY date;
+	`
+
+	rows, err := p.db.QueryContext(
+		ctx,
+		query,
+		fmt.Sprintf("%d days", since),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query daily submissions: %w", err)
+	}
+	defer rows.Close()
+
+	var dailySubmissions []*models.DailySubmissions
+	for rows.Next() {
+		dailySubmission := new(models.DailySubmissions)
+		if err := rows.Scan(
+			&dailySubmission.Date,
+			&dailySubmission.Submissions,
+			&dailySubmission.Accepted,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan into dailySubmission: %w", err)
+		}
+
+		dailySubmissions = append(dailySubmissions, dailySubmission)
+	}
+
+	return dailySubmissions, nil
+}
+
+func (p *postgresSubmissionRepository) GetDailySubmissionsHours(ctx context.Context, since int) ([]*models.DailySubmissions, error) {
+	query := `
+		SELECT
+			DATE_TRUNC('hour', created_at) as date,
+			COUNT(*) as submissions,
+			COUNT(CASE WHEN status = 'ACCEPTED' THEN 1 END) as accepted
+		FROM submissions
+		WHERE created_at >= NOW() - $1::interval
+		GROUP BY DATE_TRUNC('hour', created_at)
+		ORDER BY date;
+	`
+
+	rows, err := p.db.QueryContext(
+		ctx,
+		query,
+		fmt.Sprintf("%d hours", since),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query daily submissions: %w", err)
+	}
+	defer rows.Close()
+
+	var dailySubmissions []*models.DailySubmissions
+	for rows.Next() {
+		dailySubmission := new(models.DailySubmissions)
+		if err := rows.Scan(
+			&dailySubmission.Date,
+			&dailySubmission.Submissions,
+			&dailySubmission.Accepted,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan into dailySubmission: %w", err)
+		}
+
+		dailySubmissions = append(dailySubmissions, dailySubmission)
+	}
+
+	return dailySubmissions, nil
+}
+
 func (p *postgresSubmissionRepository) GetById(ctx context.Context, id uuid.UUID) (*models.Submission, error) {
 	query := `
 		SELECT id, user_id, problem_id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at

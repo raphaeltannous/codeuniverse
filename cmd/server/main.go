@@ -158,6 +158,7 @@ func service(
 	// handlers
 	userHandler := handlers.NewUserHandler(userService, staticService)
 	problemHandler := handlers.NewProblemsHandlers(problemService)
+	statsHandler := handlers.NewStatsHandler(userService, problemService)
 	staticHandler := handlers.NewStaticHandler(staticService)
 
 	// middlewares
@@ -171,6 +172,7 @@ func service(
 	return router.Service(
 		userHandler,
 		problemHandler,
+		statsHandler,
 		staticHandler,
 
 		authMiddleware,

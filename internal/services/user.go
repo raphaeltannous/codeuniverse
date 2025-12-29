@@ -38,6 +38,12 @@ type UserService interface {
 
 	GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
 
+	GetUsersCount(ctx context.Context) (int, error)
+	GetUsersRegisteredLastNDaysCount(ctx context.Context, days int) (int, error)
+	GetAdminCount(ctx context.Context) (int, error)
+
+	GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error)
+
 	UpdateUserProfilePatch(ctx context.Context, user *models.User, userProfileUpdatePatch map[string]string) error
 
 	SendPasswordResetEmail(ctx context.Context, email string) error
@@ -154,6 +160,46 @@ func (s *userService) GetAllUsers(ctx context.Context, offset, limit int) ([]*mo
 	users, err := s.userRepo.GetUsers(ctx, offset, limit)
 	if err != nil {
 		return nil, fmt.Errorf("service failed to get from userRepo: %w", err)
+	}
+
+	return users, nil
+}
+
+func (s *userService) GetAdminCount(ctx context.Context) (int, error) {
+	count, err := s.userRepo.GetAdminCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get admin count", "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
+}
+
+func (s *userService) GetUsersCount(ctx context.Context) (int, error) {
+	count, err := s.userRepo.GetUsersCount(ctx)
+	if err != nil {
+		s.logger.Error("failed to get users count", "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
+}
+
+func (s *userService) GetUsersRegisteredLastNDaysCount(ctx context.Context, since int) (int, error) {
+	count, err := s.userRepo.GetUsersRegisteredLastNDaysCount(ctx, since)
+	if err != nil {
+		s.logger.Error("failed to get new users count", "since", since, "err", err)
+		return 0, repository.ErrInternalServerError
+	}
+
+	return count, nil
+}
+
+func (s *userService) GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error) {
+	users, err := s.userRepo.GetRecentRegisteredUsers(ctx, limit)
+	if err != nil {
+		s.logger.Error("failed to get recent registered users", "err", err)
+		return nil, repository.ErrInternalServerError
 	}
 
 	return users, nil

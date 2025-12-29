@@ -10,14 +10,21 @@ import (
 
 func adminRouter(
 	userHandler *handlers.UserHandler,
-	problemsHandler *handlers.ProblemHandler,
+	problemHandler *handlers.ProblemHandler,
+	statsHandler *handlers.StatsHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
-	// r.Use(authMiddleware)
-	// r.Use(middleware.AdminOnly)
+	r.Use(authMiddleware)
+	r.Use(middleware.AdminOnly)
+
+	r.Route("/dashboard", func(r chi.Router) {
+		r.Get("/stats", statsHandler.GetDashboardStats)
+		r.Get("/activity", statsHandler.GetRecentActivity)
+		r.Get("/submissions-activities", statsHandler.GetSubmissionTrendsSample)
+	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.OffsetMiddleware)
@@ -34,17 +41,17 @@ func adminRouter(
 			r.Use(middleware.LimitMiddleware)
 			// TODO r.Use(middleware.SearchMiddleware)
 
-			r.Get("/", problemsHandler.GetProblems)
+			r.Get("/", problemHandler.GetProblems)
 		})
 
-		r.Post("/", problemsHandler.CreateProblem)
+		r.Post("/", problemHandler.CreateProblem)
 
 		r.Route("/{problemSlug}", func(r chi.Router) {
 			// TODO problemMiddleware
 
-			r.Get("/", problemsHandler.GetProblem)
-			r.Put("/", problemsHandler.UpdateProblem)
-			r.Delete("/", problemsHandler.DeleteProblem)
+			r.Get("/", problemHandler.GetProblem)
+			r.Put("/", problemHandler.UpdateProblem)
+			r.Delete("/", problemHandler.DeleteProblem)
 		})
 	})
 
