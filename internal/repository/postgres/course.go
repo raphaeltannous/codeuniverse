@@ -9,6 +9,7 @@ import (
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type postgresCourseRepository struct {
@@ -18,9 +19,9 @@ type postgresCourseRepository struct {
 func (p *postgresCourseRepository) Create(ctx context.Context, course *models.Course) (*models.Course, error) {
 	query := `
 		INSERT INTO courses
-			(title, description)
+			(title, slug, description, difficulty)
 		VALUES
-			($1, $2)
+			($1, $2, $3, $4)
 		RETURNING id;
 	`
 
@@ -28,12 +29,18 @@ func (p *postgresCourseRepository) Create(ctx context.Context, course *models.Co
 		ctx,
 		query,
 		course.Title,
+		course.Slug,
 		course.Description,
+		course.Difficulty,
 	)
 
 	err := row.Scan(&course.ID)
 	if err != nil {
-		return nil, repository.ErrInternalServerError
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, repository.ErrCourseAlreadyExists
+		}
+		return nil, fmt.Errorf("failed to create course: %w", err)
 	}
 
 	course.ThumbnailURL = "default.jpg"
@@ -68,17 +75,17 @@ func (p *postgresCourseRepository) Delete(ctx context.Context, courseId uuid.UUI
 	return nil
 }
 
-func (p *postgresCourseRepository) Get(ctx context.Context, courseId uuid.UUID) (*models.Course, error) {
+func (p *postgresCourseRepository) GetBySlug(ctx context.Context, slug string) (*models.Course, error) {
 	query := `
-		SELECT id, title, description, thumbnail_url, created_at, updated_at
+		SELECT id, title, slug, description, difficulty, is_published, thumbnail_url, created_at, updated_at
 		FROM courses
-		WHERE id = $1;
+		WHERE slug = $1;
 	`
 
 	row := p.db.QueryRowContext(
 		ctx,
 		query,
-		courseId,
+		slug,
 	)
 
 	course := new(models.Course)
@@ -95,7 +102,7 @@ func (p *postgresCourseRepository) Get(ctx context.Context, courseId uuid.UUID) 
 
 func (p *postgresCourseRepository) GetAll(ctx context.Context) ([]*models.Course, error) {
 	query := `
-		SELECT id, title, description, thumbnail_url, created_at, updated_at
+		SELECT id, title, slug, description, difficulty, is_published, thumbnail_url, created_at, updated_at
 		FROM courses;
 	`
 
@@ -156,6 +163,39 @@ func (p *postgresCourseRepository) UpdateTitle(ctx context.Context, courseId uui
 	)
 }
 
+func (p *postgresCourseRepository) UpdateIsPublished(ctx context.Context, courseId uuid.UUID, status bool) error {
+	return updateColumnValue(
+		ctx,
+		p.db,
+		"courses",
+		courseId,
+		"is_published",
+		status,
+	)
+}
+
+func (p *postgresCourseRepository) UpdateDifficulty(ctx context.Context, courseId uuid.UUID, difficulty string) error {
+	return updateColumnValue(
+		ctx,
+		p.db,
+		"courses",
+		courseId,
+		"difficulty",
+		difficulty,
+	)
+}
+
+func (p *postgresCourseRepository) UpdateSlug(ctx context.Context, courseId uuid.UUID, slug string) error {
+	return updateColumnValue(
+		ctx,
+		p.db,
+		"courses",
+		courseId,
+		"slug",
+		slug,
+	)
+}
+
 func NewPostgresCourseRepository(db *sql.DB) repository.CourseRepository {
 	return &postgresCourseRepository{db: db}
 }
@@ -164,7 +204,10 @@ func (p *postgresCourseRepository) scanCourseFunc(scanner postgresScanner, cours
 	return scanner.Scan(
 		&course.ID,
 		&course.Title,
+		&course.Slug,
 		&course.Description,
+		&course.Difficulty,
+		&course.IsPublished,
 		&course.ThumbnailURL,
 		&course.CreatedAt,
 		&course.UpdatedAt,

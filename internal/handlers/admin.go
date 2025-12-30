@@ -1,0 +1,291 @@
+package handlers
+
+import (
+	"errors"
+	"net/http"
+	"path/filepath"
+	"slices"
+	"strings"
+
+	"git.riyt.dev/codeuniverse/internal/models"
+	"git.riyt.dev/codeuniverse/internal/repository"
+	"git.riyt.dev/codeuniverse/internal/services"
+	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
+	"github.com/go-chi/chi/v5"
+)
+
+type AdminHandler struct {
+	courseService services.CourseService
+	staticService services.StaticService
+}
+
+func NewAdminHandler(
+	courseService services.CourseService,
+	staticService services.StaticService,
+) *AdminHandler {
+	return &AdminHandler{
+		courseService: courseService,
+		staticService: staticService,
+	}
+}
+
+func (h *AdminHandler) GetCourses(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	courses, err := h.courseService.GetAllCourses(ctx)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, courses, http.StatusOK)
+}
+
+func (h *AdminHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Title       string `json:"title"`
+		Slug        string `json:"slug"`
+		Description string `json:"description"`
+		Difficulty  string `json:"difficulty"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	course := &models.Course{
+		Title:       requestBody.Title,
+		Slug:        requestBody.Slug,
+		Description: requestBody.Description,
+		Difficulty:  requestBody.Difficulty,
+	}
+
+	ctx := r.Context()
+	course, err := h.courseService.CreateCourse(ctx, course)
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, repository.ErrCourseAlreadyExists):
+			apiError.Code = "COURSE_ALREADY_EXISTS"
+			apiError.Message = "Course slug already exists."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, course, http.StatusCreated)
+}
+
+func (h *AdminHandler) UpdateCourseInfo(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Title       string `json:"title"`
+		Slug        string `json:"slug"`
+		Description string `json:"description"`
+		Difficulty  string `json:"difficulty"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	slug := chi.URLParam(r, "courseSlug")
+	ctx := r.Context()
+	course, err := h.courseService.GetCourseBySlug(ctx, slug)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	patch := map[string]any{
+		"title":       requestBody.Title,
+		"slug":        requestBody.Slug,
+		"description": requestBody.Description,
+		"difficulty":  requestBody.Difficulty,
+	}
+
+	err = h.courseService.UpdateCourse(ctx, course, patch)
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, services.ErrInvalidPatch):
+			apiError.Code = "INVALID_PATCH"
+			apiError.Message = "Invalid patch."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	response := map[string]string{
+		"message": "Course is updated.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) UpdateCoursePublishStatus(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		IsPublished bool `json:"isPublished"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	slug := chi.URLParam(r, "courseSlug")
+	ctx := r.Context()
+	course, err := h.courseService.GetCourseBySlug(ctx, slug)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	patch := map[string]any{
+		"isPublished": requestBody.IsPublished,
+	}
+
+	err = h.courseService.UpdateCourse(
+		ctx,
+		course,
+		patch,
+	)
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch {
+		case errors.Is(err, services.ErrInvalidPatch):
+			apiError.Code = "INVALID_PATCH"
+			apiError.Message = "Invalid patch."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	response := map[string]string{
+		"message": "isPublished is updated.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "courseSlug")
+	ctx := r.Context()
+
+	course, err := h.courseService.GetCourseBySlug(ctx, slug)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.courseService.DeleteCourse(
+		ctx,
+		course,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Course deleted.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) UpdateThumbnail(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "courseSlug")
+	ctx := r.Context()
+
+	course, err := h.courseService.GetCourseBySlug(ctx, slug)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err = r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"FAILED_TO_PARSE_FORM",
+			"Failed to parse form.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	file, header, err := r.FormFile("thumbnail")
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"NO_THUMBNAIL_FILE_PROVIDED",
+			"No thumbnail file provided.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowedExts := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
+	if !slices.Contains(allowedExts, ext) {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_FILE_TYPE",
+			"Invalid file type.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	if header.Size > 5*1024*1024 {
+		apiError := handlersutils.NewAPIError(
+			"FILE_TOO_LARGE",
+			"File to large. (Max 5MB).",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	thumbnailUrl, err := h.staticService.SaveCourseThumbnail(
+		ctx,
+		file,
+		ext,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.courseService.UpdateCourse(
+		ctx,
+		course,
+		map[string]any{"thumbnailUrl": thumbnailUrl},
+	)
+	if err != nil {
+		h.staticService.DeleteAvatar(ctx, thumbnailUrl)
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	h.staticService.DeleteCourseThumbnail(ctx, course.ThumbnailURL)
+
+	response := map[string]string{
+		"thumbnailUrl": thumbnailUrl,
+		"message":      "Thumbnail uploaded successfully.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}

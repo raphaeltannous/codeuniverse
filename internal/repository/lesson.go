@@ -15,6 +15,9 @@ type LessonRepository interface {
 	Get(ctx context.Context, lessonId uuid.UUID) (*models.Lesson, error)
 	GetAllByCourse(ctx context.Context, courseId uuid.UUID) ([]*models.Lesson, error)
 
+	GetLessonCount(ctx context.Context) (int, error)
+	GetLessonCountForCourse(ctx context.Context, courseId uuid.UUID) (int, error)
+
 	UpdateTitle(ctx context.Context, lessonId uuid.UUID, title string) error
 	UpdateDescription(ctx context.Context, lessonId uuid.UUID, description string) error
 	UpdateVideoURL(ctx context.Context, lessonId uuid.UUID, url string) error

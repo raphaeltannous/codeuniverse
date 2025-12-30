@@ -13,6 +13,7 @@ func Service(
 	problemsHandler *handlers.ProblemHandler,
 	statsHandler *handlers.StatsHandler,
 	staticHandler *handlers.StaticHandler,
+	adminHandler *handlers.AdminHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
@@ -27,6 +28,7 @@ func Service(
 		problemsHandler,
 		statsHandler,
 		staticHandler,
+		adminHandler,
 
 		authMiddleware,
 		problemMiddleware,
@@ -40,6 +42,7 @@ func apiRouter(
 	problemsHandler *handlers.ProblemHandler,
 	statsHandler *handlers.StatsHandler,
 	staticHandler *handlers.StaticHandler,
+	adminHandler *handlers.AdminHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
@@ -54,7 +57,7 @@ func apiRouter(
 
 	r.Mount("/users", usersRouter(userHandler))
 	r.Mount("/profile", profileRouter(userHandler, authMiddleware))
-	r.Mount("/admin", adminRouter(userHandler, problemsHandler, statsHandler, authMiddleware))
+	r.Mount("/admin", adminRouter(userHandler, problemsHandler, statsHandler, adminHandler, authMiddleware))
 
 	r.Mount("/static", staticRouter(staticHandler, authMiddleware))
 

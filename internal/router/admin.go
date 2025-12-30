@@ -12,6 +12,7 @@ func adminRouter(
 	userHandler *handlers.UserHandler,
 	problemHandler *handlers.ProblemHandler,
 	statsHandler *handlers.StatsHandler,
+	adminHandler *handlers.AdminHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
@@ -24,6 +25,20 @@ func adminRouter(
 		r.Get("/stats", statsHandler.GetDashboardStats)
 		r.Get("/activity", statsHandler.GetRecentActivity)
 		r.Get("/submissions-activities", statsHandler.GetSubmissionTrendsSample)
+
+	})
+
+	r.Route("/courses", func(r chi.Router) {
+		r.Get("/", adminHandler.GetCourses)
+		r.Post("/", adminHandler.CreateCourse)
+
+		r.Route("/{courseSlug}", func(r chi.Router) {
+			r.Delete("/", adminHandler.DeleteCourse)
+			r.Put("/", adminHandler.UpdateCourseInfo)
+
+			r.Put("/publish", adminHandler.UpdateCoursePublishStatus)
+			r.Put("/thumbnail", adminHandler.UpdateThumbnail)
+		})
 	})
 
 	r.Group(func(r chi.Router) {

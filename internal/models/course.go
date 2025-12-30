@@ -14,8 +14,9 @@ type Course struct {
 	Description  string `db:"title" json:"description"`
 	ThumbnailURL string `db:"thumbnail_url" json:"thumbnailURL"`
 	Difficulty   string `db:"difficulty" json:"difficulty"`
+	IsPublished  bool   `db:"is_published" json:"isPublished"`
 
-	TotalLessons string `json:"totalLessons"`
+	TotalLessons int `json:"totalLessons"`
 
 	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`

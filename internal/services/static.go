@@ -77,6 +77,9 @@ type StaticService interface {
 
 	SaveAvatar(ctx context.Context, avatarSrc io.Reader, ext string) (string, error)
 	DeleteAvatar(ctx context.Context, avatarPath string) error
+
+	SaveCourseThumbnail(ctx context.Context, thumbnailSrc io.Reader, ext string) (string, error)
+	DeleteCourseThumbnail(ctx context.Context, thumbnailPath string) error
 }
 
 type staticService struct {
@@ -140,6 +143,37 @@ func (s *staticService) DeleteAvatar(ctx context.Context, avatarPath string) err
 	err := os.Remove(avatarPath)
 	if err != nil {
 		s.logger.Error("failed to delete avatarPath", "avatarPath", avatarPath)
+		return err
+	}
+
+	return nil
+}
+
+func (s *staticService) SaveCourseThumbnail(ctx context.Context, thumbnailSrc io.Reader, ext string) (string, error) {
+	uniqueFilename := uuid.New().String() + ext
+
+	thumbnailPath := filepath.Join(courseDir, uniqueFilename)
+	thumbnailDst, err := os.Create(thumbnailPath)
+	if err != nil {
+		s.logger.Error("failed to create thumbnailDst", "thumbnailPath", thumbnailPath, "err", err)
+		return "", nil
+	}
+	defer thumbnailDst.Close()
+
+	_, err = io.Copy(thumbnailDst, thumbnailSrc)
+
+	return uniqueFilename, err
+}
+
+func (s *staticService) DeleteCourseThumbnail(ctx context.Context, thumbnailPath string) error {
+	if thumbnailPath == "default.jpg" || thumbnailPath == "" {
+		return nil
+	}
+
+	thumbnailPath = filepath.Join(courseDir, thumbnailPath)
+	err := os.Remove(thumbnailPath)
+	if err != nil {
+		s.logger.Error("failed to delete thumbnailPath", "thumbnailPath", thumbnailPath)
 		return err
 	}
 

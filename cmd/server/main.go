@@ -122,6 +122,8 @@ func service(
 	userProfileRepo := postgres.NewUserProfileRepository(db)
 	problemRepository := postgres.NewProblemRepository(db)
 	problemNoteRepository := postgres.NewProblemNoteRepository(db)
+	courseRepository := postgres.NewPostgresCourseRepository(db)
+	lessonRepository := postgres.NewPostgresLessonRepository(db)
 	runRepository := postgres.NewRunRepository(db)
 	submissionRepository := postgres.NewSubmissionRepository(db)
 	mfaRepo := postgres.NewMfaCodeRepository(db)
@@ -155,11 +157,17 @@ func service(
 
 	staticService := services.NewStaticService()
 
+	courseService := services.NewCourseService(
+		courseRepository,
+		lessonRepository,
+	)
+
 	// handlers
 	userHandler := handlers.NewUserHandler(userService, staticService)
 	problemHandler := handlers.NewProblemsHandlers(problemService)
 	statsHandler := handlers.NewStatsHandler(userService, problemService)
 	staticHandler := handlers.NewStaticHandler(staticService)
+	adminHandler := handlers.NewAdminHandler(courseService, staticService)
 
 	// middlewares
 	authMiddleware := func(next http.Handler) http.Handler {
@@ -174,6 +182,7 @@ func service(
 		problemHandler,
 		statsHandler,
 		staticHandler,
+		adminHandler,
 
 		authMiddleware,
 		problemMiddleware,
