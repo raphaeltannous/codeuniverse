@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"git.riyt.dev/codeuniverse/internal/middleware"
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
@@ -92,10 +93,9 @@ func (h *AdminHandler) UpdateCourseInfo(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	slug := chi.URLParam(r, "courseSlug")
 	ctx := r.Context()
-	course, err := h.courseService.GetCourseBySlug(ctx, slug)
-	if err != nil {
+	course, ok := ctx.Value(middleware.CourseCtxKey).(*models.Course)
+	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
@@ -107,7 +107,7 @@ func (h *AdminHandler) UpdateCourseInfo(w http.ResponseWriter, r *http.Request) 
 		"difficulty":  requestBody.Difficulty,
 	}
 
-	err = h.courseService.UpdateCourse(ctx, course, patch)
+	err := h.courseService.UpdateCourse(ctx, course, patch)
 	if err != nil {
 		apiError := handlersutils.NewInternalServerAPIError()
 		switch {
@@ -139,10 +139,9 @@ func (h *AdminHandler) UpdateCoursePublishStatus(w http.ResponseWriter, r *http.
 		return
 	}
 
-	slug := chi.URLParam(r, "courseSlug")
 	ctx := r.Context()
-	course, err := h.courseService.GetCourseBySlug(ctx, slug)
-	if err != nil {
+	course, ok := ctx.Value(middleware.CourseCtxKey).(*models.Course)
+	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
@@ -151,7 +150,7 @@ func (h *AdminHandler) UpdateCoursePublishStatus(w http.ResponseWriter, r *http.
 		"isPublished": requestBody.IsPublished,
 	}
 
-	err = h.courseService.UpdateCourse(
+	err := h.courseService.UpdateCourse(
 		ctx,
 		course,
 		patch,
@@ -179,16 +178,15 @@ func (h *AdminHandler) UpdateCoursePublishStatus(w http.ResponseWriter, r *http.
 }
 
 func (h *AdminHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "courseSlug")
 	ctx := r.Context()
 
-	course, err := h.courseService.GetCourseBySlug(ctx, slug)
-	if err != nil {
+	course, ok := ctx.Value(middleware.CourseCtxKey).(*models.Course)
+	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
-	err = h.courseService.DeleteCourse(
+	err := h.courseService.DeleteCourse(
 		ctx,
 		course,
 	)
@@ -285,6 +283,138 @@ func (h *AdminHandler) UpdateThumbnail(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{
 		"thumbnailUrl": thumbnailUrl,
 		"message":      "Thumbnail uploaded successfully.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) GetLessons(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	course, ok := ctx.Value(middleware.CourseCtxKey).(*models.Course)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	lessons, err := h.courseService.GetCourseLessons(
+		ctx,
+		course,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]any{
+		"lessons":     lessons,
+		"courseTitle": course.Title,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Title        string `json:"title"`
+		Description  string `json:"description"`
+		LessonNumber int    `json:"lessonNumber"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	course, ok := ctx.Value(middleware.CourseCtxKey).(*models.Course)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	lesson := &models.Lesson{
+		Title:        requestBody.Title,
+		Description:  requestBody.Description,
+		LessonNumber: requestBody.LessonNumber,
+	}
+
+	lesson, err := h.courseService.CreateLesson(
+		ctx,
+		course,
+		lesson,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Lesson created.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) DeleteLesson(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	lesson, ok := ctx.Value(middleware.LessonCtxKey).(*models.Lesson)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+
+	}
+
+	err := h.courseService.DeleteLesson(
+		ctx,
+		lesson,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Lesson deleted.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) UpdateLesson(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Title        string `json:"title"`
+		Description  string `json:"description"`
+		LessonNumber int    `json:"lessonNumber"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	patch := map[string]any{
+		"title":        requestBody.Title,
+		"description":  requestBody.Description,
+		"lessonNumber": requestBody.LessonNumber,
+	}
+
+	ctx := r.Context()
+	lesson, ok := ctx.Value(middleware.LessonCtxKey).(*models.Lesson)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err := h.courseService.UpdateLesson(
+		ctx,
+		lesson,
+		patch,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Lesson updated.",
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)

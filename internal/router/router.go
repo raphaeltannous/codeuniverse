@@ -17,6 +17,8 @@ func Service(
 
 	authMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
+	courseMiddleware func(next http.Handler) http.Handler,
+	lessonMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -32,6 +34,8 @@ func Service(
 
 		authMiddleware,
 		problemMiddleware,
+		courseMiddleware,
+		lessonMiddleware,
 	))
 
 	return r
@@ -46,6 +50,8 @@ func apiRouter(
 
 	authMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
+	courseMiddleware func(next http.Handler) http.Handler,
+	lessonMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -57,7 +63,16 @@ func apiRouter(
 
 	r.Mount("/users", usersRouter(userHandler))
 	r.Mount("/profile", profileRouter(userHandler, authMiddleware))
-	r.Mount("/admin", adminRouter(userHandler, problemsHandler, statsHandler, adminHandler, authMiddleware))
+	r.Mount("/admin", adminRouter(
+		userHandler,
+		problemsHandler,
+		statsHandler,
+		adminHandler,
+
+		authMiddleware,
+		courseMiddleware,
+		lessonMiddleware,
+	))
 
 	r.Mount("/static", staticRouter(staticHandler, authMiddleware))
 

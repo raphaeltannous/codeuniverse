@@ -15,6 +15,8 @@ func adminRouter(
 	adminHandler *handlers.AdminHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
+	courseMiddleware func(next http.Handler) http.Handler,
+	lessonMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -33,11 +35,25 @@ func adminRouter(
 		r.Post("/", adminHandler.CreateCourse)
 
 		r.Route("/{courseSlug}", func(r chi.Router) {
+			r.Use(courseMiddleware)
+
 			r.Delete("/", adminHandler.DeleteCourse)
 			r.Put("/", adminHandler.UpdateCourseInfo)
 
 			r.Put("/publish", adminHandler.UpdateCoursePublishStatus)
 			r.Put("/thumbnail", adminHandler.UpdateThumbnail)
+
+			r.Route("/lessons", func(r chi.Router) {
+				r.Get("/", adminHandler.GetLessons)
+				r.Post("/", adminHandler.CreateLesson)
+
+				r.Route("/{lessonId}", func(r chi.Router) {
+					r.Use(lessonMiddleware)
+
+					r.Put("/", adminHandler.UpdateLesson)
+					r.Delete("/", adminHandler.DeleteLesson)
+				})
+			})
 		})
 	})
 
