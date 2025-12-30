@@ -9,7 +9,7 @@ import (
 type Lesson struct {
 	ID uuid.UUID `db:"id" json:"id"`
 
-	CourseId uuid.UUID `db:"course_id" json:"courseId"`
+	CourseId uuid.UUID `db:"course_id" json:"-"`
 
 	Title           string `db:"title" json:"title"`
 	Description     string `db:"description" json:"description"`
