@@ -51,9 +51,9 @@ func (p *postgresLessonRepository) GetLessonCountForCourse(ctx context.Context, 
 func (p *postgresLessonRepository) Create(ctx context.Context, courseId uuid.UUID, lesson *models.Lesson) (*models.Lesson, error) {
 	query := `
 		INSERT INTO lessons
-			(course_id, title, description, video_url, duration_seconds, lesson_number)
+			(course_id, title, description, lesson_number)
 		VALUES
-			($1, $2, $3, $4, $5, $6)
+			($1, $2, $3, $4)
 		RETURNING id;
 	`
 
@@ -63,14 +63,12 @@ func (p *postgresLessonRepository) Create(ctx context.Context, courseId uuid.UUI
 		courseId,
 		lesson.Title,
 		lesson.Description,
-		lesson.VideoURL,
-		lesson.DurationSeconds,
 		lesson.LessonNumber,
 	)
 
 	err := row.Scan(&lesson.ID)
 	if err != nil {
-		return nil, repository.ErrInternalServerError
+		return nil, fmt.Errorf("failed to create lesson: %w", err)
 	}
 
 	return lesson, nil
