@@ -22,10 +22,10 @@ type CourseService interface {
 	CreateLesson(ctx context.Context, course *models.Course, lesson *models.Lesson) (*models.Lesson, error)
 	DeleteLesson(ctx context.Context, lesson *models.Lesson) error
 
-	GetCourseLessons(ctx context.Context, courseId uuid.UUID) ([]*models.Lesson, error)
+	GetCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error)
 	GetLesson(ctx context.Context, lessonId uuid.UUID) (*models.Lesson, error)
 
-	UpdateLesson(ctx context.Context, lessonId uuid.UUID, lessonUpdatePach map[string]any) (*models.Lesson, error)
+	UpdateLesson(ctx context.Context, lesson *models.Lesson, lessonUpdatePach map[string]any) error
 }
 
 var (
@@ -69,7 +69,17 @@ func (c *courseService) CreateCourse(ctx context.Context, course *models.Course)
 }
 
 func (c *courseService) CreateLesson(ctx context.Context, course *models.Course, lesson *models.Lesson) (*models.Lesson, error) {
-	panic("unimplemented")
+	lesson, err := c.lessonRepository.Create(
+		ctx,
+		course.ID,
+		lesson,
+	)
+	if err != nil {
+		c.logger.Error("failed to create lesson for course", "course", course, "lesson", lesson, "err", err)
+		return nil, err
+	}
+
+	return lesson, nil
 }
 
 func (c *courseService) DeleteCourse(ctx context.Context, course *models.Course) error {
@@ -83,7 +93,13 @@ func (c *courseService) DeleteCourse(ctx context.Context, course *models.Course)
 }
 
 func (c *courseService) DeleteLesson(ctx context.Context, lesson *models.Lesson) error {
-	panic("unimplemented")
+	err := c.lessonRepository.Delete(ctx, lesson.ID)
+	if err != nil {
+		c.logger.Error("failed to delete lesson", "lesson", lesson)
+		return err
+	}
+
+	return nil
 }
 
 func (c *courseService) GetCourseBySlug(ctx context.Context, slug string) (*models.Course, error) {
@@ -96,12 +112,24 @@ func (c *courseService) GetCourseBySlug(ctx context.Context, slug string) (*mode
 	return course, nil
 }
 
-func (c *courseService) GetCourseLessons(ctx context.Context, courseId uuid.UUID) ([]*models.Lesson, error) {
-	panic("unimplemented")
+func (c *courseService) GetCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error) {
+	lessons, err := c.lessonRepository.GetAllByCourse(ctx, course.ID)
+	if err != nil {
+		c.logger.Error("failed to get lessons for course", "course", course, "err", err)
+		return nil, err
+	}
+
+	return lessons, nil
 }
 
 func (c *courseService) GetLesson(ctx context.Context, lessonId uuid.UUID) (*models.Lesson, error) {
-	panic("unimplemented")
+	lesson, err := c.lessonRepository.Get(ctx, lessonId)
+	if err != nil {
+		c.logger.Error("failed to get lesson", "lessonId", lessonId, "err", err)
+		return nil, err
+	}
+
+	return lesson, nil
 }
 
 func (c *courseService) UpdateCourse(ctx context.Context, course *models.Course, courseUpdatePatch map[string]any) error {
@@ -194,8 +222,50 @@ func (c *courseService) UpdateCourse(ctx context.Context, course *models.Course,
 	return nil
 }
 
-func (c *courseService) UpdateLesson(ctx context.Context, lessonId uuid.UUID, lessonUpdatePach map[string]any) (*models.Lesson, error) {
-	panic("unimplemented")
+func (c *courseService) UpdateLesson(ctx context.Context, lesson *models.Lesson, lessonUpdatePach map[string]any) error {
+	if rawTitle, ok := lessonUpdatePach["title"]; ok {
+		switch title := rawTitle.(type) {
+		case string:
+			err := c.lessonRepository.UpdateTitle(ctx, lesson.ID, title)
+			if err != nil {
+				c.logger.Error("failed to update lesson title", "lesson", lesson, "newtitle", title, "err", err)
+				return err
+			}
+		default:
+			c.logger.Error("title is not a string", "rawtitle", rawTitle)
+			return ErrInvalidPatch
+		}
+	}
+
+	if rawDescription, ok := lessonUpdatePach["description"]; ok {
+		switch description := rawDescription.(type) {
+		case string:
+			err := c.lessonRepository.UpdateDescription(ctx, lesson.ID, description)
+			if err != nil {
+				c.logger.Error("failed to update lesson description", "lesson", lesson, "newdescription", description, "err", err)
+				return err
+			}
+		default:
+			c.logger.Error("description is not a string", "rawDescription", rawDescription)
+			return ErrInvalidPatch
+		}
+	}
+
+	if rawLessonNumber, ok := lessonUpdatePach["lessonNumber"]; ok {
+		switch lessonNumber := rawLessonNumber.(type) {
+		case int:
+			err := c.lessonRepository.UpdateLessonNumber(ctx, lesson.ID, lessonNumber)
+			if err != nil {
+				c.logger.Error("failed to update lesson lessonNumber", "lesson", lesson, "newlessonNumber", lessonNumber, "err", err)
+				return err
+			}
+		default:
+			c.logger.Error("lessonNumber is not a string", "rawlessonNumber", rawLessonNumber)
+			return ErrInvalidPatch
+		}
+	}
+
+	return nil
 }
 
 func NewCourseService(
