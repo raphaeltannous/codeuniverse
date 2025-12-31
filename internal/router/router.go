@@ -74,7 +74,11 @@ func apiRouter(
 		lessonMiddleware,
 	))
 
-	r.Mount("/static", staticRouter(staticHandler, authMiddleware))
+	r.Mount("/static", staticRouter(
+		staticHandler,
+		authMiddleware,
+		lessonMiddleware,
+	))
 
 	return r
 }

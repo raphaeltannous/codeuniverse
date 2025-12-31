@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"git.riyt.dev/codeuniverse/internal/middleware"
@@ -415,6 +416,105 @@ func (h *AdminHandler) UpdateLesson(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]string{
 		"message": "Lesson updated.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) UpdateLessonVideo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	lesson, ok := ctx.Value(middleware.LessonCtxKey).(*models.Lesson)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err := r.ParseMultipartForm(500 << 20)
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"FAILED_TO_PARSE_FORM",
+			"Failed to parse form.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	file, header, err := r.FormFile("video")
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"NO_VIDEO_FILE_PROVIDED",
+			"No video file provided.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+	defer file.Close()
+
+	durationSecondsStr := r.FormValue("durationSeconds")
+	durationSeconds, err := strconv.Atoi(durationSecondsStr)
+	if err != nil || durationSeconds <= 0 {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_DURATION",
+			"Invalid duration.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowedExts := []string{".mp4"}
+	if !slices.Contains(allowedExts, ext) {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_FILE_TYPE",
+			"Invalid file type.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	if header.Size > 500*1024*1024 {
+		apiError := handlersutils.NewAPIError(
+			"FILE_TOO_LARGE",
+			"File to large. (Max 500MB).",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadGateway)
+		return
+	}
+
+	videoUrl, err := h.staticService.SaveLessonVideo(
+		ctx,
+		file,
+		ext,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.courseService.UpdateLesson(
+		ctx,
+		lesson,
+		map[string]any{
+			"videoUrl":        videoUrl,
+			"durationSeconds": durationSeconds,
+		},
+	)
+	if err != nil {
+		h.staticService.DeleteAvatar(ctx, videoUrl)
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	h.staticService.DeleteCourseThumbnail(ctx, lesson.VideoURL)
+
+	response := map[string]string{
+		"videoUrl": videoUrl,
+		"message":  "Lesson uploaded successfully.",
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)

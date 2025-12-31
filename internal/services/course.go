@@ -7,6 +7,7 @@ import (
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
+	"git.riyt.dev/codeuniverse/internal/utils"
 	"github.com/google/uuid"
 )
 
@@ -119,6 +120,12 @@ func (c *courseService) GetCourseLessons(ctx context.Context, course *models.Cou
 		return nil, err
 	}
 
+	for _, lesson := range lessons {
+		if lesson.VideoURL != "default.mp4" {
+			lesson.VideoURL = utils.GenerateSignedUrl(lesson.ID.String(), 60*24)
+		}
+	}
+
 	return lessons, nil
 }
 
@@ -223,6 +230,34 @@ func (c *courseService) UpdateCourse(ctx context.Context, course *models.Course,
 }
 
 func (c *courseService) UpdateLesson(ctx context.Context, lesson *models.Lesson, lessonUpdatePach map[string]any) error {
+	if rawVideoUrl, ok := lessonUpdatePach["videoUrl"]; ok {
+		switch videoUrl := rawVideoUrl.(type) {
+		case string:
+			err := c.lessonRepository.UpdateVideoURL(ctx, lesson.ID, videoUrl)
+			if err != nil {
+				c.logger.Error("failed to update lesson videoUrl", "lesson", lesson, "newVideoUrl", videoUrl, "err", err)
+				return err
+			}
+		default:
+			c.logger.Error("videoUrl is not a string", "rawVideoUrl", rawVideoUrl)
+			return ErrInvalidPatch
+		}
+	}
+
+	if rawDurationSeconds, ok := lessonUpdatePach["durationSeconds"]; ok {
+		switch durationSeconds := rawDurationSeconds.(type) {
+		case int:
+			err := c.lessonRepository.UpdateDurationSeconds(ctx, lesson.ID, durationSeconds)
+			if err != nil {
+				c.logger.Error("failed to update lesson durationSeconds", "lesson", lesson, "newDurationSeconds", durationSeconds, "err", err)
+				return err
+			}
+		default:
+			c.logger.Error("durationSeconds is not a string", "rawDurationSeconds", rawDurationSeconds)
+			return ErrInvalidPatch
+		}
+	}
+
 	if rawTitle, ok := lessonUpdatePach["title"]; ok {
 		switch title := rawTitle.(type) {
 		case string:

@@ -52,6 +52,8 @@ func adminRouter(
 
 					r.Put("/", adminHandler.UpdateLesson)
 					r.Delete("/", adminHandler.DeleteLesson)
+
+					r.Put("/video", adminHandler.UpdateLessonVideo)
 				})
 			})
 		})

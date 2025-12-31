@@ -11,11 +11,18 @@ func staticRouter(
 	staticHandler *handlers.StaticHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
+	lessonMiddleware func(next http.Handler) http.Handler,
 ) chi.Router {
 	r := chi.NewRouter()
 
 	r.Get("/avatars/{filename}", staticHandler.GetAvatar)
 	r.Get("/courses/thumbnails/{filename}", staticHandler.GetCourseThumbnail)
+
+	r.Route("/lessons/{lessonId}", func(r chi.Router) {
+		r.Use(lessonMiddleware)
+
+		r.Get("/", staticHandler.StreamVideo)
+	})
 
 	return r
 }
