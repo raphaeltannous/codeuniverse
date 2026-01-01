@@ -14,6 +14,7 @@ type CourseRepository interface {
 
 	GetBySlug(ctx context.Context, slug string) (*models.Course, error)
 	GetAll(ctx context.Context) ([]*models.Course, error)
+	GetAllPublished(ctx context.Context) ([]*models.Course, error)
 
 	UpdateTitle(ctx context.Context, courseId uuid.UUID, title string) error
 	UpdateSlug(ctx context.Context, courseId uuid.UUID, slug string) error

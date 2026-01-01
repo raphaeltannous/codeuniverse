@@ -48,6 +48,23 @@ func (p *postgresLessonRepository) GetLessonCountForCourse(ctx context.Context, 
 	return count, nil
 }
 
+func (p *postgresLessonRepository) GetValidLessonCountForCourse(ctx context.Context, courseId uuid.UUID) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM lessons
+		WHERE course_id = $1 AND video_url <> 'default.mp4';
+	`
+
+	row := p.db.QueryRowContext(ctx, query, courseId)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (p *postgresLessonRepository) Create(ctx context.Context, courseId uuid.UUID, lesson *models.Lesson) (*models.Lesson, error) {
 	query := `
 		INSERT INTO lessons

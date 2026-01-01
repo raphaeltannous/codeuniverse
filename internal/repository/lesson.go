@@ -17,6 +17,7 @@ type LessonRepository interface {
 
 	GetLessonCount(ctx context.Context) (int, error)
 	GetLessonCountForCourse(ctx context.Context, courseId uuid.UUID) (int, error)
+	GetValidLessonCountForCourse(ctx context.Context, courseId uuid.UUID) (int, error)
 
 	UpdateTitle(ctx context.Context, lessonId uuid.UUID, title string) error
 	UpdateDescription(ctx context.Context, lessonId uuid.UUID, description string) error

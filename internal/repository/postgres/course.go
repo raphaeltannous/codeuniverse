@@ -130,6 +130,36 @@ func (p *postgresCourseRepository) GetAll(ctx context.Context) ([]*models.Course
 	return courses, nil
 }
 
+func (p *postgresCourseRepository) GetAllPublished(ctx context.Context) ([]*models.Course, error) {
+	query := `
+		SELECT id, title, slug, description, difficulty, is_published, thumbnail_url, created_at, updated_at
+		FROM courses
+		WHERE is_published = TRUE;
+	`
+
+	rows, err := p.db.QueryContext(
+		ctx,
+		query,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query all courses: %w", err)
+	}
+	defer rows.Close()
+
+	var courses []*models.Course
+	for rows.Next() {
+		course := new(models.Course)
+
+		err := p.scanCourseFunc(rows, course)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan into course: %w", err)
+		}
+
+		courses = append(courses, course)
+	}
+
+	return courses, nil
+}
 func (p *postgresCourseRepository) UpdateDescription(ctx context.Context, courseId uuid.UUID, description string) error {
 	return updateColumnValue(
 		ctx,

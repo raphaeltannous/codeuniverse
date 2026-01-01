@@ -22,7 +22,7 @@ func NewCourseHandler(courseService services.CourseService) *CourseHandler {
 func (h *CourseHandler) GetPublicCourses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	courses, err := h.courseService.GetAllCourses(ctx)
+	courses, err := h.courseService.GetAllPublicCourses(ctx)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -47,7 +47,7 @@ func (h *CourseHandler) GetPublicCoursesWithProgress(w http.ResponseWriter, r *h
 		return
 	}
 
-	courses, err := h.courseService.GetAllCourses(ctx)
+	courses, err := h.courseService.GetAllPublicCourses(ctx)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -79,7 +79,7 @@ func (h *CourseHandler) GetPublicCoursesWithProgress(w http.ResponseWriter, r *h
 
 			var completionPercentage float64
 			if completedLessonCount > 0 {
-				completionPercentage = float64(course.TotalLessons) / completionPercentage
+				completionPercentage = (completedLessonCount / float64(course.TotalLessons)) * 100
 			}
 
 			response = append(
@@ -124,6 +124,78 @@ func (h *CourseHandler) GetLessons(w http.ResponseWriter, r *http.Request) {
 	response := map[string]any{
 		"lessons":     validLessons,
 		"courseTitle": course.Title,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *CourseHandler) UpdateIsCompleted(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	course, ok := ctx.Value(middleware.CourseCtxKey).(*models.Course)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	lesson, ok := ctx.Value(middleware.LessonCtxKey).(*models.Lesson)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	lessonProgress := &models.CourseLessonProgress{
+		UserId:      user.ID,
+		CourseId:    course.ID,
+		LessonId:    lesson.ID,
+		IsCompleted: true,
+	}
+	err := h.courseService.UpdateCourseProgress(
+		ctx,
+		lessonProgress,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *CourseHandler) GetCourseProgress(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	course, ok := ctx.Value(middleware.CourseCtxKey).(*models.Course)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	courseProgress, err := h.courseService.GetCourseProgress(
+		ctx,
+		course,
+		user,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := make(map[string]bool)
+	for _, progress := range courseProgress {
+		response[progress.LessonId.String()] = progress.IsCompleted
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)

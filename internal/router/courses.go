@@ -8,7 +8,7 @@ import (
 )
 
 func courseRouter(
-	coursesHandler *handlers.CourseHandler,
+	courseHandler *handlers.CourseHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 	courseMiddleware func(next http.Handler) http.Handler,
@@ -16,17 +16,24 @@ func courseRouter(
 ) http.Handler {
 	r := chi.NewRouter()
 
-	r.Get("/", coursesHandler.GetPublicCourses)
+	r.Get("/", courseHandler.GetPublicCourses)
 
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
 
-		r.Get("/loggedIn", coursesHandler.GetPublicCoursesWithProgress)
+		r.Get("/loggedIn", courseHandler.GetPublicCoursesWithProgress)
 
 		r.Route("/{courseSlug}", func(r chi.Router) {
 			r.Use(courseMiddleware)
 
-			r.Get("/", coursesHandler.GetLessons)
+			r.Get("/", courseHandler.GetLessons)
+			r.Get("/progress", courseHandler.GetCourseProgress)
+
+			r.Route("/{lessonId}", func(r chi.Router) {
+				r.Use(lessonMiddleware)
+
+				r.Put("/", courseHandler.UpdateIsCompleted)
+			})
 		})
 	})
 

@@ -17,6 +17,7 @@ type CourseService interface {
 
 	GetCourseBySlug(ctx context.Context, slug string) (*models.Course, error)
 	GetAllCourses(ctx context.Context) ([]*models.Course, error)
+	GetAllPublicCourses(ctx context.Context) ([]*models.Course, error)
 
 	UpdateCourse(ctx context.Context, course *models.Course, courseUpdatePatch map[string]any) error
 
@@ -61,6 +62,30 @@ func (c *courseService) GetAllCourses(ctx context.Context) ([]*models.Course, er
 	}
 
 	return courses, nil
+}
+
+func (c *courseService) GetAllPublicCourses(ctx context.Context) ([]*models.Course, error) {
+	courses, err := c.courseRepository.GetAllPublished(ctx)
+	if err != nil {
+		c.logger.Error("failed to get all courses", "err", err)
+		return nil, repository.ErrInternalServerError
+	}
+
+	publicCourses := make([]*models.Course, 0, len(courses))
+	for _, course := range courses {
+		count, err := c.lessonRepository.GetValidLessonCountForCourse(ctx, course.ID)
+		if err != nil {
+			c.logger.Error("failed to get lesson count for course", "course", course, "err", err)
+			return nil, repository.ErrInternalServerError
+		}
+		course.TotalLessons = count
+
+		if count > 0 {
+			publicCourses = append(publicCourses, course)
+		}
+	}
+
+	return publicCourses, nil
 }
 
 func (c *courseService) CreateCourse(ctx context.Context, course *models.Course) (*models.Course, error) {
