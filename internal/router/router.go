@@ -77,7 +77,7 @@ func apiRouter(
 	r.Mount("/auth", authRouter(userHandler, authMiddleware))
 
 	r.Mount("/problems", problemsRouter(problemsHandler, authMiddleware, problemMiddleware))
-	r.Mount("/courses", courseRouter(courseHandler, authMiddleware))
+	r.Mount("/courses", courseRouter(courseHandler, authMiddleware, courseMiddleware, lessonMiddleware))
 
 	r.Mount("/users", usersRouter(userHandler))
 	r.Mount("/profile", profileRouter(userHandler, authMiddleware))
