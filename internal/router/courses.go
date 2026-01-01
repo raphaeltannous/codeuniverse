@@ -18,11 +18,16 @@ func courseRouter(
 
 	r.Get("/", coursesHandler.GetPublicCourses)
 
-	r.Route("/{courseSlug}", func(r chi.Router) {
+	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
-		r.Use(courseMiddleware)
 
-		r.Get("/", coursesHandler.GetLessons)
+		r.Get("/loggedIn", coursesHandler.GetPublicCoursesWithProgress)
+
+		r.Route("/{courseSlug}", func(r chi.Router) {
+			r.Use(courseMiddleware)
+
+			r.Get("/", coursesHandler.GetLessons)
+		})
 	})
 
 	return r

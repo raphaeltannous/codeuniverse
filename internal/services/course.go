@@ -27,6 +27,9 @@ type CourseService interface {
 	GetLesson(ctx context.Context, lessonId uuid.UUID) (*models.Lesson, error)
 
 	UpdateLesson(ctx context.Context, lesson *models.Lesson, lessonUpdatePach map[string]any) error
+
+	GetCourseProgress(ctx context.Context, course *models.Course, user *models.User) ([]*models.CourseLessonProgress, error)
+	UpdateCourseProgress(ctx context.Context, courseProgress *models.CourseLessonProgress) error
 }
 
 var (
@@ -34,8 +37,9 @@ var (
 )
 
 type courseService struct {
-	courseRepository repository.CourseRepository
-	lessonRepository repository.LessonRepository
+	courseRepository         repository.CourseRepository
+	lessonRepository         repository.LessonRepository
+	courseProgressRepository repository.CourseProgressRepository
 
 	logger *slog.Logger
 }
@@ -303,13 +307,42 @@ func (c *courseService) UpdateLesson(ctx context.Context, lesson *models.Lesson,
 	return nil
 }
 
+func (c *courseService) GetCourseProgress(ctx context.Context, course *models.Course, user *models.User) ([]*models.CourseLessonProgress, error) {
+	courseProgress, err := c.courseProgressRepository.Get(
+		ctx,
+		course.ID,
+		user.ID,
+	)
+	if err != nil {
+		c.logger.Error("failed to get course progress", "course", course, "user", user)
+		return nil, err
+	}
+
+	return courseProgress, nil
+}
+
+func (c *courseService) UpdateCourseProgress(ctx context.Context, courseProgress *models.CourseLessonProgress) error {
+	err := c.courseProgressRepository.Save(
+		ctx,
+		courseProgress,
+	)
+	if err != nil {
+		c.logger.Error("failed to save course progress", "courseProgress", courseProgress)
+		return err
+	}
+
+	return nil
+}
+
 func NewCourseService(
 	courseRepository repository.CourseRepository,
 	lessonRepository repository.LessonRepository,
+	courseProgressRepository repository.CourseProgressRepository,
 ) CourseService {
 	return &courseService{
-		courseRepository: courseRepository,
-		lessonRepository: lessonRepository,
+		courseRepository:         courseRepository,
+		lessonRepository:         lessonRepository,
+		courseProgressRepository: courseProgressRepository,
 
 		logger: slog.Default().With("package", "courseService"),
 	}

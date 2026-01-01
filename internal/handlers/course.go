@@ -38,6 +38,64 @@ func (h *CourseHandler) GetPublicCourses(w http.ResponseWriter, r *http.Request)
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
+func (h *CourseHandler) GetPublicCoursesWithProgress(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	courses, err := h.courseService.GetAllCourses(ctx)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	type courseProgressResponse struct {
+		*models.Course
+		CompletionPercentage float64 `json:"completionPercentage"`
+	}
+
+	response := make([]*courseProgressResponse, 0, len(courses))
+	for _, course := range courses {
+		if course.IsPublished {
+			courseProgress, err := h.courseService.GetCourseProgress(
+				ctx,
+				course,
+				user,
+			)
+			if err != nil {
+				courseProgress = []*models.CourseLessonProgress(nil)
+			}
+
+			var completedLessonCount float64
+			for _, progress := range courseProgress {
+				if progress.IsCompleted {
+					completedLessonCount++
+				}
+			}
+
+			var completionPercentage float64
+			if completedLessonCount > 0 {
+				completionPercentage = float64(course.TotalLessons) / completionPercentage
+			}
+
+			response = append(
+				response,
+				&courseProgressResponse{
+					course,
+					completionPercentage,
+				},
+			)
+		}
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+
+}
+
 func (h *CourseHandler) GetLessons(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

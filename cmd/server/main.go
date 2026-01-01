@@ -117,13 +117,14 @@ func service(
 	mailMan mailer.Mailer,
 	judge judger.Judge,
 ) http.Handler {
-	// repos
+	// repositories
 	userRepo := postgres.NewUserRepository(db)
 	userProfileRepo := postgres.NewUserProfileRepository(db)
 	problemRepository := postgres.NewProblemRepository(db)
 	problemNoteRepository := postgres.NewProblemNoteRepository(db)
 	courseRepository := postgres.NewPostgresCourseRepository(db)
 	lessonRepository := postgres.NewPostgresLessonRepository(db)
+	courseProgressRepository := postgres.NewCourseProgressRepository(db)
 	runRepository := postgres.NewRunRepository(db)
 	submissionRepository := postgres.NewSubmissionRepository(db)
 	mfaRepo := postgres.NewMfaCodeRepository(db)
@@ -160,6 +161,7 @@ func service(
 	courseService := services.NewCourseService(
 		courseRepository,
 		lessonRepository,
+		courseProgressRepository,
 	)
 
 	// handlers
