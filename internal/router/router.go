@@ -2,6 +2,8 @@ package router
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"git.riyt.dev/codeuniverse/internal/handlers"
 	"github.com/go-chi/chi/v5"
@@ -14,6 +16,7 @@ func Service(
 	statsHandler *handlers.StatsHandler,
 	staticHandler *handlers.StaticHandler,
 	adminHandler *handlers.AdminHandler,
+	courseHandler *handlers.CourseHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
@@ -31,6 +34,7 @@ func Service(
 		statsHandler,
 		staticHandler,
 		adminHandler,
+		courseHandler,
 
 		authMiddleware,
 		problemMiddleware,
@@ -60,6 +64,7 @@ func apiRouter(
 	statsHandler *handlers.StatsHandler,
 	staticHandler *handlers.StaticHandler,
 	adminHandler *handlers.AdminHandler,
+	courseHandler *handlers.CourseHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
@@ -72,7 +77,7 @@ func apiRouter(
 	r.Mount("/auth", authRouter(userHandler, authMiddleware))
 
 	r.Mount("/problems", problemsRouter(problemsHandler, authMiddleware, problemMiddleware))
-	r.Mount("/submissions", submissionsRouter(authMiddleware))
+	r.Mount("/courses", courseRouter(courseHandler, authMiddleware))
 
 	r.Mount("/users", usersRouter(userHandler))
 	r.Mount("/profile", profileRouter(userHandler, authMiddleware))
