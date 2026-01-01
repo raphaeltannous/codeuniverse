@@ -38,6 +38,19 @@ func Service(
 		lessonMiddleware,
 	))
 
+	frontendDir := "./dist"
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		urlPath := r.URL.Path
+
+		wanted := filepath.Join(frontendDir, urlPath)
+		if _, err := os.Stat(wanted); err == nil {
+			http.ServeFile(w, r, wanted)
+			return
+		}
+
+		http.ServeFile(w, r, filepath.Join(frontendDir, "index.html"))
+	})
+
 	return r
 }
 
