@@ -207,7 +207,7 @@ func (s *userService) GetRecentRegisteredUsers(ctx context.Context, limit int) (
 
 func (s *userService) UpdateUserProfilePatch(ctx context.Context, user *models.User, userProfileUpdatePatch map[string]string) error {
 	if avatarUrl, ok := userProfileUpdatePatch["avatarUrl"]; ok {
-		if err := s.userProfileRepo.UpdateAvatarURL(ctx, user.ID, avatarUrl); err != nil {
+		if err := s.userRepo.UpdateAvatarUrl(ctx, user.ID, avatarUrl); err != nil {
 			slog.Error("failed to update avatarUrl", "avatarUrl", avatarUrl, "user", user, "err", err)
 			return err
 		}
@@ -313,11 +313,7 @@ func (s *userService) GetProfile(ctx context.Context, user *models.User) (*model
 		return nil, err
 	}
 
-	if userProfile.AvatarURL == nil {
-		s.logger.Debug("user avatar not set")
-		defaultAvatarURL := "/api/static/default-avatar.png"
-		userProfile.AvatarURL = &defaultAvatarURL
-	}
+	userProfile.AvatarURL = user.AvatarURL
 
 	submissionStats, err := s.submissionRepo.GetSubmissionsStats(ctx, user.ID)
 	if err != nil {

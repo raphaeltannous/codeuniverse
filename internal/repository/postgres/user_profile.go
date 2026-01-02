@@ -47,7 +47,6 @@ func (pupr *postgresUserProfileRepository) GetInfo(ctx context.Context, user *mo
 
 			name,
 			bio,
-			avatar_url,
 			country,
 
 			preferred_language,
@@ -97,15 +96,6 @@ func (pupr *postgresUserProfileRepository) UpdateBio(ctx context.Context, userId
 		userId,
 		"bio",
 		bio,
-	)
-}
-
-func (pupr *postgresUserProfileRepository) UpdateAvatarURL(ctx context.Context, userId uuid.UUID, url string) error {
-	return pupr.updateColumnValue(
-		ctx,
-		userId,
-		"avatar_url",
-		url,
 	)
 }
 
@@ -209,7 +199,6 @@ func (pupr *postgresUserProfileRepository) scanUserProfileFunc(scanner postgresS
 		&userProfile.UserID,
 		&userProfile.Name,
 		&userProfile.Bio,
-		&userProfile.AvatarURL,
 		&userProfile.Country,
 		&userProfile.PreferredLanguage,
 		&userProfile.WebsiteURL,

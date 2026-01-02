@@ -11,7 +11,7 @@ type UserProfile struct {
 
 	Name              *string `db:"name" json:"name"`
 	Bio               *string `db:"bio" json:"bio"`
-	AvatarURL         *string `db:"avatar_url" json:"avatarUrl"`
+	AvatarURL         string  `json:"avatarUrl"`
 	Country           *string `db:"country" json:"country"`
 	PreferredLanguage *string `db:"preferred_language" json:"preferredLanguage"`
 

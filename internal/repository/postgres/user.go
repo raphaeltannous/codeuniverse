@@ -22,7 +22,7 @@ func NewUserRepository(db *sql.DB) repository.UserRepository {
 
 func (pur *postgresUserRepository) GetUsers(ctx context.Context, offset, limit int) ([]*models.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, is_verified, is_active, role, created_at, updated_at
+		SELECT id, username, email, password_hash, avatar_url, is_verified, is_active, role, created_at, updated_at
 		FROM users
 		OFFSET $1
 		LIMIT $2
@@ -56,7 +56,7 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, offset, limit i
 
 func (pur *postgresUserRepository) GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, is_verified, is_active, role, created_at, updated_at
+		SELECT id, username, email, password_hash, avatar_url, is_verified, is_active, role, created_at, updated_at
 		FROM users
 		WHERE created_at >= NOW() - INTERVAL '24 hours'
 		ORDER BY created_at DESC
@@ -247,6 +247,15 @@ func (pur *postgresUserRepository) UpdatePassword(ctx context.Context, id uuid.U
 	)
 }
 
+func (pur *postgresUserRepository) UpdateAvatarUrl(ctx context.Context, id uuid.UUID, url string) error {
+	return pur.updateColumnValue(
+		ctx,
+		id,
+		"avatar_url",
+		url,
+	)
+}
+
 func (pur *postgresUserRepository) UpdateActive(ctx context.Context, id uuid.UUID, status bool) error {
 	return pur.updateColumnValue(
 		ctx,
@@ -277,7 +286,7 @@ func (pur *postgresUserRepository) UpdateRole(ctx context.Context, id uuid.UUID,
 func (pur *postgresUserRepository) getUserByColumn(ctx context.Context, column string, value any) (*models.User, error) {
 	query := fmt.Sprintf(
 		`
-			SELECT id, username, email, password_hash, is_verified, is_active, role, created_at, updated_at
+			SELECT id, username, email, password_hash, avatar_url, is_verified, is_active, role, created_at, updated_at
 			FROM users
 			WHERE %s = $1;
 		`,
@@ -366,6 +375,7 @@ func scanUserFunc(scanner userScanner, user *models.User) error {
 		&user.Username,
 		&user.Email,
 		&user.PasswordHash,
+		&user.AvatarURL,
 		&user.IsVerified,
 		&user.IsActive,
 		&user.Role,

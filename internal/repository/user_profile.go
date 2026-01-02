@@ -15,7 +15,6 @@ type UserProfileRepository interface {
 
 	UpdateName(ctx context.Context, userId uuid.UUID, name string) error
 	UpdateBio(ctx context.Context, userId uuid.UUID, bio string) error
-	UpdateAvatarURL(ctx context.Context, userId uuid.UUID, url string) error
 	UpdateCountry(ctx context.Context, userId uuid.UUID, country string) error
 	UpdatePreferredLanguage(ctx context.Context, userId uuid.UUID, language string) error
 

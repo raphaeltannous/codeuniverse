@@ -26,6 +26,7 @@ type UserRepository interface {
 
 	UpdateEmail(ctx context.Context, id uuid.UUID, email string) error
 	UpdatePassword(ctx context.Context, id uuid.UUID, password string) error
+	UpdateAvatarUrl(ctx context.Context, id uuid.UUID, url string) error
 	UpdateActive(ctx context.Context, id uuid.UUID, status bool) error
 	UpdateVerify(ctx context.Context, id uuid.UUID, status bool) error
 	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
