@@ -30,7 +30,7 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
 
   # Custom binding to reload make
   tmux bind u run-shell "tmux display-message 'Restarting make...'; tmux send-keys -t '$SESSION_NAME:4.0' C-c 'make watch' C-m"
-  tmux bind e display-popup -w 80% -h 80% -E "$FILE_MANAGER"
+  tmux bind e display-popup -w 80% -h 80% -E "tmux new-session $FILE_MANAGER \; set status off"
 
   # Focus on window 1
   tmux select-window -t "$SESSION_NAME:1"
