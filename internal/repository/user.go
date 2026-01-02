@@ -12,7 +12,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 
-	GetUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
+	GetUsers(ctx context.Context, params *GetUsersParams) ([]*models.User, int, error)
 
 	GetAdminCount(ctx context.Context) (int, error)
 	GetUsersCount(ctx context.Context) (int, error)
@@ -33,6 +33,34 @@ type UserRepository interface {
 	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
 
 	Search(ctx context.Context, search string) ([]*models.User, error)
+}
+
+type UserParams int
+
+const (
+	UserInactive UserParams = iota + 1
+	UserActive
+	UserUnverified
+	UserVerified
+)
+
+const (
+	UserSortByUsername UserParams = iota + 1
+	UserSortByEmail
+	UserSortByCreatedAt
+	UserSortOrderAsc
+	UserSortOrderDesc
+)
+
+type GetUsersParams struct {
+	Offset     int
+	Limit      int
+	Search     string
+	Role       string
+	IsActive   UserParams
+	IsVerified UserParams
+	SortBy     UserParams
+	SortOrder  UserParams
 }
 
 var (

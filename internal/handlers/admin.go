@@ -526,6 +526,11 @@ func (h *AdminHandler) UpdateLessonVideo(w http.ResponseWriter, r *http.Request)
 func (h *AdminHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	search, ok := r.Context().Value(middleware.SearchCtxKey).(string)
+	if !ok {
+		search = ""
+	}
+
 	offset, ok := r.Context().Value("offset").(int)
 	if !ok {
 		offset = middleware.OffsetDefault
@@ -536,34 +541,55 @@ func (h *AdminHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		limit = middleware.LimitDefault
 	}
 
-	// roleFilter, ok := ctx.Value(middleware.UserRoleFilterCtxKey).(string)
-	// if !ok {
-	// 	roleFilter = ""
-	// }
-	// statusFilter, ok := ctx.Value(middleware.UserStatusFilterCtxKey).(string)
-	// if !ok {
-	// 	statusFilter = ""
-	// }
-	// verificationFilter, ok := ctx.Value(middleware.UserVerificationFilterCtxKey).(string)
-	// if !ok {
-	// 	verificationFilter = ""
-	// }
-
-	users, err := h.userService.GetAllUsers(ctx, offset, limit)
-	if err != nil {
-		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
-		return
+	roleFilter, ok := ctx.Value(middleware.UserRoleFilterCtxKey).(string)
+	if !ok {
+		roleFilter = ""
+	}
+	statusFilter, ok := ctx.Value(middleware.UserStatusFilterCtxKey).(string)
+	if !ok {
+		statusFilter = ""
+	}
+	verificationFilter, ok := ctx.Value(middleware.UserVerificationFilterCtxKey).(string)
+	if !ok {
+		verificationFilter = ""
 	}
 
-	usersCount, err := h.userService.GetUsersCount(ctx)
+	var status repository.UserParams
+	switch statusFilter {
+	case "active":
+		status = repository.UserActive
+	case "inactive":
+		status = repository.UserInactive
+	}
+
+	var isVerfied repository.UserParams
+	switch verificationFilter {
+	case "verified":
+		status = repository.UserVerified
+	case "inactive":
+		status = repository.UserUnverified
+	}
+
+	getParams := &repository.GetUsersParams{
+		Offset:     offset,
+		Limit:      limit,
+		Search:     search,
+		Role:       roleFilter,
+		IsActive:   status,
+		IsVerified: isVerfied,
+	}
+
+	users, total, err := h.userService.GetAllUsers(ctx, getParams)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
 	response := map[string]any{
-		"users": users,
-		"total": usersCount,
+		"users":  users,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
@@ -584,20 +610,31 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
-	patch := map[string]any{
-		"username":   requestBody.Username,
-		"email":      requestBody.Email,
-		"role":       requestBody.Role,
-		"isActive":   requestBody.IsActive,
-		"isVerified": requestBody.IsVerified,
-		"avatarUrl":  requestBody.AvatarUrl,
+	patch := make(map[string]any)
+	addFunc := func(key string, v1, v2 any) {
+		switch v1.(type) {
+		case string:
+			if sV2, ok := v2.(string); ok && v1 != sV2 && sV2 != "" {
+				patch[key] = sV2
+			}
+		case bool:
+			if sV2, ok := v2.(bool); ok && v1 != sV2 {
+				patch[key] = sV2
+			}
+		}
 	}
+	addFunc("username", user.Username, requestBody.Username)
+	addFunc("email", user.Email, requestBody.Email)
+	addFunc("role", user.Role, requestBody.Role)
+	addFunc("isActive", user.IsActive, requestBody.IsActive)
+	addFunc("isVerified", user.IsVerified, requestBody.IsVerified)
+	addFunc("avatarUrl", user.AvatarURL, requestBody.AvatarUrl)
 
 	err := h.userService.UpdateUserPatch(
 		ctx,
@@ -609,5 +646,10 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	response := map[string]any{
+		"message": "User is updated.",
+		"updated": patch,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }

@@ -38,7 +38,7 @@ type UserService interface {
 
 	UpdateUserPatch(ctx context.Context, user *models.User, userUpdatePatch map[string]any) error
 
-	GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
+	GetAllUsers(ctx context.Context, getParams *repository.GetUsersParams) ([]*models.User, int, error)
 
 	GetUsersCount(ctx context.Context) (int, error)
 	GetUsersRegisteredLastNDaysCount(ctx context.Context, days int) (int, error)
@@ -244,13 +244,14 @@ func (s *userService) UpdateUserPatch(ctx context.Context, user *models.User, us
 	return nil
 }
 
-func (s *userService) GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error) {
-	users, err := s.userRepo.GetUsers(ctx, offset, limit)
+func (s *userService) GetAllUsers(ctx context.Context, getParams *repository.GetUsersParams) ([]*models.User, int, error) {
+	users, total, err := s.userRepo.GetUsers(ctx, getParams)
 	if err != nil {
-		return nil, fmt.Errorf("service failed to get from userRepo: %w", err)
+		s.logger.Error("failed to get all users", "getParams", getParams, "err", err)
+		return nil, 0, err
 	}
 
-	return users, nil
+	return users, total, nil
 }
 
 func (s *userService) GetAdminCount(ctx context.Context) (int, error) {

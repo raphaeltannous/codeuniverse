@@ -22,6 +22,7 @@ func Service(
 	problemMiddleware func(next http.Handler) http.Handler,
 	courseMiddleware func(next http.Handler) http.Handler,
 	lessonMiddleware func(next http.Handler) http.Handler,
+	userMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -40,6 +41,7 @@ func Service(
 		problemMiddleware,
 		courseMiddleware,
 		lessonMiddleware,
+		userMiddleware,
 	))
 
 	frontendDir := "./dist"
@@ -70,6 +72,7 @@ func apiRouter(
 	problemMiddleware func(next http.Handler) http.Handler,
 	courseMiddleware func(next http.Handler) http.Handler,
 	lessonMiddleware func(next http.Handler) http.Handler,
+	userMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -90,6 +93,7 @@ func apiRouter(
 		authMiddleware,
 		courseMiddleware,
 		lessonMiddleware,
+		userMiddleware,
 	))
 
 	r.Mount("/static", staticRouter(

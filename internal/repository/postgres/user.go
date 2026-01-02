@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
@@ -20,22 +21,137 @@ func NewUserRepository(db *sql.DB) repository.UserRepository {
 	return &postgresUserRepository{db: db}
 }
 
-func (pur *postgresUserRepository) GetUsers(ctx context.Context, offset, limit int) ([]*models.User, error) {
-	query := `
-		SELECT id, username, email, password_hash, avatar_url, is_verified, is_active, role, created_at, updated_at
-		FROM users
-		OFFSET $1
-		LIMIT $2
-	`
+func (pur *postgresUserRepository) GetUsers(ctx context.Context, params *repository.GetUsersParams) ([]*models.User, int, error) {
+	whereClauses := []string{"1 = 1"}
+	arguments := make([]any, 0)
+	argumentPosition := 1
+
+	if params.Search != "" {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf(
+				"(username ILIKE '%%' || $%d || '%%' OR email ILIKE '%%' || $%d || '%%')",
+				argumentPosition,
+				argumentPosition,
+			),
+		)
+		arguments = append(arguments, params.Search)
+		argumentPosition++
+	}
+
+	if params.Role != "" {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf(
+				"role = $%d",
+				argumentPosition,
+			),
+		)
+		arguments = append(arguments, params.Role)
+		argumentPosition++
+	}
+
+	if params.IsActive != 0 {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf(
+				"is_active = $%d",
+				argumentPosition,
+			),
+		)
+		arguments = append(arguments, params.IsActive == repository.UserActive)
+		argumentPosition++
+	}
+
+	if params.IsVerified != 0 {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf(
+				"is_verified = $%d",
+				argumentPosition,
+			),
+		)
+		arguments = append(arguments, params.IsVerified == repository.UserVerified)
+		argumentPosition++
+	}
+
+	var orderBy strings.Builder
+	switch params.SortBy {
+	case repository.UserSortByUsername:
+		orderBy.WriteString("username")
+	case repository.UserSortByEmail:
+		orderBy.WriteString("email")
+	default:
+		orderBy.WriteString("created_at")
+	}
+	orderBy.WriteString(" ")
+
+	switch params.SortOrder {
+	case repository.UserSortOrderAsc:
+		orderBy.WriteString("ASC")
+	default:
+		orderBy.WriteString("DESC")
+	}
+
+	whereClause := strings.Join(whereClauses, " AND ")
+
+	countQuery := fmt.Sprintf(
+		`
+			SELECT COUNT(*)
+			FROM users
+			WHERE %s;
+		`,
+		whereClause,
+	)
+
+	var total int
+	err := pur.db.QueryRowContext(
+		ctx,
+		countQuery,
+		arguments...,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count users: %w", err)
+	}
+
+	query := fmt.Sprintf(
+		`
+			SELECT
+				id,
+
+				username,
+				email,
+				password_hash,
+				avatar_url,
+
+				is_verified,
+				is_active,
+				role,
+
+				created_at,
+				updated_at
+			FROM users
+			WHERE %s
+			ORDER BY %s
+			OFFSET $%d
+			LIMIT $%d;
+		`,
+		whereClause,
+		orderBy.String(),
+		argumentPosition,
+		argumentPosition+1,
+	)
+	argumentPosition++
+
+	arguments = append(arguments, params.Offset, params.Limit)
 
 	rows, err := pur.db.QueryContext(
 		ctx,
 		query,
-		offset,
-		limit,
+		arguments...,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query all users: %w", err)
+		return nil, 0, fmt.Errorf("failed to query users: %w", err)
 	}
 	defer rows.Close()
 
@@ -45,13 +161,13 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, offset, limit i
 
 		err := scanUserFunc(rows, user)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan into user: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan user: %w", err)
 		}
 
 		users = append(users, user)
 	}
 
-	return users, nil
+	return users, total, nil
 }
 
 func (pur *postgresUserRepository) GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error) {

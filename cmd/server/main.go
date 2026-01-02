@@ -185,6 +185,9 @@ func service(
 	lessonMiddleware := func(next http.Handler) http.Handler {
 		return middleware.LessonMiddleware(next, courseService)
 	}
+	userMiddleware := func(next http.Handler) http.Handler {
+		return middleware.UserMiddleware(next, userService)
+	}
 
 	return router.Service(
 		userHandler,
@@ -198,5 +201,6 @@ func service(
 		problemMiddleware,
 		courseMiddleware,
 		lessonMiddleware,
+		userMiddleware,
 	)
 }

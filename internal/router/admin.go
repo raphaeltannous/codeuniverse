@@ -17,6 +17,7 @@ func adminRouter(
 	authMiddleware func(next http.Handler) http.Handler,
 	courseMiddleware func(next http.Handler) http.Handler,
 	lessonMiddleware func(next http.Handler) http.Handler,
+	userMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -71,8 +72,10 @@ func adminRouter(
 			r.Get("/", adminHandler.GetUsers)
 		})
 
-		r.Route("/{userSlug}", func(r chi.Router) {
+		r.Route("/{username}", func(r chi.Router) {
+			r.Use(userMiddleware)
 
+			r.Put("/", adminHandler.UpdateUser)
 		})
 	})
 

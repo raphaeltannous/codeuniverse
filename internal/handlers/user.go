@@ -299,28 +299,6 @@ func (h *UserHandler) ResendMfaVerification(w http.ResponseWriter, r *http.Reque
 	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted) // TODO: correct status?
 }
 
-func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	offset, ok := r.Context().Value("offset").(int)
-	if !ok {
-		offset = middleware.OffsetDefault
-	}
-
-	limit, ok := r.Context().Value("limit").(int)
-	if !ok {
-		limit = middleware.LimitDefault
-	}
-
-	users, err := h.userService.GetAllUsers(ctx, offset, limit)
-	if err != nil {
-		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
-		return
-	}
-
-	handlersutils.WriteResponseJSON(w, users, http.StatusOK)
-}
-
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{
 		"message": "Bye!",

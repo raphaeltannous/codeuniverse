@@ -9,6 +9,7 @@ import (
 const (
 	OffsetDefault = 0
 	LimitDefault  = 25
+	SearchCtxKey  = "search"
 )
 
 func OffsetMiddleware(next http.Handler) http.Handler {
@@ -51,8 +52,8 @@ func LimitMiddleware(next http.Handler) http.Handler {
 
 func SearchMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if searchParam := r.URL.Query().Get("search"); searchParam != "" {
-			ctx := context.WithValue(r.Context(), "search", searchParam)
+		if searchParam := r.URL.Query().Get(SearchCtxKey); searchParam != "" {
+			ctx := context.WithValue(r.Context(), SearchCtxKey, searchParam)
 			r = r.WithContext(ctx)
 		}
 
