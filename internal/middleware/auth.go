@@ -11,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const UserCtxKey = "user"
+const UserAuthCtxKey = "userAuth"
 
 func AuthMiddleware(next http.Handler, userService services.UserService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +66,7 @@ func AuthMiddleware(next http.Handler, userService services.UserService) http.Ha
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), UserCtxKey, user)
+		ctx := context.WithValue(r.Context(), UserAuthCtxKey, user)
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)

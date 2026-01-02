@@ -146,7 +146,7 @@ func (h *ProblemHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -198,7 +198,7 @@ func (h *ProblemHandler) Submit(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -240,7 +240,7 @@ func (h *ProblemHandler) Submit(w http.ResponseWriter, r *http.Request) {
 func (h *ProblemHandler) GetSubmissions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -274,7 +274,7 @@ func (h *ProblemHandler) GetSubmissions(w http.ResponseWriter, r *http.Request) 
 func (h *ProblemHandler) GetSubmission(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -311,7 +311,7 @@ func (h *ProblemHandler) GetSubmission(w http.ResponseWriter, r *http.Request) {
 func (h *ProblemHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -356,7 +356,7 @@ func (h *ProblemHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -402,7 +402,7 @@ func (h *ProblemHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 func (h *ProblemHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -447,7 +447,7 @@ func (h *ProblemHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return

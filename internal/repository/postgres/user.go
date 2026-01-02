@@ -229,6 +229,15 @@ func (pur *postgresUserRepository) GetByEmail(ctx context.Context, email string)
 	)
 }
 
+func (pur *postgresUserRepository) UpdateUsername(ctx context.Context, id uuid.UUID, username string) error {
+	return pur.updateColumnValue(
+		ctx,
+		id,
+		"username",
+		username,
+	)
+}
+
 func (pur *postgresUserRepository) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
 	return pur.updateColumnValue(
 		ctx,

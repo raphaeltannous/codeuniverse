@@ -41,7 +41,7 @@ func (h *CourseHandler) GetPublicCourses(w http.ResponseWriter, r *http.Request)
 func (h *CourseHandler) GetPublicCoursesWithProgress(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -132,7 +132,7 @@ func (h *CourseHandler) GetLessons(w http.ResponseWriter, r *http.Request) {
 func (h *CourseHandler) UpdateIsCompleted(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -171,7 +171,7 @@ func (h *CourseHandler) UpdateIsCompleted(w http.ResponseWriter, r *http.Request
 func (h *CourseHandler) GetCourseProgress(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return

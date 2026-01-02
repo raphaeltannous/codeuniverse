@@ -60,7 +60,6 @@ func adminRouter(
 	})
 
 	r.Route("/users", func(r chi.Router) {
-
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.OffsetMiddleware)
 			r.Use(middleware.LimitMiddleware)
@@ -69,7 +68,11 @@ func adminRouter(
 			r.Use(middleware.UserStatusFilterMiddleware)
 			r.Use(middleware.UserVerificationFilterMiddleware)
 
-			r.Get("/", adminHandler.GetAllUsers)
+			r.Get("/", adminHandler.GetUsers)
+		})
+
+		r.Route("/{userSlug}", func(r chi.Router) {
+
 		})
 	})
 

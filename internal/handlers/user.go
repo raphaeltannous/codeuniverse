@@ -472,7 +472,7 @@ func (h *UserHandler) VerifyEmailByToken(w http.ResponseWriter, r *http.Request)
 func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -505,7 +505,7 @@ func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) GetAuthenticatedProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -583,7 +583,7 @@ func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	ctx := r.Context()
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -630,7 +630,7 @@ func (h *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request) 
 
 func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -715,7 +715,7 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
 	if !ok {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return

@@ -36,6 +36,8 @@ type UserService interface {
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetProfile(ctx context.Context, user *models.User) (*models.UserProfile, error)
 
+	UpdateUserPatch(ctx context.Context, user *models.User, userUpdatePatch map[string]any) error
+
 	GetAllUsers(ctx context.Context, offset, limit int) ([]*models.User, error)
 
 	GetUsersCount(ctx context.Context) (int, error)
@@ -56,8 +58,6 @@ type UserService interface {
 
 	SendEmailVerificationEmail(ctx context.Context, email string) error
 	VerifyEmailByToken(ctx context.Context, token string) error
-
-	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
 }
 
 type userService struct {
@@ -153,6 +153,94 @@ func (s *userService) RegisterUser(ctx context.Context, username, password, emai
 }
 
 func (s *userService) Delete(ctx context.Context, id uuid.UUID) error {
+	return nil
+}
+
+func (s *userService) UpdateUserPatch(ctx context.Context, user *models.User, userUpdatePatch map[string]any) error {
+	if rawAvatarUrl, ok := userUpdatePatch["avatarUrl"]; ok {
+		switch avatarUrl := rawAvatarUrl.(type) {
+		case string:
+			err := s.userRepo.UpdateAvatarUrl(ctx, user.ID, avatarUrl)
+			if err != nil {
+				s.logger.Error("failed to update avatarUrl", "user", user, "newAvatarUrl", avatarUrl, "err", err)
+				return err
+			}
+		default:
+			s.logger.Error("avatarUrl is not a string", "rawAvatarUrl", rawAvatarUrl)
+			return ErrInvalidPatch
+		}
+	}
+
+	if rawUsername, ok := userUpdatePatch["username"]; ok {
+		switch username := rawUsername.(type) {
+		case string:
+			err := s.userRepo.UpdateUsername(ctx, user.ID, username)
+			if err != nil {
+				s.logger.Error("failed to update username", "user", user, "newUsername", username, "err", err)
+				return err
+			}
+		default:
+			s.logger.Error("username is not a string", "rawUsername", rawUsername)
+			return ErrInvalidPatch
+		}
+	}
+
+	if rawEmail, ok := userUpdatePatch["email"]; ok {
+		switch email := rawEmail.(type) {
+		case string:
+			err := s.userRepo.UpdateEmail(ctx, user.ID, email)
+			if err != nil {
+				s.logger.Error("failed to update email", "user", user, "newEmail", email, "err", err)
+				return err
+			}
+		default:
+			s.logger.Error("email is not a string", "rawEmail", rawEmail)
+			return ErrInvalidPatch
+		}
+	}
+
+	if rawRole, ok := userUpdatePatch["role"]; ok {
+		switch role := rawRole.(type) {
+		case string:
+			err := s.userRepo.UpdateRole(ctx, user.ID, role)
+			if err != nil {
+				s.logger.Error("failed to update role", "user", user, "newRole", role, "err", err)
+				return err
+			}
+		default:
+			s.logger.Error("role is not a string", "rawRole", rawRole)
+			return ErrInvalidPatch
+		}
+	}
+
+	if rawIsActive, ok := userUpdatePatch["isActive"]; ok {
+		switch isActive := rawIsActive.(type) {
+		case bool:
+			err := s.userRepo.UpdateActive(ctx, user.ID, isActive)
+			if err != nil {
+				s.logger.Error("failed to update isActive", "user", user, "newIsActive", isActive, "err", err)
+				return err
+			}
+		default:
+			s.logger.Error("isActive is not a bool", "rawIsActive", rawIsActive)
+			return ErrInvalidPatch
+		}
+	}
+
+	if rawIsVerified, ok := userUpdatePatch["isVerified"]; ok {
+		switch isVerified := rawIsVerified.(type) {
+		case bool:
+			err := s.userRepo.UpdateActive(ctx, user.ID, isVerified)
+			if err != nil {
+				s.logger.Error("failed to update isVerified", "user", user, "newIsVerified", isVerified, "err", err)
+				return err
+			}
+		default:
+			s.logger.Error("isVerified is not a bool", "rawIsVerified", rawIsVerified)
+			return ErrInvalidPatch
+		}
+	}
+
 	return nil
 }
 
@@ -637,8 +725,4 @@ func (s *userService) isPasswordValid(password string) bool {
 	// -> errors.New("password does not validate all rules")
 	// and so on.
 	return false
-}
-
-func (s *userService) UpdateRole(ctx context.Context, id uuid.UUID, role string) error {
-	return nil
 }

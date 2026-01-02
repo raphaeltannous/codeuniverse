@@ -523,7 +523,7 @@ func (h *AdminHandler) UpdateLessonVideo(w http.ResponseWriter, r *http.Request)
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
-func (h *AdminHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	offset, ok := r.Context().Value("offset").(int)
@@ -555,9 +555,59 @@ func (h *AdminHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	usersCount, err := h.userService.GetUsersCount(ctx)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
 	response := map[string]any{
 		"users": users,
+		"total": usersCount,
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Username   string `json:"username"`
+		Email      string `json:"email"`
+		Role       string `json:"role"`
+		IsActive   bool   `json:"isActive"`
+		IsVerified bool   `json:"isVerified"`
+		AvatarUrl  string `json:"avatarUrl"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	patch := map[string]any{
+		"username":   requestBody.Username,
+		"email":      requestBody.Email,
+		"role":       requestBody.Role,
+		"isActive":   requestBody.IsActive,
+		"isVerified": requestBody.IsVerified,
+		"avatarUrl":  requestBody.AvatarUrl,
+	}
+
+	err := h.userService.UpdateUserPatch(
+		ctx,
+		user,
+		patch,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
