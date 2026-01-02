@@ -19,15 +19,18 @@ import (
 type AdminHandler struct {
 	courseService services.CourseService
 	staticService services.StaticService
+	userService   services.UserService
 }
 
 func NewAdminHandler(
 	courseService services.CourseService,
 	staticService services.StaticService,
+	userService services.UserService,
 ) *AdminHandler {
 	return &AdminHandler{
 		courseService: courseService,
 		staticService: staticService,
+		userService:   userService,
 	}
 }
 
@@ -515,6 +518,45 @@ func (h *AdminHandler) UpdateLessonVideo(w http.ResponseWriter, r *http.Request)
 	response := map[string]string{
 		"videoUrl": videoUrl,
 		"message":  "Lesson uploaded successfully.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	offset, ok := r.Context().Value("offset").(int)
+	if !ok {
+		offset = middleware.OffsetDefault
+	}
+
+	limit, ok := r.Context().Value("limit").(int)
+	if !ok {
+		limit = middleware.LimitDefault
+	}
+
+	// roleFilter, ok := ctx.Value(middleware.UserRoleFilterCtxKey).(string)
+	// if !ok {
+	// 	roleFilter = ""
+	// }
+	// statusFilter, ok := ctx.Value(middleware.UserStatusFilterCtxKey).(string)
+	// if !ok {
+	// 	statusFilter = ""
+	// }
+	// verificationFilter, ok := ctx.Value(middleware.UserVerificationFilterCtxKey).(string)
+	// if !ok {
+	// 	verificationFilter = ""
+	// }
+
+	users, err := h.userService.GetAllUsers(ctx, offset, limit)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]any{
+		"users": users,
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)

@@ -314,7 +314,7 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlersutils.WriteResponseJSON(w, users, http.StatusFound)
+	handlersutils.WriteResponseJSON(w, users, http.StatusOK)
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {

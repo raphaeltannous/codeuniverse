@@ -59,19 +59,29 @@ func adminRouter(
 		})
 	})
 
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.OffsetMiddleware)
-		r.Use(middleware.LimitMiddleware)
-		// TODO r.Use(middleware.SearchMiddleware)
+	r.Route("/users", func(r chi.Router) {
 
-		r.Get("/users", userHandler.GetAllUsers)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.OffsetMiddleware)
+			r.Use(middleware.LimitMiddleware)
 
+			r.Use(middleware.UserRoleFilterMiddleware)
+			r.Use(middleware.UserStatusFilterMiddleware)
+			r.Use(middleware.UserVerificationFilterMiddleware)
+
+			r.Get("/", adminHandler.GetAllUsers)
+		})
 	})
 
 	r.Route("/problems", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.OffsetMiddleware)
 			r.Use(middleware.LimitMiddleware)
+
+			r.Use(middleware.UserRoleFilterMiddleware)
+			r.Use(middleware.UserStatusFilterMiddleware)
+			r.Use(middleware.UserVerificationFilterMiddleware)
+
 			// TODO r.Use(middleware.SearchMiddleware)
 
 			r.Get("/", problemHandler.GetProblems)
