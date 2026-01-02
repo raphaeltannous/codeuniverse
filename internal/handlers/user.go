@@ -66,13 +66,17 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		apiError := handlersutils.NewInternalServerAPIError()
 
-		switch {
-		case errors.Is(err, repository.ErrUserAlreadyExists):
+		switch err {
+		case repository.ErrUserAlreadyExists:
 			apiError.Code = "USER_ALREADY_EXISTS"
 			apiError.Message = "User already exists."
 
 			handlersutils.WriteResponseJSON(w, apiError, http.StatusConflict)
+		case services.ErrInvalidEmail, services.ErrInvalidSlug, services.ErrWeakPasswordLength:
+			apiError.Code = "INVALID_CONSTRAINTS"
+			apiError.Message = "Invalid constraints."
 
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
 		default:
 			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
 		}
