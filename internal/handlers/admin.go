@@ -647,3 +647,31 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
+
+func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value(middleware.UserCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err := h.userService.Delete(
+		ctx,
+		user,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]any{
+		"message": "User is deleted.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) AddUser(w http.ResponseWriter, r *http.Request) {
+
+}

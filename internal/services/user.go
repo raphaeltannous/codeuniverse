@@ -28,8 +28,9 @@ var (
 )
 
 type UserService interface {
+	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 	RegisterUser(ctx context.Context, username, password, email string) (*models.User, error)
-	Delete(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, user *models.User) error
 
 	GetById(ctx context.Context, uuidString string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
@@ -152,7 +153,20 @@ func (s *userService) RegisterUser(ctx context.Context, username, password, emai
 	return user, s.SendEmailVerificationEmail(ctx, email)
 }
 
-func (s *userService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *userService) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
+	panic("unimplemented")
+}
+
+func (s *userService) Delete(ctx context.Context, user *models.User) error {
+	err := s.userRepo.Delete(
+		ctx,
+		user.ID,
+	)
+	if err != nil {
+		s.logger.Error("failed to delete user", "user", user)
+		return err
+	}
+
 	return nil
 }
 

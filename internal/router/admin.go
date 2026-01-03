@@ -64,6 +64,7 @@ func adminRouter(
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.OffsetMiddleware)
 			r.Use(middleware.LimitMiddleware)
+			r.Use(middleware.SearchMiddleware)
 
 			r.Use(middleware.UserRoleFilterMiddleware)
 			r.Use(middleware.UserStatusFilterMiddleware)
@@ -78,6 +79,7 @@ func adminRouter(
 			r.Use(userMiddleware)
 
 			r.Put("/", adminHandler.UpdateUser)
+			r.Delete("/", adminHandler.DeleteUser)
 		})
 	})
 
