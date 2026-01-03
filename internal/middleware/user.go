@@ -13,12 +13,13 @@ import (
 )
 
 const (
-	UserCtxKey                   = "user"
 	UserStatusFilterCtxKey       = "userStatusFilter"
 	UserVerificationFilterCtxKey = "userVerifiedFilter"
 	UserRoleFilterCtxKey         = "userRoleFilter"
 	UserSortByFilterCtxKey       = "userSortByFilter"
 	UserSortOrderFilterCtxKey    = "userSortOrderFilter"
+
+	UserCtxKey = "user"
 )
 
 var UserStatusFilterMiddleware = makeUserParamMiddleware(

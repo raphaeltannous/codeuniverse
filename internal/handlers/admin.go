@@ -541,42 +541,36 @@ func (h *AdminHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		limit = middleware.LimitDefault
 	}
 
-	roleFilter, ok := ctx.Value(middleware.UserRoleFilterCtxKey).(string)
+	role, ok := ctx.Value(middleware.UserRoleFilterCtxKey).(repository.UserParam)
 	if !ok {
-		roleFilter = ""
+		role = 0
 	}
-	statusFilter, ok := ctx.Value(middleware.UserStatusFilterCtxKey).(string)
+	status, ok := ctx.Value(middleware.UserStatusFilterCtxKey).(repository.UserParam)
 	if !ok {
-		statusFilter = ""
+		status = 0
 	}
-	verificationFilter, ok := ctx.Value(middleware.UserVerificationFilterCtxKey).(string)
+	verified, ok := ctx.Value(middleware.UserVerificationFilterCtxKey).(repository.UserParam)
 	if !ok {
-		verificationFilter = ""
+		verified = 0
 	}
-
-	var status repository.UserParam
-	switch statusFilter {
-	case "active":
-		status = repository.UserActive
-	case "inactive":
-		status = repository.UserInactive
+	sortBy, ok := ctx.Value(middleware.UserSortByFilterCtxKey).(repository.UserParam)
+	if !ok {
+		sortBy = 0
 	}
-
-	var isVerfied repository.UserParam
-	switch verificationFilter {
-	case "verified":
-		status = repository.UserVerified
-	case "inactive":
-		status = repository.UserUnverified
+	sortOrder, ok := ctx.Value(middleware.UserSortOrderFilterCtxKey).(repository.UserParam)
+	if !ok {
+		sortOrder = 0
 	}
 
 	getParams := &repository.GetUsersParams{
 		Offset:     offset,
 		Limit:      limit,
 		Search:     search,
-		Role:       roleFilter,
+		Role:       role,
 		IsActive:   status,
-		IsVerified: isVerfied,
+		IsVerified: verified,
+		SortBy:     sortBy,
+		SortOrder:  sortOrder,
 	}
 
 	users, total, err := h.userService.GetAllUsers(ctx, getParams)

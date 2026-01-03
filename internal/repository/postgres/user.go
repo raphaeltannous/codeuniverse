@@ -39,7 +39,15 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, params *reposit
 		argumentPosition++
 	}
 
-	if params.Role != "" {
+	if params.Role != 0 {
+		var role string
+		switch params.Role {
+		case repository.UserRoleAdmin:
+			role = "admin"
+		default:
+			role = "user"
+		}
+
 		whereClauses = append(
 			whereClauses,
 			fmt.Sprintf(
@@ -47,7 +55,7 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, params *reposit
 				argumentPosition,
 			),
 		)
-		arguments = append(arguments, params.Role)
+		arguments = append(arguments, role)
 		argumentPosition++
 	}
 
