@@ -68,6 +68,8 @@ func adminRouter(
 			r.Use(middleware.UserRoleFilterMiddleware)
 			r.Use(middleware.UserStatusFilterMiddleware)
 			r.Use(middleware.UserVerificationFilterMiddleware)
+			r.Use(middleware.UserSortByFilterMiddleware)
+			r.Use(middleware.UserSortOrderFilterMiddleware)
 
 			r.Get("/", adminHandler.GetUsers)
 		})
