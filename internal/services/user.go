@@ -230,7 +230,7 @@ func (s *userService) UpdateUserPatch(ctx context.Context, user *models.User, us
 	if rawIsVerified, ok := userUpdatePatch["isVerified"]; ok {
 		switch isVerified := rawIsVerified.(type) {
 		case bool:
-			err := s.userRepo.UpdateActive(ctx, user.ID, isVerified)
+			err := s.userRepo.UpdateVerify(ctx, user.ID, isVerified)
 			if err != nil {
 				s.logger.Error("failed to update isVerified", "user", user, "newIsVerified", isVerified, "err", err)
 				return err
