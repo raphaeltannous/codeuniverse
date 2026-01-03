@@ -61,6 +61,8 @@ func adminRouter(
 	})
 
 	r.Route("/users", func(r chi.Router) {
+		r.Post("/", adminHandler.AddUser)
+
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.OffsetMiddleware)
 			r.Use(middleware.LimitMiddleware)

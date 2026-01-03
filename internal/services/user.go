@@ -28,8 +28,7 @@ var (
 )
 
 type UserService interface {
-	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
-	RegisterUser(ctx context.Context, username, password, email string) (*models.User, error)
+	RegisterUser(ctx context.Context, user *models.User) (*models.User, error)
 	Delete(ctx context.Context, user *models.User) error
 
 	GetById(ctx context.Context, uuidString string) (*models.User, error)
@@ -105,31 +104,25 @@ func NewUserService(
 	}
 }
 
-func (s *userService) RegisterUser(ctx context.Context, username, password, email string) (*models.User, error) {
-	if !s.isEmailValid(email) {
+func (s *userService) RegisterUser(ctx context.Context, user *models.User) (*models.User, error) {
+	if !s.isEmailValid(user.Email) {
 		return nil, ErrInvalidEmail
 	}
 
-	if !s.isUsernameValid(username) {
+	if !s.isUsernameValid(user.Username) {
 		return nil, ErrInvalidUsername
 	}
 
-	if len(password) < 8 {
+	if len(user.PasswordHash) < 8 {
 		return nil, ErrWeakPasswordLength
 	}
 
-	hashedPassword, err := utils.HashPassword(password)
+	hashedPassword, err := utils.HashPassword(user.PasswordHash)
 	if err != nil {
 		s.logger.Error("failed to hash password", "err", err)
 		return nil, fmt.Errorf("failed to hash password")
 	}
-
-	user := &models.User{
-		Username:     username,
-		PasswordHash: hashedPassword,
-		Email:        email,
-		Role:         "user",
-	}
+	user.PasswordHash = hashedPassword
 
 	err = s.dbTransactor.WithinTransaction(ctx, func(txCtx context.Context) error {
 		var err error
@@ -150,11 +143,11 @@ func (s *userService) RegisterUser(ctx context.Context, username, password, emai
 		return nil, fmt.Errorf("service error creating user")
 	}
 
-	return user, s.SendEmailVerificationEmail(ctx, email)
-}
+	if !user.IsVerified {
+		return user, s.SendEmailVerificationEmail(ctx, user.Email)
+	}
 
-func (s *userService) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
-	panic("unimplemented")
+	return user, nil
 }
 
 func (s *userService) Delete(ctx context.Context, user *models.User) error {

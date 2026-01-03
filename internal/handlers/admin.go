@@ -673,5 +673,57 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) AddUser(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Username   string `json:"username"`
+		Email      string `json:"email"`
+		Password   string `json:"password"`
+		Role       string `json:"role"`
+		IsActive   bool   `json:"isActive"`
+		IsVerified bool   `json:"isVerified"`
+	}
 
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	user := &models.User{
+		Username:     requestBody.Username,
+		Email:        requestBody.Email,
+		PasswordHash: requestBody.Password,
+		Role:         requestBody.Role,
+		IsActive:     requestBody.IsActive,
+		IsVerified:   requestBody.IsVerified,
+	}
+
+	user, err := h.userService.RegisterUser(
+		ctx,
+		user,
+	)
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+
+		switch err {
+		case repository.ErrUserAlreadyExists:
+			apiError.Code = "USER_ALREADY_EXISTS"
+			apiError.Message = "User already exists."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusConflict)
+		case services.ErrInvalidEmail, services.ErrInvalidSlug, services.ErrWeakPasswordLength:
+			apiError.Code = "INVALID_CONSTRAINTS"
+			apiError.Message = "Invalid constraints."
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+
+		return
+	}
+
+	response := map[string]string{
+		"message": "User created.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }

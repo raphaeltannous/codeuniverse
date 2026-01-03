@@ -56,11 +56,18 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
+	user := &models.User{
+		Username:     requestBody.Username,
+		Email:        requestBody.Email,
+		PasswordHash: requestBody.Password,
+		Role:         "user",
+		IsVerified:   false,
+		IsActive:     true,
+	}
+
 	user, err := h.userService.RegisterUser(
 		ctx,
-		requestBody.Username,
-		requestBody.Password,
-		requestBody.Email,
+		user,
 	)
 
 	if err != nil {

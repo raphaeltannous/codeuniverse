@@ -274,8 +274,8 @@ func (pur *postgresUserRepository) GetUsersRegisteredLastNDaysCount(ctx context.
 
 func (pur *postgresUserRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
 	query := `
-		INSERT INTO users (username, password_hash, email, role)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO users (username, password_hash, email, role, is_verified, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id;
 	`
 
@@ -286,6 +286,8 @@ func (pur *postgresUserRepository) Create(ctx context.Context, user *models.User
 		user.PasswordHash,
 		user.Email,
 		user.Role,
+		user.IsVerified,
+		user.IsActive,
 	)
 
 	err := row.Scan(&user.ID)
