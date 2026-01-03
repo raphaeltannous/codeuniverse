@@ -554,7 +554,7 @@ func (h *AdminHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		verificationFilter = ""
 	}
 
-	var status repository.UserParams
+	var status repository.UserParam
 	switch statusFilter {
 	case "active":
 		status = repository.UserActive
@@ -562,7 +562,7 @@ func (h *AdminHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		status = repository.UserInactive
 	}
 
-	var isVerfied repository.UserParams
+	var isVerfied repository.UserParam
 	switch verificationFilter {
 	case "verified":
 		status = repository.UserVerified

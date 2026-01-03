@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
@@ -12,10 +14,86 @@ import (
 
 const (
 	UserCtxKey                   = "user"
-	UserRoleFilterCtxKey         = "roleFilter"
-	UserStatusFilterCtxKey       = "statusFilter"
-	UserVerificationFilterCtxKey = "verificationFilter"
+	UserStatusFilterCtxKey       = "userStatusFilter"
+	UserVerificationFilterCtxKey = "userVerifiedFilter"
+	UserRoleFilterCtxKey         = "userRoleFilter"
+	UserSortByFilterCtxKey       = "userSortByFilter"
+	UserSortOrderFilterCtxKey    = "userSortOrderFilter"
 )
+
+var UserStatusFilterMiddleware = makeUserParamMiddleware(
+	"status",
+	UserStatusFilterCtxKey,
+	map[string]repository.UserParam{
+		"active":   repository.UserActive,
+		"inactive": repository.UserInactive,
+	},
+)
+
+var UserVerificationFilterMiddleware = makeUserParamMiddleware(
+	"verified",
+	UserVerificationFilterCtxKey,
+	map[string]repository.UserParam{
+		"verified":   repository.UserVerified,
+		"unverified": repository.UserUnverified,
+	},
+)
+
+var UserRoleFilterMiddleware = makeUserParamMiddleware(
+	"role",
+	UserRoleFilterCtxKey,
+	map[string]repository.UserParam{
+		"user":  repository.UserRoleUser,
+		"admin": repository.UserRoleAdmin,
+	},
+)
+
+var UserSortByFilterMiddleware = makeUserParamMiddleware(
+	"sortBy",
+	UserSortByFilterCtxKey,
+	map[string]repository.UserParam{
+		"username":  repository.UserSortByUsername,
+		"email":     repository.UserSortByEmail,
+		"createdAt": repository.UserSortByCreatedAt,
+	},
+)
+
+var UserSortOrderFilterMiddleware = makeUserParamMiddleware(
+	"sortOrder",
+	UserSortOrderFilterCtxKey,
+	map[string]repository.UserParam{
+		"desc": repository.UserSortOrderDesc,
+		"asc":  repository.UserSortOrderAsc,
+	},
+)
+
+func makeUserParamMiddleware(getParam, ctxKey string, allowedFilter map[string]repository.UserParam) func(next http.Handler) http.Handler {
+	allowedFilter[""] = 0
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			filter := r.URL.Query().Get(getParam)
+			if _, ok := allowedFilter[filter]; !ok {
+				apiError := handlersutils.NewAPIError(
+					fmt.Sprintf("UNALLOWED_%s_FILTER", strings.ToUpper(getParam)),
+					fmt.Sprintf("The requested %s filter is not allowed.", getParam),
+				)
+
+				handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+				return
+			}
+
+			ctx := context.WithValue(
+				r.Context(),
+				ctxKey,
+				allowedFilter[filter],
+			)
+			r = r.WithContext(ctx)
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
 
 func UserMiddleware(next http.Handler, userService services.UserService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -42,86 +120,5 @@ func UserMiddleware(next http.Handler, userService services.UserService) http.Ha
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
-	})
-}
-
-func UserRoleFilterMiddleware(next http.Handler) http.Handler {
-	allowedRoleFilters := map[string]bool{
-		"all":   true,
-		"user":  true,
-		"admin": true,
-		"":      true,
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		roleFilter := r.URL.Query().Get("role")
-		if !allowedRoleFilters[roleFilter] {
-			apiError := handlersutils.NewAPIError(
-				"UNALLOWED_ROLE_FILTER",
-				"The requested role filter is not allowed.",
-			)
-
-			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), UserRoleFilterCtxKey, roleFilter)
-		r = r.WithContext(ctx)
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func UserStatusFilterMiddleware(next http.Handler) http.Handler {
-	allowedStatusFilters := map[string]bool{
-		"active":   true,
-		"inactive": true,
-		"":         true,
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		statusFilter := r.URL.Query().Get("status")
-		if !allowedStatusFilters[statusFilter] {
-			apiError := handlersutils.NewAPIError(
-				"UNALLOWED_STATUS_FILTER",
-				"The requested status filter is not allowed.",
-			)
-
-			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), UserStatusFilterCtxKey, statusFilter)
-		r = r.WithContext(ctx)
-
-		next.ServeHTTP(w, r)
-
-	})
-}
-
-func UserVerificationFilterMiddleware(next http.Handler) http.Handler {
-	allowedVerificationFilter := map[string]bool{
-		"verified":   true,
-		"unverified": true,
-		"":           true,
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		verifiedFilter := r.URL.Query().Get("verified")
-		if !allowedVerificationFilter[verifiedFilter] {
-			apiError := handlersutils.NewAPIError(
-				"UNALLOWED_VERIFIED_FILTER",
-				"The requested verified filter is not allowed.",
-			)
-
-			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), UserVerificationFilterCtxKey, verifiedFilter)
-		r = r.WithContext(ctx)
-
-		next.ServeHTTP(w, r)
-
 	})
 }

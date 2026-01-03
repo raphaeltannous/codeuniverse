@@ -35,32 +35,38 @@ type UserRepository interface {
 	Search(ctx context.Context, search string) ([]*models.User, error)
 }
 
-type UserParams int
+type UserParam int
 
 const (
-	UserInactive UserParams = iota + 1
+	UserInactive UserParam = iota + 1
 	UserActive
+
 	UserUnverified
 	UserVerified
-)
 
-const (
-	UserSortByUsername UserParams = iota + 1
+	UserRoleAdmin
+	UserRoleUser
+
+	UserSortByUsername
 	UserSortByEmail
 	UserSortByCreatedAt
+
 	UserSortOrderAsc
 	UserSortOrderDesc
 )
 
 type GetUsersParams struct {
-	Offset     int
-	Limit      int
-	Search     string
-	Role       string
-	IsActive   UserParams
-	IsVerified UserParams
-	SortBy     UserParams
-	SortOrder  UserParams
+	Offset int
+	Limit  int
+	Search string
+
+	Role UserParam
+
+	IsActive   UserParam
+	IsVerified UserParam
+
+	SortBy    UserParam
+	SortOrder UserParam
 }
 
 var (
