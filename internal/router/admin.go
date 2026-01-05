@@ -18,6 +18,7 @@ func adminRouter(
 	courseMiddleware func(next http.Handler) http.Handler,
 	lessonMiddleware func(next http.Handler) http.Handler,
 	userMiddleware func(next http.Handler) http.Handler,
+	problemMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -86,27 +87,27 @@ func adminRouter(
 	})
 
 	r.Route("/problems", func(r chi.Router) {
+		r.Post("/", adminHandler.CreateProblem)
+
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.OffsetMiddleware)
 			r.Use(middleware.LimitMiddleware)
+			r.Use(middleware.SearchMiddleware)
 
-			r.Use(middleware.UserRoleFilterMiddleware)
-			r.Use(middleware.UserStatusFilterMiddleware)
-			r.Use(middleware.UserVerificationFilterMiddleware)
+			r.Use(middleware.ProblemPremiumFilterMiddleware)
+			r.Use(middleware.ProblemPublicFilterMiddleware)
+			r.Use(middleware.ProblemSortByFilterMiddleware)
+			r.Use(middleware.ProblemSortOrderFilterMiddleware)
 
-			// TODO r.Use(middleware.SearchMiddleware)
-
-			r.Get("/", problemHandler.GetProblems)
+			r.Get("/", adminHandler.GetProblems)
 		})
 
-		r.Post("/", problemHandler.CreateProblem)
-
 		r.Route("/{problemSlug}", func(r chi.Router) {
-			// TODO problemMiddleware
+			r.Use(problemMiddleware)
 
-			r.Get("/", problemHandler.GetProblem)
-			r.Put("/", problemHandler.UpdateProblem)
-			r.Delete("/", problemHandler.DeleteProblem)
+			r.Get("/", adminHandler.GetProblem)
+			r.Put("/", adminHandler.UpdateProblem)
+			r.Delete("/", adminHandler.DeleteProblem)
 		})
 	})
 

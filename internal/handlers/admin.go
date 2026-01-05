@@ -727,3 +727,23 @@ func (h *AdminHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
+
+func (h *AdminHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h *AdminHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h *AdminHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h *AdminHandler) DeleteProblem(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
+
+}

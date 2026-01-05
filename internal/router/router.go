@@ -94,6 +94,7 @@ func apiRouter(
 		courseMiddleware,
 		lessonMiddleware,
 		userMiddleware,
+		problemMiddleware,
 	))
 
 	r.Mount("/static", staticRouter(
