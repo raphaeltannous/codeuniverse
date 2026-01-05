@@ -3,13 +3,14 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type postgresProblemRepository struct {
@@ -20,39 +21,124 @@ func NewProblemRepository(db *sql.DB) repository.ProblemRepository {
 	return &postgresProblemRepository{db: db}
 }
 
-func (ppr *postgresProblemRepository) GetProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error) {
-	query := `
-		SELECT
-			id,
+func (p *postgresProblemRepository) GetProblems(
+	ctx context.Context,
+	params *repository.GetProblemsParams,
+) ([]*models.Problem, int, error) {
+	whereClauses := []string{"1 = 1"}
+	arguments := make([]any, 0)
+	argumentPosition := 1
 
-			title,
-			slug,
-			description,
-			difficulty,
+	if params.Search != "" {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf(
+				"(title ILIKE '%%' || $%d || '%%' OR slug ILIKE '%%' || $%d || '%%')",
+				argumentPosition,
+				argumentPosition,
+			),
+		)
+		arguments = append(arguments, params.Search)
+		argumentPosition++
+	}
 
-			to_json(hints) AS hints,
+	if params.IsPublic != 0 {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf(
+				"is_public = $%d",
+				argumentPosition,
+			),
+		)
+		arguments = append(arguments, params.IsPublic == repository.ProblemPublic)
+		argumentPosition++
+	}
 
-			code_snippets,
-			test_cases,
+	if params.IsPremium != 0 {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf(
+				"is_premium = $%d",
+				argumentPosition,
+			),
+		)
+		arguments = append(arguments, params.IsPremium == repository.ProblemPremium)
+		argumentPosition++
+	}
 
-			is_paid,
-			is_public,
+	var orderBy strings.Builder
+	switch params.SortBy {
+	case repository.ProblemSortByTitle:
+		orderBy.WriteString("title")
+	default:
+		orderBy.WriteString("created_at")
+	}
+	orderBy.WriteRune(' ')
 
-			created_at,
-			updated_at
-		FROM problems
-		OFFSET $1
-		LIMIT $2;
-	`
+	switch params.SortOrder {
+	case repository.ProblemSortOrderAsc:
+		orderBy.WriteString("ASC")
+	default:
+		orderBy.WriteString("DESC")
+	}
 
-	rows, err := ppr.db.QueryContext(
+	whereClause := strings.Join(whereClauses, " AND ")
+
+	countQuery := fmt.Sprintf(
+		`
+			SELECT COUNT(*)
+			FROM problems
+			WHERE %s;
+		`,
+		whereClause,
+	)
+
+	var total int
+	err := p.db.QueryRowContext(
+		ctx,
+		countQuery,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count problems: %w", err)
+	}
+
+	query := fmt.Sprintf(
+		`
+			SELECT
+				id,
+
+				title,
+				slug,
+				description,
+				difficulty,
+
+				is_premium,
+				is_public,
+
+				created_at,
+				updated_at
+			FROM problems
+			WHERE %s
+			ORDER BY %s
+			OFFSET $%d
+			LIMIT $%d;
+		`,
+		whereClause,
+		orderBy.String(),
+		argumentPosition,
+		argumentPosition+1,
+	)
+	argumentPosition++
+
+	arguments = append(arguments, params.Offset, params.Limit)
+
+	rows, err := p.db.QueryContext(
 		ctx,
 		query,
-		offset,
-		limit,
+		arguments...,
 	)
 	if err != nil {
-		return nil, repository.ErrInternalServerError
+		return nil, 0, fmt.Errorf("failed to query problems: %w", err)
 	}
 	defer rows.Close()
 
@@ -60,350 +146,91 @@ func (ppr *postgresProblemRepository) GetProblems(ctx context.Context, offset, l
 	for rows.Next() {
 		problem := new(models.Problem)
 
-		err := ppr.scanProblemFunc(rows, problem)
+		err := p.scanProblemFunc(rows, problem)
 		if err != nil {
-			return nil, repository.ErrInternalServerError
+			return nil, 0, fmt.Errorf("failed to scan into problem: %w", err)
 		}
 
 		problems = append(problems, problem)
 	}
 
-	return problems, nil
+	return problems, total, nil
 }
 
-func (ppr *postgresProblemRepository) Create(ctx context.Context, problem *models.Problem) (uuid.UUID, error) {
+func (p *postgresProblemRepository) Create(
+	ctx context.Context,
+	problem *models.Problem,
+) (*models.Problem, error) {
 	query := `
 		INSERT INTO problems (
 			title,
 			slug,
 			description,
 			difficulty,
-			hints,
-			code_snippets,
-			test_cases,
-			is_paid,
+
+			is_premium,
 			is_public
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id;
 	`
-	err := ppr.db.QueryRowContext(
+	err := p.db.QueryRowContext(
 		ctx,
 		query,
 		problem.Title,
 		problem.Slug,
 		problem.Description,
 		problem.Difficulty,
-		problem.Hints,
-		problem.CodeSnippets,
-		problem.TestCases,
-		problem.IsPaid,
+		problem.IsPremium,
 		problem.IsPublic,
 	).Scan(
 		&problem.ID,
 	)
 
-	return problem.ID, err
-}
-
-func (ppr *postgresProblemRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Problem, error) {
-	return nil, nil
-}
-
-func (ppr *postgresProblemRepository) GetBySlug(ctx context.Context, slug string) (*models.Problem, error) {
-	return ppr.getProblemByColumn(
-		ctx,
-		"slug",
-		slug,
-	)
-}
-
-func (ppr *postgresProblemRepository) GetEasyCount(ctx context.Context) (int, error) {
-	return ppr.getCountByLevel(ctx, "Easy")
-}
-
-func (ppr *postgresProblemRepository) GetHardCount(ctx context.Context) (int, error) {
-	return ppr.getCountByLevel(ctx, "Medium")
-}
-
-func (ppr *postgresProblemRepository) GetMediumCount(ctx context.Context) (int, error) {
-	return ppr.getCountByLevel(ctx, "Hard")
-}
-
-func (ppr *postgresProblemRepository) UpdateTitle(ctx context.Context, id uuid.UUID, title string) error {
-	return ppr.updateColumnValue(
-		ctx,
-		id,
-		"title",
-		title,
-	)
-}
-
-func (ppr *postgresProblemRepository) UpdateSlug(ctx context.Context, id uuid.UUID, slug string) error {
-	return ppr.updateColumnValue(
-		ctx,
-		id,
-		"slug",
-		slug,
-	)
-}
-
-func (ppr *postgresProblemRepository) UpdateDescription(ctx context.Context, id uuid.UUID, description string) error {
-	return ppr.updateColumnValue(
-		ctx,
-		id,
-		"description",
-		description,
-	)
-}
-
-func (ppr *postgresProblemRepository) UpdateDifficulty(ctx context.Context, id uuid.UUID, difficulty string) error {
-	return ppr.updateColumnValue(
-		ctx,
-		id,
-		"difficulty",
-		difficulty,
-	)
-}
-
-func (ppr *postgresProblemRepository) AddTags(ctx context.Context, id uuid.UUID, tags []string) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) AddTag(ctx context.Context, id uuid.UUID, tag string) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) RemoveTag(ctx context.Context, id uuid.UUID, tag string) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) AddHints(ctx context.Context, id uuid.UUID, hints []string) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) AddHint(ctx context.Context, id uuid.UUID, hint string) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) RemoveHint(ctx context.Context, id uuid.UUID, hint string) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) UpdateCodeSnippets(ctx context.Context, id uuid.UUID, codeSnippets string) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) UpdateTestcases(ctx context.Context, id uuid.UUID, testCases string) error {
-	return nil
-}
-
-func (ppr *postgresProblemRepository) UpdatePublic(ctx context.Context, id uuid.UUID, status bool) error {
-	return ppr.updateColumnValue(
-		ctx,
-		id,
-		"is_public",
-		status,
-	)
-}
-
-func (ppr *postgresProblemRepository) UpdatePaid(ctx context.Context, id uuid.UUID, status bool) error {
-	return ppr.updateColumnValue(
-		ctx,
-		id,
-		"is_paid",
-		status,
-	)
-}
-
-func (ppr *postgresProblemRepository) updateColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
-	return updateColumnValue(
-		ctx,
-		ppr.db,
-		"problems",
-		id,
-		column,
-		value,
-	)
-}
-
-func (ppr *postgresProblemRepository) Search(ctx context.Context, title string) ([]*models.Problem, error) {
-	query := `
-		SELECT
-			id,
-
-			title,
-			slug,
-			description,
-			difficulty,
-
-			to_json(hints) AS hints,
-
-			code_snippets,
-			test_cases,
-
-			is_paid,
-			is_public,
-
-			created_at,
-			updated_at
-		FROM problems
-		WHERE
-			title ILIKE '%' || $1 || '%'
-			OR slug ILIKE '%' || $1 || '%';
-	`
-
-	rows, err := ppr.db.QueryContext(
-		ctx,
-		query,
-		title,
-	)
 	if err != nil {
-		return nil, repository.ErrInternalServerError
-	}
-	defer rows.Close()
-
-	var problems []*models.Problem
-	for rows.Next() {
-		problem := new(models.Problem)
-
-		err := ppr.scanProblemFunc(rows, problem)
-		if err != nil {
-			return nil, repository.ErrInternalServerError
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, repository.ErrProblemAlreadyExists
 		}
 
-		problems = append(problems, problem)
-	}
-
-	return problems, nil
-}
-
-func (ppr *postgresProblemRepository) getProblemByColumn(ctx context.Context, column string, value any) (*models.Problem, error) {
-	query := fmt.Sprintf(
-		`
-		SELECT
-			id,
-
-			title,
-			slug,
-			description,
-			difficulty,
-
-			to_json(hints) AS hints,
-
-			code_snippets,
-			test_cases,
-
-			is_paid,
-			is_public,
-
-			created_at,
-			updated_at
-		FROM problems
-		WHERE %s = $1;
-		`,
-		column,
-	)
-
-	row := ppr.db.QueryRowContext(ctx, query, value)
-
-	problem := new(models.Problem)
-	if err := ppr.scanProblemFunc(row, problem); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, repository.ErrProblemNotFound
-		}
-
-		return nil, err
+		return nil, fmt.Errorf("failed to create new problem: %w", err)
 	}
 
 	return problem, nil
 }
 
-type problemScanner interface {
-	Scan(dest ...any) error
-}
-
-func (ppr *postgresProblemRepository) scanProblemFunc(scanner problemScanner, problem *models.Problem) error {
-	var hintsBytes []byte
-	var codeSnippetsBytes []byte
-	var testCasesBytes []byte
-
-	err := scanner.Scan(
-		&problem.ID,
-
-		&problem.Title,
-		&problem.Slug,
-		&problem.Description,
-		&problem.Difficulty,
-
-		&hintsBytes,
-
-		&codeSnippetsBytes,
-		&testCasesBytes,
-
-		&problem.IsPaid,
-		&problem.IsPublic,
-
-		&problem.CreatedAt,
-		&problem.UpdatedAt,
-	)
-	if err != nil {
-		return err
-	}
-
-	var hints []string
-
-	if len(hintsBytes) == 0 || string(hintsBytes) == "null" {
-		hints = []string{}
-	} else {
-		if err := json.Unmarshal(hintsBytes, &hints); err != nil {
-			return err
-		}
-	}
-
-	problem.Hints = hints
-
-	var codeSnippets []models.CodeSnippet
-
-	if len(codeSnippetsBytes) == 0 || string(hintsBytes) == "null" {
-		codeSnippets = []models.CodeSnippet{}
-	} else {
-		if err := json.Unmarshal(codeSnippetsBytes, &codeSnippets); err != nil {
-			return err
-		}
-	}
-
-	problem.CodeSnippets = codeSnippets
-
-	var testCases []string
-
-	if len(testCasesBytes) == 0 || string(testCasesBytes) == "null" {
-		testCases = []string{}
-	} else {
-		if err := json.Unmarshal(testCasesBytes, &testCases); err != nil {
-			return err
-		}
-	}
-
-	problem.TestCases = testCases
-
+func (p *postgresProblemRepository) Delete(
+	ctx context.Context,
+	id uuid.UUID,
+) error {
 	return nil
 }
 
-func (ppr *postgresProblemRepository) getCountByLevel(ctx context.Context, difficulty string) (int, error) {
-	query := fmt.Sprintf(`
+func (p *postgresProblemRepository) GetBySlug(
+	ctx context.Context,
+	slug string,
+) (*models.Problem, error) {
+	return p.getProblemByColumn(
+		ctx,
+		"slug",
+		slug,
+	)
+}
+
+func (p *postgresProblemRepository) GetCountByDifficulty(
+	ctx context.Context,
+	difficulty models.ProblemDifficulty,
+) (int, error) {
+	query := `
 		SELECT COUNT(*)
 		FROM problems
-		WHERE difficulty = '%s';
-	`, difficulty)
+		WHERE difficulty = $1;
+	`
 
-	row := ppr.db.QueryRowContext(
+	row := p.db.QueryRowContext(
 		ctx,
 		query,
+		difficulty.String(),
 	)
 
 	var difficultyCount int
@@ -414,4 +241,158 @@ func (ppr *postgresProblemRepository) getCountByLevel(ctx context.Context, diffi
 	}
 
 	return difficultyCount, nil
+}
+
+func (p *postgresProblemRepository) UpdateTitle(
+	ctx context.Context,
+	id uuid.UUID,
+	title string,
+) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"title",
+		title,
+	)
+}
+
+func (p *postgresProblemRepository) UpdateSlug(
+	ctx context.Context,
+	id uuid.UUID,
+	slug string,
+) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"slug",
+		slug,
+	)
+}
+
+func (p *postgresProblemRepository) UpdateDescription(
+	ctx context.Context,
+	id uuid.UUID,
+	description string,
+) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"description",
+		description,
+	)
+}
+
+func (p *postgresProblemRepository) UpdateDifficulty(
+	ctx context.Context,
+	id uuid.UUID,
+	difficulty models.ProblemDifficulty,
+) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"difficulty",
+		difficulty.String(),
+	)
+}
+
+func (p *postgresProblemRepository) UpdateIsPremium(
+	ctx context.Context,
+	id uuid.UUID,
+	status bool,
+) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"is_premium",
+		status,
+	)
+}
+
+func (p *postgresProblemRepository) UpdateIsPublic(
+	ctx context.Context,
+	id uuid.UUID,
+	status bool,
+) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"is_public",
+		status,
+	)
+}
+
+func (p *postgresProblemRepository) updateColumnValue(
+	ctx context.Context,
+	id uuid.UUID,
+	column string,
+	value any,
+) error {
+	return updateColumnValue(
+		ctx,
+		p.db,
+		"problems",
+		id,
+		column,
+		value,
+	)
+}
+
+func (p *postgresProblemRepository) getProblemByColumn(
+	ctx context.Context,
+	column string,
+	value any,
+) (*models.Problem, error) {
+	query := fmt.Sprintf(
+		`
+			SELECT
+				id,
+
+				title,
+				slug,
+				description,
+				difficulty,
+
+				is_premium,
+				is_public,
+
+				created_at,
+				updated_at
+			FROM problems
+			WHERE %s = $1;
+		`,
+		column,
+	)
+
+	row := p.db.QueryRowContext(ctx, query, value)
+
+	problem := new(models.Problem)
+	if err := p.scanProblemFunc(row, problem); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, repository.ErrProblemNotFound
+		}
+
+		return nil, fmt.Errorf("failed to scan into problem: %w", err)
+	}
+
+	return problem, nil
+}
+
+func (p *postgresProblemRepository) scanProblemFunc(
+	scanner postgresScanner,
+	problem *models.Problem,
+) error {
+	return scanner.Scan(
+		&problem.ID,
+
+		&problem.Title,
+		&problem.Slug,
+		&problem.Description,
+		&problem.Difficulty,
+
+		&problem.IsPremium,
+		&problem.IsPublic,
+
+		&problem.CreatedAt,
+		&problem.UpdatedAt,
+	)
 }

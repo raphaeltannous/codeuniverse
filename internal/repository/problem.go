@@ -9,42 +9,53 @@ import (
 )
 
 type ProblemRepository interface {
-	GetProblems(ctx context.Context, offset, limit int) ([]*models.Problem, error)
+	GetProblems(ctx context.Context, params *GetProblemsParams) ([]*models.Problem, int, error)
 
-	Create(ctx context.Context, problem *models.Problem) (uuid.UUID, error)
+	Create(ctx context.Context, problem *models.Problem) (*models.Problem, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 
-	GetByID(ctx context.Context, id uuid.UUID) (*models.Problem, error)
 	GetBySlug(ctx context.Context, slug string) (*models.Problem, error)
 
-	GetEasyCount(ctx context.Context) (int, error)
-	GetMediumCount(ctx context.Context) (int, error)
-	GetHardCount(ctx context.Context) (int, error)
+	GetCountByDifficulty(ctx context.Context, difficulty models.ProblemDifficulty) (int, error)
 
 	UpdateTitle(ctx context.Context, id uuid.UUID, title string) error
 	UpdateSlug(ctx context.Context, id uuid.UUID, slug string) error
-
 	UpdateDescription(ctx context.Context, id uuid.UUID, description string) error
+	UpdateDifficulty(ctx context.Context, id uuid.UUID, difficulty models.ProblemDifficulty) error
+	UpdateIsPremium(ctx context.Context, id uuid.UUID, status bool) error
+	UpdateIsPublic(ctx context.Context, id uuid.UUID, status bool) error
+}
 
-	UpdateDifficulty(ctx context.Context, id uuid.UUID, difficulty string) error
+type ProblemParam int
 
-	AddTags(ctx context.Context, id uuid.UUID, tags []string) error
-	AddTag(ctx context.Context, id uuid.UUID, tag string) error
-	RemoveTag(ctx context.Context, id uuid.UUID, tag string) error
+const (
+	ProblemPublic ProblemParam = iota + 1
+	ProblemPrivate
 
-	AddHints(ctx context.Context, id uuid.UUID, hints []string) error
-	AddHint(ctx context.Context, id uuid.UUID, hint string) error
-	RemoveHint(ctx context.Context, id uuid.UUID, hint string) error
+	ProblemFree
+	ProblemPremium
 
-	UpdateCodeSnippets(ctx context.Context, id uuid.UUID, codeSnippets string) error
-	UpdateTestcases(ctx context.Context, id uuid.UUID, testCases string) error
+	ProblemSortByTitle
 
-	UpdatePublic(ctx context.Context, id uuid.UUID, status bool) error
-	UpdatePaid(ctx context.Context, id uuid.UUID, status bool) error
+	ProblemSortOrderAsc
+	ProblemSortOrderDesc
+)
 
-	Search(ctx context.Context, title string) ([]*models.Problem, error)
+type GetProblemsParams struct {
+	Offset int
+	Limit  int
+	Search string
+
+	IsPublic  ProblemParam
+	IsPremium ProblemParam
+
+	Difficulty models.ProblemDifficulty
+
+	SortBy    ProblemParam
+	SortOrder ProblemParam
 }
 
 var (
-	ErrProblemNotFound = errors.New("problem not found")
+	ErrProblemAlreadyExists = errors.New("repository: problem already exists")
+	ErrProblemNotFound      = errors.New("repository: problem not found")
 )

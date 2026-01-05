@@ -15,8 +15,8 @@ type Problem struct {
 	Description string `db:"description" json:"description"`
 	Difficulty  string `db:"difficulty" json:"difficulty"`
 
-	IsPremium *bool `db:"is_premium" json:"isPremium"`
-	IsPublic  *bool `db:"is_public" json:"isPublic"`
+	IsPremium bool `db:"is_premium" json:"isPremium"`
+	IsPublic  bool `db:"is_public" json:"isPublic"`
 
 	CreatedAt time.Time `db:"created_at" json:"-"`
 	UpdatedAt time.Time `db:"updated_at" json:"-"`
