@@ -85,12 +85,12 @@ func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 		search = ""
 	}
 
-	offset, ok := ctx.Value("offset").(int)
+	offset, ok := ctx.Value(middleware.OffsetCtxKey).(int)
 	if !ok {
 		offset = middleware.OffsetDefault
 	}
 
-	limit, ok := ctx.Value("limit").(int)
+	limit, ok := ctx.Value(middleware.LimitCtxKey).(int)
 	if !ok {
 		limit = middleware.LimitDefault
 	}
@@ -117,7 +117,6 @@ func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
-// GET
 func (h *ProblemHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -127,7 +126,16 @@ func (h *ProblemHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlersutils.WriteResponseJSON(w, problem, http.StatusAccepted)
+	var response struct {
+		*models.Problem
+		Hints        []*models.ProblemHint `json:"hints"`
+		CodeSnippets []*models.CodeSnippet `json:"codeSnippets"`
+	}
+	response.Problem = problem
+	response.Hints = []*models.ProblemHint{}
+	response.CodeSnippets = []*models.CodeSnippet{}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
 }
 
 // PUT
