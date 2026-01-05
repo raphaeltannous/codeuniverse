@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -9,54 +10,48 @@ import (
 const (
 	OffsetDefault = 0
 	LimitDefault  = 25
-	SearchCtxKey  = "search"
+
+	OffsetCtxKey = "offset"
+	LimitCtxKey  = "limit"
 )
 
-func OffsetMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		offset := OffsetDefault
-		if offsetParam := r.URL.Query().Get("offset"); offsetParam != "" {
-			var err error
-			offset, err = strconv.Atoi(offsetParam)
-			if err != nil {
-				http.Error(w, "offset should be an integer", http.StatusBadRequest)
-				return
+var OffsetMiddleware = makePaginationHandler(
+	"offset",
+	OffsetCtxKey,
+	OffsetDefault,
+)
+
+var LimitMiddleware = makePaginationHandler(
+	"limit",
+	LimitCtxKey,
+	LimitDefault,
+)
+
+func makePaginationHandler(getParam, ctxKey string, defaultValue int) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			number := defaultValue
+			if numberString := r.URL.Query().Get(getParam); numberString != "" {
+				var err error
+				number, err = strconv.Atoi(numberString)
+
+				if err != nil {
+					http.Error(
+						w,
+						fmt.Sprintf(
+							"%s should be and integer.",
+							getParam,
+						),
+						http.StatusBadRequest,
+					)
+					return
+				}
 			}
-		}
 
-		ctx := context.WithValue(r.Context(), "offset", offset)
-		r = r.WithContext(ctx)
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func LimitMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		limit := LimitDefault
-		if limitParam := r.URL.Query().Get("limit"); limitParam != "" {
-			var err error
-			limit, err = strconv.Atoi(limitParam)
-			if err != nil {
-				http.Error(w, "limit should be an integer", http.StatusBadRequest)
-				return
-			}
-		}
-
-		ctx := context.WithValue(r.Context(), "limit", limit)
-		r = r.WithContext(ctx)
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func SearchMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if searchParam := r.URL.Query().Get(SearchCtxKey); searchParam != "" {
-			ctx := context.WithValue(r.Context(), SearchCtxKey, searchParam)
+			ctx := context.WithValue(r.Context(), ctxKey, number)
 			r = r.WithContext(ctx)
-		}
 
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }
