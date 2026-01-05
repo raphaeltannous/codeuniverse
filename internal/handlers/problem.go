@@ -15,12 +15,12 @@ import (
 )
 
 type ProblemHandler struct {
-	pS services.ProblemService
+	problemService services.ProblemService
 }
 
 func NewProblemsHandlers(pS services.ProblemService) *ProblemHandler {
 	return &ProblemHandler{
-		pS: pS,
+		problemService: pS,
 	}
 }
 
@@ -61,7 +61,7 @@ func (h *ProblemHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	problem, err = h.pS.Create(
+	problem, err = h.problemService.Create(
 		ctx,
 		problem,
 	)
@@ -80,7 +80,7 @@ func (h *ProblemHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	search, ok := r.Context().Value(middleware.SearchCtxKey).(string)
+	search, ok := ctx.Value(middleware.SearchCtxKey).(string)
 	if !ok {
 		search = ""
 	}
@@ -101,7 +101,7 @@ func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 		Search: search,
 	}
 
-	problems, total, err := h.pS.GetProblems(ctx, getParams)
+	problems, total, err := h.problemService.GetProblems(ctx, getParams)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
@@ -169,7 +169,7 @@ func (h *ProblemHandler) Run(w http.ResponseWriter, r *http.Request) {
 	handlerChannel := make(chan string)
 
 	go func() {
-		h.pS.Run(
+		h.problemService.Run(
 			context.WithoutCancel(ctx),
 			user,
 			problem,
@@ -221,7 +221,7 @@ func (h *ProblemHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	handlerChannel := make(chan string)
 
 	go func() {
-		h.pS.Submit(
+		h.problemService.Submit(
 			context.WithoutCancel(ctx),
 			user,
 			problem,
@@ -260,7 +260,7 @@ func (h *ProblemHandler) GetSubmissions(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	submissions, err := h.pS.GetSubmissions(
+	submissions, err := h.problemService.GetSubmissions(
 		ctx,
 		user,
 		problem,
@@ -298,7 +298,7 @@ func (h *ProblemHandler) GetSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	submission, err := h.pS.GetSubmission(
+	submission, err := h.problemService.GetSubmission(
 		ctx,
 		user,
 		submissionId,
@@ -335,7 +335,7 @@ func (h *ProblemHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	run, err := h.pS.GetRun(
+	run, err := h.problemService.GetRun(
 		ctx,
 		user,
 		runId,
@@ -377,7 +377,7 @@ func (h *ProblemHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	note := models.NewProblemNote(user.ID, problem.ID, requestBody.Markdown)
-	err := h.pS.CreateNote(
+	err := h.problemService.CreateNote(
 		ctx,
 		note,
 	)
@@ -422,7 +422,7 @@ func (h *ProblemHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	note, err := h.pS.GetNote(
+	note, err := h.problemService.GetNote(
 		ctx,
 		user,
 		problem,
@@ -467,13 +467,13 @@ func (h *ProblemHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	note, err := h.pS.GetNote(ctx, user, problem)
+	note, err := h.problemService.GetNote(ctx, user, problem)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
-	err = h.pS.UpdateNote(ctx, note, requestBody.Markdown)
+	err = h.problemService.UpdateNote(ctx, note, requestBody.Markdown)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return

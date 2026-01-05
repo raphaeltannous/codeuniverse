@@ -120,6 +120,7 @@ func (s *problemService) GetProblems(ctx context.Context, getParams *repository.
 		getParams,
 	)
 	if err != nil {
+		s.logger.Error("failed to get problems", "getParams", getParams, "err", err)
 		return nil, 0, repository.ErrInternalServerError
 	}
 	return problems, total, nil
