@@ -54,7 +54,7 @@ func NewProblem(
 	var err error
 	problem.Difficulty, err = NewProblemDifficulty(difficulty)
 	if err != nil {
-		return nil, ErrInvalidProblemLevel
+		return nil, ErrInvalidProblemDifficulty
 	}
 
 	return problem, nil

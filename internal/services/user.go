@@ -418,19 +418,19 @@ func (s *userService) GetProfile(ctx context.Context, user *models.User) (*model
 	}
 	userProfile.SubmissionStats = *submissionStats
 
-	userProfile.EasyCount, err = s.problemRepo.GetEasyCount(ctx)
+	userProfile.EasyCount, err = s.problemRepo.GetCountByDifficulty(ctx, models.ProblemEasy)
 	if err != nil {
 		s.logger.Error("failed to get easy count", "err", err)
 		return nil, err
 	}
 
-	userProfile.MediumCount, err = s.problemRepo.GetMediumCount(ctx)
+	userProfile.MediumCount, err = s.problemRepo.GetCountByDifficulty(ctx, models.ProblemMedium)
 	if err != nil {
 		s.logger.Error("failed to get medium count", "err", err)
 		return nil, err
 	}
 
-	userProfile.HardCount, err = s.problemRepo.GetHardCount(ctx)
+	userProfile.HardCount, err = s.problemRepo.GetCountByDifficulty(ctx, models.ProblemHard)
 	if err != nil {
 		s.logger.Error("failed to get hard count", "err", err)
 		return nil, err

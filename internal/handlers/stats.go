@@ -40,19 +40,19 @@ func (h *StatsHandler) GetDashboardStats(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	easyCount, err := h.problemService.GetEasyCount(ctx)
+	easyCount, err := h.problemService.GetCount(ctx, models.ProblemEasy)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
-	mediumCount, err := h.problemService.GetMediumCount(ctx)
+	mediumCount, err := h.problemService.GetCount(ctx, models.ProblemMedium)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
-	hardCount, err := h.problemService.GetHardCount(ctx)
+	hardCount, err := h.problemService.GetCount(ctx, models.ProblemHard)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return

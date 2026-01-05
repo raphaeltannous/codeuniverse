@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	ErrInvalidProblemLevel = errors.New("invalid problem level")
+	ErrInvalidProblemDifficulty = errors.New("invalid problem level")
 )
 
 func NewProblemDifficulty(level string) (ProblemDifficulty, error) {
@@ -26,7 +26,7 @@ func NewProblemDifficulty(level string) (ProblemDifficulty, error) {
 	case "hard":
 		return ProblemHard, nil
 	default:
-		return 0, ErrInvalidProblemLevel
+		return 0, ErrInvalidProblemDifficulty
 	}
 }
 

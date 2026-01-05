@@ -30,7 +30,7 @@ func (h *ProblemHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 		Title       string `json:"title"`
 		Description string `json:"description"`
 		Difficulty  string `json:"difficulty"`
-		IsPaid      bool   `json:"isPaid"`
+		IsPremium   bool   `json:"isPaid"`
 		IsPublic    bool   `json:"isPublic"`
 
 		Hints []string `json:"hints"`
@@ -47,16 +47,15 @@ func (h *ProblemHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 		requestBody.Title,
 		requestBody.Description,
 		requestBody.Difficulty,
-		requestBody.IsPaid,
+		requestBody.IsPremium,
 		requestBody.IsPublic,
-
-		requestBody.Hints,
-
-		requestBody.CodeSnippets,
-		requestBody.TestCases,
 	)
 	if err != nil {
-		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		apiError := handlersutils.NewAPIError(
+			"INVALID_DIFFICULTY",
+			"Invalid difficulty.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
 		return
 	}
 
@@ -78,10 +77,13 @@ func (h *ProblemHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
 }
 
-// GET
-// Optional params: offset limit search.
 func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	search, ok := r.Context().Value(middleware.SearchCtxKey).(string)
+	if !ok {
+		search = ""
+	}
 
 	offset, ok := ctx.Value("offset").(int)
 	if !ok {
@@ -93,20 +95,26 @@ func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 		limit = middleware.LimitDefault
 	}
 
-	search, ok := ctx.Value("search").(string)
-	var problems []*models.Problem
-	var err error
-	if ok {
-		problems, err = h.pS.Search(ctx, search)
-	} else {
-		problems, err = h.pS.GetAllProblems(ctx, offset, limit)
+	getParams := &repository.GetProblemsParams{
+		Offset: offset,
+		Limit:  limit,
+		Search: search,
 	}
+
+	problems, total, err := h.pS.GetProblems(ctx, getParams)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
-	handlersutils.WriteResponseJSON(w, problems, http.StatusAccepted)
+	response := map[string]any{
+		"problems": problems,
+		"total":    total,
+		"limit":    limit,
+		"offset":   offset,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
 // GET
