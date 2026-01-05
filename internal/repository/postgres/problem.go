@@ -381,13 +381,15 @@ func (p *postgresProblemRepository) scanProblemFunc(
 	scanner postgresScanner,
 	problem *models.Problem,
 ) error {
-	return scanner.Scan(
+	var difficultyString string
+
+	err := scanner.Scan(
 		&problem.ID,
 
 		&problem.Title,
 		&problem.Slug,
 		&problem.Description,
-		&problem.Difficulty,
+		&difficultyString,
 
 		&problem.IsPremium,
 		&problem.IsPublic,
@@ -395,4 +397,15 @@ func (p *postgresProblemRepository) scanProblemFunc(
 		&problem.CreatedAt,
 		&problem.UpdatedAt,
 	)
+	if err != nil {
+		return err
+	}
+
+	difficulty, err := models.NewProblemDifficulty(difficultyString)
+	if err != nil {
+		return err
+	}
+	problem.Difficulty = difficulty
+
+	return nil
 }

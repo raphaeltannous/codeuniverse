@@ -10,10 +10,10 @@ import (
 type Problem struct {
 	ID uuid.UUID `db:"id" json:"-"`
 
-	Title       string `db:"title" json:"title"`
-	Slug        string `db:"slug" json:"slug"`
-	Description string `db:"description" json:"description"`
-	Difficulty  string `db:"difficulty" json:"difficulty"`
+	Title       string            `db:"title" json:"title"`
+	Slug        string            `db:"slug" json:"slug"`
+	Description string            `db:"description" json:"description"`
+	Difficulty  ProblemDifficulty `json:"difficulty"`
 
 	IsPremium bool `db:"is_premium" json:"isPremium"`
 	IsPublic  bool `db:"is_public" json:"isPublic"`
@@ -38,26 +38,23 @@ func NewProblem(
 	title string,
 	description string,
 	difficulty string,
-	isPaid bool,
+
+	isPremium bool,
 	isPublic bool,
-
-	hints []string,
-
-	codeSnippets []CodeSnippet,
-	TestCases []string,
 ) (*Problem, error) {
 	problem := &Problem{
 		Title:       title,
 		Slug:        generateSlug(title),
 		Description: description,
-		Difficulty:  difficulty,
-		IsPremium:   &isPaid,
-		IsPublic:    &isPublic,
 
-		Hints: hints,
+		IsPremium: isPremium,
+		IsPublic:  isPublic,
+	}
 
-		CodeSnippets: codeSnippets,
-		TestCases:    TestCases,
+	var err error
+	problem.Difficulty, err = NewProblemDifficulty(difficulty)
+	if err != nil {
+		return nil, ErrInvalidProblemLevel
 	}
 
 	return problem, nil
