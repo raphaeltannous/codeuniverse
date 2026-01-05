@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
@@ -14,10 +15,11 @@ import (
 const (
 	ProblemCtxKey = "problem"
 
-	ProblemPublicFilterCtxKey    = "problemPublicFilter"
-	ProblemPremiumFilterCtxKey   = "problemPremiumFilter"
-	ProblemSortByFilterCtxKey    = "problemSortByFilter"
-	ProblemSortOrderFilterCtxKey = "problemSortOrderFilter"
+	ProblemPublicFilterCtxKey     = "problemPublicFilter"
+	ProblemPremiumFilterCtxKey    = "problemPremiumFilter"
+	ProblemDifficultyFilterCtxKey = "problemDifficultyFilter"
+	ProblemSortByFilterCtxKey     = "problemSortByFilter"
+	ProblemSortOrderFilterCtxKey  = "problemSortOrderFilter"
 )
 
 var ProblemPremiumFilterMiddleware = makeRepositoryParamMiddleware(
@@ -38,11 +40,22 @@ var ProblemPublicFilterMiddleware = makeRepositoryParamMiddleware(
 	},
 )
 
+var ProblemDifficultyFilterMiddleware = makeRepositoryParamMiddleware(
+	"difficulty",
+	ProblemDifficultyFilterCtxKey,
+	map[string]models.ProblemDifficulty{
+		"easy":   models.ProblemEasy,
+		"medium": models.ProblemMedium,
+		"hard":   models.ProblemHard,
+	},
+)
+
 var ProblemSortByFilterMiddleware = makeRepositoryParamMiddleware(
 	"sortBy",
 	ProblemSortByFilterCtxKey,
 	map[string]repository.ProblemParam{
-		"title": repository.ProblemSortByTitle,
+		"title":     repository.ProblemSortByTitle,
+		"createdAt": repository.ProblemSortByCreatedAt,
 	},
 )
 

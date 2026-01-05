@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"strings"
 
+	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
 )
 
-func makeRepositoryParamMiddleware[V repository.UserParam | repository.ProblemParam](
+func makeRepositoryParamMiddleware[V repository.UserParam | repository.ProblemParam | models.ProblemDifficulty](
 	getParam, ctxKey string,
 	allowedFilter map[string]V,
 ) func(next http.Handler) http.Handler {
