@@ -17,20 +17,23 @@ import (
 )
 
 type AdminHandler struct {
-	courseService services.CourseService
-	staticService services.StaticService
-	userService   services.UserService
+	courseService  services.CourseService
+	staticService  services.StaticService
+	userService    services.UserService
+	problemService services.ProblemService
 }
 
 func NewAdminHandler(
 	courseService services.CourseService,
 	staticService services.StaticService,
 	userService services.UserService,
+	problemService services.ProblemService,
 ) *AdminHandler {
 	return &AdminHandler{
-		courseService: courseService,
-		staticService: staticService,
-		userService:   userService,
+		courseService:  courseService,
+		staticService:  staticService,
+		userService:    userService,
+		problemService: problemService,
 	}
 }
 
@@ -732,7 +735,7 @@ func (h *AdminHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *AdminHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 
 }
 
@@ -744,6 +747,106 @@ func (h *AdminHandler) DeleteProblem(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
+func (h *AdminHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
+	search, ok := ctx.Value(middleware.SearchCtxKey).(string)
+	if !ok {
+		search = ""
+	}
+	offset, ok := ctx.Value(middleware.OffsetCtxKey).(int)
+	if !ok {
+		offset = middleware.OffsetDefault
+	}
+	limit, ok := ctx.Value(middleware.LimitCtxKey).(int)
+	if !ok {
+		limit = middleware.LimitDefault
+	}
+
+	premium, ok := ctx.Value(middleware.ProblemPremiumFilterCtxKey).(repository.ProblemParam)
+	if !ok {
+		premium = 0
+	}
+	public, ok := ctx.Value(middleware.ProblemPublicFilterCtxKey).(repository.ProblemParam)
+	if !ok {
+		public = 0
+	}
+	difficulty, ok := ctx.Value(middleware.ProblemDifficultyFilterCtxKey).(models.ProblemDifficulty)
+	if !ok {
+		difficulty = 0
+	}
+	sortBy, ok := ctx.Value(middleware.ProblemSortByFilterCtxKey).(repository.ProblemParam)
+	if !ok {
+		sortBy = 0
+	}
+	sortOrder, ok := ctx.Value(middleware.ProblemSortOrderFilterCtxKey).(repository.ProblemParam)
+	if !ok {
+		sortOrder = 0
+	}
+
+	getParams := &repository.GetProblemsParams{
+		Offset:     offset,
+		Limit:      limit,
+		Search:     search,
+		IsPremium:  premium,
+		IsPublic:   public,
+		Difficulty: difficulty,
+		SortBy:     sortBy,
+		SortOrder:  sortOrder,
+	}
+	problems, total, err := h.problemService.GetProblems(
+		ctx,
+		getParams,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	type responseProblem struct {
+		*models.Problem
+		Hints        []string                 `json:"hints"`
+		CodeSnippets []*models.CodeSnippet    `json:"codeSnippets"`
+		TestCases    *models.ProblemTestcases `json:"testCases"`
+	}
+	responseProblems := make([]*responseProblem, 0)
+
+	for _, problem := range problems {
+		responseProblems = append(
+			responseProblems,
+			&responseProblem{
+				Problem:      problem,
+				Hints:        []string{},
+				CodeSnippets: []*models.CodeSnippet{},
+				TestCases:    &models.ProblemTestcases{},
+			},
+		)
+
+	}
+	response := map[string]any{
+		"problems": responseProblems,
+		"total":    total,
+		"limit":    limit,
+		"offset":   offset,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) GetSupportedLanguages(w http.ResponseWriter, r *http.Request) {
+	type language struct {
+		LanguageName string `json:"languageName"`
+		LanguageSlug string `json:"languageSlug"`
+	}
+
+	// Why do we need LanguageEnd-1?
+	response := make([]*language, models.LanguageEnd-1)
+	for lang := models.LanguageGo; lang < models.LanguageEnd; lang++ {
+		response[lang-1] = &language{
+			LanguageName: lang.String(),
+			LanguageSlug: lang.Slug(),
+		}
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }

@@ -14,6 +14,8 @@ const (
 	LanguageCpp
 	LanguageTypescript
 	LanguageJavascript
+
+	LanguageEnd
 )
 
 var (

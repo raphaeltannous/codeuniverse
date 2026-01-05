@@ -66,6 +66,18 @@ func (p *postgresProblemRepository) GetProblems(
 		argumentPosition++
 	}
 
+	if params.Difficulty != 0 {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf(
+				"difficulty = $%d",
+				argumentPosition,
+			),
+		)
+		arguments = append(arguments, params.Difficulty.String())
+		argumentPosition++
+	}
+
 	var orderBy strings.Builder
 	switch params.SortBy {
 	case repository.ProblemSortByTitle:

@@ -169,7 +169,7 @@ func service(
 	problemHandler := handlers.NewProblemsHandlers(problemService)
 	statsHandler := handlers.NewStatsHandler(userService, problemService)
 	staticHandler := handlers.NewStaticHandler(staticService)
-	adminHandler := handlers.NewAdminHandler(courseService, staticService, userService)
+	adminHandler := handlers.NewAdminHandler(courseService, staticService, userService, problemService)
 	courseHandler := handlers.NewCourseHandler(courseService)
 
 	// middlewares

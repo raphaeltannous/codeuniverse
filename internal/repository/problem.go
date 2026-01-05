@@ -36,6 +36,7 @@ const (
 	ProblemPremium
 
 	ProblemSortByTitle
+	ProblemSortByCreatedAt
 
 	ProblemSortOrderAsc
 	ProblemSortOrderDesc

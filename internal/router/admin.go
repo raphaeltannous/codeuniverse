@@ -25,11 +25,12 @@ func adminRouter(
 	r.Use(authMiddleware)
 	r.Use(middleware.AdminOnly)
 
+	r.Get("/supported-languages", adminHandler.GetSupportedLanguages)
+
 	r.Route("/dashboard", func(r chi.Router) {
 		r.Get("/stats", statsHandler.GetDashboardStats)
 		r.Get("/activity", statsHandler.GetRecentActivity)
 		r.Get("/submissions-activities", statsHandler.GetSubmissionTrendsSample)
-
 	})
 
 	r.Route("/courses", func(r chi.Router) {
@@ -96,6 +97,7 @@ func adminRouter(
 
 			r.Use(middleware.ProblemPremiumFilterMiddleware)
 			r.Use(middleware.ProblemPublicFilterMiddleware)
+			r.Use(middleware.ProblemDifficultyFilterMiddleware)
 			r.Use(middleware.ProblemSortByFilterMiddleware)
 			r.Use(middleware.ProblemSortOrderFilterMiddleware)
 
