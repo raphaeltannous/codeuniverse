@@ -28,12 +28,6 @@ type ProblemStats struct {
 	HardCount   int `json:"hardCount"`
 }
 
-type CodeSnippet struct {
-	Code         string `json:"code"`
-	Language     string `json:"languageName"`
-	LanguageSlug string `json:"languageSlug"`
-}
-
 func NewProblem(
 	title string,
 	description string,
