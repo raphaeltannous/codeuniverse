@@ -97,6 +97,7 @@ func (p *postgresProblemRepository) GetProblems(
 	err := p.db.QueryRowContext(
 		ctx,
 		countQuery,
+		arguments...,
 	).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count problems: %w", err)
