@@ -11,7 +11,49 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const ProblemCtxKey = "problem"
+const (
+	ProblemCtxKey = "problem"
+
+	ProblemPublicFilterCtxKey    = "problemPublicFilter"
+	ProblemPremiumFilterCtxKey   = "problemPremiumFilter"
+	ProblemSortByFilterCtxKey    = "problemSortByFilter"
+	ProblemSortOrderFilterCtxKey = "problemSortOrderFilter"
+)
+
+var ProblemPremiumFilterMiddleware = makeRepositoryParamMiddleware(
+	"premium",
+	ProblemPremiumFilterCtxKey,
+	map[string]repository.ProblemParam{
+		"premium": repository.ProblemPremium,
+		"free":    repository.ProblemFree,
+	},
+)
+
+var ProblemPublicFilterMiddleware = makeRepositoryParamMiddleware(
+	"public",
+	ProblemPublicFilterCtxKey,
+	map[string]repository.ProblemParam{
+		"public":  repository.ProblemPublic,
+		"private": repository.ProblemPrivate,
+	},
+)
+
+var ProblemSortByFilterMiddleware = makeRepositoryParamMiddleware(
+	"sortBy",
+	ProblemSortByFilterCtxKey,
+	map[string]repository.ProblemParam{
+		"title": repository.ProblemSortByTitle,
+	},
+)
+
+var ProblemSortOrderFilterMiddleware = makeRepositoryParamMiddleware(
+	"sortOrder",
+	ProblemSortOrderFilterCtxKey,
+	map[string]repository.ProblemParam{
+		"asc":  repository.ProblemSortOrderAsc,
+		"desc": repository.ProblemSortOrderDesc,
+	},
+)
 
 func ProblemMiddleware(next http.Handler, problemService services.ProblemService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

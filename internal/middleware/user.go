@@ -2,9 +2,7 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
@@ -22,7 +20,7 @@ const (
 	UserCtxKey = "user"
 )
 
-var UserStatusFilterMiddleware = makeUserParamMiddleware(
+var UserStatusFilterMiddleware = makeRepositoryParamMiddleware(
 	"status",
 	UserStatusFilterCtxKey,
 	map[string]repository.UserParam{
@@ -31,7 +29,7 @@ var UserStatusFilterMiddleware = makeUserParamMiddleware(
 	},
 )
 
-var UserVerificationFilterMiddleware = makeUserParamMiddleware(
+var UserVerificationFilterMiddleware = makeRepositoryParamMiddleware(
 	"verified",
 	UserVerificationFilterCtxKey,
 	map[string]repository.UserParam{
@@ -40,7 +38,7 @@ var UserVerificationFilterMiddleware = makeUserParamMiddleware(
 	},
 )
 
-var UserRoleFilterMiddleware = makeUserParamMiddleware(
+var UserRoleFilterMiddleware = makeRepositoryParamMiddleware(
 	"role",
 	UserRoleFilterCtxKey,
 	map[string]repository.UserParam{
@@ -49,7 +47,7 @@ var UserRoleFilterMiddleware = makeUserParamMiddleware(
 	},
 )
 
-var UserSortByFilterMiddleware = makeUserParamMiddleware(
+var UserSortByFilterMiddleware = makeRepositoryParamMiddleware(
 	"sortBy",
 	UserSortByFilterCtxKey,
 	map[string]repository.UserParam{
@@ -59,7 +57,7 @@ var UserSortByFilterMiddleware = makeUserParamMiddleware(
 	},
 )
 
-var UserSortOrderFilterMiddleware = makeUserParamMiddleware(
+var UserSortOrderFilterMiddleware = makeRepositoryParamMiddleware(
 	"sortOrder",
 	UserSortOrderFilterCtxKey,
 	map[string]repository.UserParam{
@@ -67,34 +65,6 @@ var UserSortOrderFilterMiddleware = makeUserParamMiddleware(
 		"asc":  repository.UserSortOrderAsc,
 	},
 )
-
-func makeUserParamMiddleware(getParam, ctxKey string, allowedFilter map[string]repository.UserParam) func(next http.Handler) http.Handler {
-	allowedFilter[""] = 0
-
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			filter := r.URL.Query().Get(getParam)
-			if _, ok := allowedFilter[filter]; !ok {
-				apiError := handlersutils.NewAPIError(
-					fmt.Sprintf("UNALLOWED_%s_FILTER", strings.ToUpper(getParam)),
-					fmt.Sprintf("The requested %s filter is not allowed.", getParam),
-				)
-
-				handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
-				return
-			}
-
-			ctx := context.WithValue(
-				r.Context(),
-				ctxKey,
-				allowedFilter[filter],
-			)
-			r = r.WithContext(ctx)
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
 
 func UserMiddleware(next http.Handler, userService services.UserService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
