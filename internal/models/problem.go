@@ -15,13 +15,8 @@ type Problem struct {
 	Description string `db:"description" json:"description"`
 	Difficulty  string `db:"difficulty" json:"difficulty"`
 
-	Hints []string `db:"hints" json:"hints"`
-
-	CodeSnippets []CodeSnippet `db:"code_snippets" json:"codeSnippets"`
-	TestCases    []string      `db:"test_cases" json:"testcases"`
-
-	IsPaid   *bool `db:"is_paid" json:"isPaid"`
-	IsPublic *bool `db:"is_public" json:"isPublic"`
+	IsPremium *bool `db:"is_premium" json:"isPremium"`
+	IsPublic  *bool `db:"is_public" json:"isPublic"`
 
 	CreatedAt time.Time `db:"created_at" json:"-"`
 	UpdatedAt time.Time `db:"updated_at" json:"-"`
@@ -56,7 +51,7 @@ func NewProblem(
 		Slug:        generateSlug(title),
 		Description: description,
 		Difficulty:  difficulty,
-		IsPaid:      &isPaid,
+		IsPremium:   &isPaid,
 		IsPublic:    &isPublic,
 
 		Hints: hints,
