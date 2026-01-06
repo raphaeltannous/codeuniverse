@@ -1,7 +1,6 @@
 package models
 
 import (
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +29,7 @@ type ProblemStats struct {
 
 func NewProblem(
 	title string,
+	slug string,
 	description string,
 	difficulty string,
 
@@ -38,7 +38,7 @@ func NewProblem(
 ) (*Problem, error) {
 	problem := &Problem{
 		Title:       title,
-		Slug:        generateSlug(title),
+		Slug:        slug,
 		Description: description,
 
 		IsPremium: isPremium,
@@ -52,11 +52,4 @@ func NewProblem(
 	}
 
 	return problem, nil
-}
-
-func generateSlug(title string) string {
-	slug := strings.ToLower(title)
-	slug = strings.ReplaceAll(slug, " ", "-")
-
-	return slug
 }

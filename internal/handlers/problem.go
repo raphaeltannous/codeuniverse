@@ -24,59 +24,6 @@ func NewProblemsHandlers(pS services.ProblemService) *ProblemHandler {
 	}
 }
 
-// POST
-func (h *ProblemHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
-	var requestBody struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Difficulty  string `json:"difficulty"`
-		IsPremium   bool   `json:"isPaid"`
-		IsPublic    bool   `json:"isPublic"`
-
-		Hints []string `json:"hints"`
-
-		CodeSnippets []models.CodeSnippet `json:"codeSnippets"`
-		TestCases    []string             `json:"testCases"`
-	}
-
-	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
-		return
-	}
-
-	problem, err := models.NewProblem(
-		requestBody.Title,
-		requestBody.Description,
-		requestBody.Difficulty,
-		requestBody.IsPremium,
-		requestBody.IsPublic,
-	)
-	if err != nil {
-		apiError := handlersutils.NewAPIError(
-			"INVALID_DIFFICULTY",
-			"Invalid difficulty.",
-		)
-		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
-		return
-	}
-
-	ctx := r.Context()
-
-	problem, err = h.problemService.Create(
-		ctx,
-		problem,
-	)
-	if err != nil {
-		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
-		return
-	}
-
-	response := map[string]string{
-		"message": "Problem is created.",
-	}
-
-	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
-}
-
 func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

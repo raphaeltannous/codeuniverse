@@ -614,18 +614,7 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	patch := make(map[string]any)
-	addFunc := func(key string, v1, v2 any) {
-		switch v1.(type) {
-		case string:
-			if sV2, ok := v2.(string); ok && v1 != sV2 && sV2 != "" {
-				patch[key] = sV2
-			}
-		case bool:
-			if sV2, ok := v2.(bool); ok && v1 != sV2 {
-				patch[key] = sV2
-			}
-		}
-	}
+	addFunc := makePatchAdder(patch)
 	addFunc("username", user.Username, requestBody.Username)
 	addFunc("email", user.Email, requestBody.Email)
 	addFunc("role", user.Role, requestBody.Role)
@@ -732,15 +721,130 @@ func (h *AdminHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) CreateProblem(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Title       string `json:"title"`
+		Slug        string `json:"slug"`
+		Description string `json:"description"`
+		Difficulty  string `json:"difficulty"`
+		IsPremium   bool   `json:"isPremium"`
+		IsPublic    bool   `json:"isPublic"`
+	}
 
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	problem, err := models.NewProblem(
+		requestBody.Title,
+		requestBody.Slug,
+		requestBody.Description,
+		requestBody.Difficulty,
+		requestBody.IsPremium,
+		requestBody.IsPublic,
+	)
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_DIFFICULTY",
+			"Invalid difficulty.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	problem, err = h.problemService.Create(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		apiError := handlersutils.NewInternalServerAPIError()
+		switch err {
+		case repository.ErrProblemAlreadyExists:
+			apiError.Code = "PROBLEM_ALREADY_EXISTS"
+			apiError.Message = "Problem already exists"
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		default:
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	response := map[string]string{
+		"message": "Problem is created.",
+	}
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
 func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Title       string `json:"title"`
+		Slug        string `json:"slug"`
+		Description string `json:"description"`
+		Difficulty  string `json:"difficulty"`
+		IsPremium   bool   `json:"isPremium"`
+		IsPublic    bool   `json:"isPublic"`
+	}
 
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	difficulty, err := models.NewProblemDifficulty(requestBody.Difficulty)
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_DIFFICULTY",
+			"Invalid difficulty.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		return
+	}
+
+	patch := make(map[string]any)
+	addFunc := makePatchAdder(patch)
+	addFunc("title", problem.Title, requestBody.Title)
+	addFunc("slug", problem.Slug, requestBody.Slug)
+	addFunc("description", problem.Description, requestBody.Description)
+	addFunc("difficulty", problem.Difficulty, difficulty)
+	addFunc("isPremium", problem.IsPremium, requestBody.IsPremium)
+	addFunc("isPublic", problem.IsPublic, requestBody.IsPublic)
+}
+
+func makePatchAdder(patch map[string]any) func(key string, v1, v2 any) {
+	return func(key string, v1, v2 any) {
+		switch v1.(type) {
+		case string:
+			if sV2, ok := v2.(string); ok && v1 != sV2 && sV2 != "" {
+				patch[key] = sV2
+			}
+		case bool:
+			if sV2, ok := v2.(bool); ok && v1 != sV2 {
+				patch[key] = sV2
+			}
+		case models.ProblemDifficulty:
+			if sV2, ok := v2.(models.ProblemDifficulty); ok && v1 != sV2 {
+				patch[key] = sV2
+			}
+		}
+	}
 }
 
 func (h *AdminHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
 
+	handlersutils.WriteResponseJSON(w, problem, http.StatusOK)
 }
 
 func (h *AdminHandler) DeleteProblem(w http.ResponseWriter, r *http.Request) {
@@ -839,7 +943,6 @@ func (h *AdminHandler) GetSupportedLanguages(w http.ResponseWriter, r *http.Requ
 		LanguageSlug string `json:"languageSlug"`
 	}
 
-	// Why do we need LanguageEnd-1?
 	response := make([]*language, models.LanguageEnd-1)
 	for lang := models.LanguageGo; lang < models.LanguageEnd; lang++ {
 		response[lang-1] = &language{
