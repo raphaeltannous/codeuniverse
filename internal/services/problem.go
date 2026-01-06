@@ -156,6 +156,31 @@ func (s *problemService) UpdateProblem(
 		return err
 	}
 
+	if err := updateProblemFromPatch(ctx, problem, updateProblemPatch, "slug", s.problemRepository.UpdateSlug); err != nil {
+		s.logger.Error("failed to update slug", "problem", problem, "updateProblemPatch", updateProblemPatch, "err", err)
+		return err
+	}
+
+	if err := updateProblemFromPatch(ctx, problem, updateProblemPatch, "description", s.problemRepository.UpdateDescription); err != nil {
+		s.logger.Error("failed to update description", "problem", problem, "updateProblemPatch", updateProblemPatch, "err", err)
+		return err
+	}
+
+	if err := updateProblemFromPatch(ctx, problem, updateProblemPatch, "difficulty", s.problemRepository.UpdateDifficulty); err != nil {
+		s.logger.Error("failed to update difficulty", "problem", problem, "updateProblemPatch", updateProblemPatch, "err", err)
+		return err
+	}
+
+	if err := updateProblemFromPatch(ctx, problem, updateProblemPatch, "isPremium", s.problemRepository.UpdateIsPremium); err != nil {
+		s.logger.Error("failed to update isPremium", "problem", problem, "updateProblemPatch", updateProblemPatch, "err", err)
+		return err
+	}
+
+	if err := updateProblemFromPatch(ctx, problem, updateProblemPatch, "isPublic", s.problemRepository.UpdateIsPublic); err != nil {
+		s.logger.Error("failed to update isPublic", "problem", problem, "updateProblemPatch", updateProblemPatch, "err", err)
+		return err
+	}
+
 	return nil
 }
 

@@ -815,6 +815,23 @@ func (h *AdminHandler) UpdateProblem(w http.ResponseWriter, r *http.Request) {
 	addFunc("difficulty", problem.Difficulty, difficulty)
 	addFunc("isPremium", problem.IsPremium, requestBody.IsPremium)
 	addFunc("isPublic", problem.IsPublic, requestBody.IsPublic)
+
+	err = h.problemService.UpdateProblem(
+		ctx,
+		problem,
+		patch,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]any{
+		"message":     "Problem updated.",
+		"updatePatch": patch,
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
 func makePatchAdder(patch map[string]any) func(key string, v1, v2 any) {
@@ -844,7 +861,14 @@ func (h *AdminHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlersutils.WriteResponseJSON(w, problem, http.StatusOK)
+	var response struct {
+		*models.Problem
+		Difficulty string `json:"difficulty"`
+	}
+	response.Problem = problem
+	response.Difficulty = problem.Difficulty.String()
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
 func (h *AdminHandler) DeleteProblem(w http.ResponseWriter, r *http.Request) {
