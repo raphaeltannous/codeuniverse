@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"git.riyt.dev/codeuniverse/internal/judger"
@@ -26,7 +27,7 @@ type ProblemService interface {
 
 	GetCount(ctx context.Context, difficulty models.ProblemDifficulty) (int, error)
 
-	UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error)
+	UpdateProblem(ctx context.Context, problem *models.Problem, problemUpdatePatch map[string]any) error
 
 	Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
 	Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
@@ -47,6 +48,12 @@ type ProblemService interface {
 	DeleteNote(ctx context.Context, note *models.ProblemNote) error
 	GetNote(ctx context.Context, user *models.User, problem *models.Problem) (*models.ProblemNote, error)
 	UpdateNote(ctx context.Context, note *models.ProblemNote, markdown string) error
+
+	GetHint(ctx context.Context, id uuid.UUID) (*models.ProblemHint, error)
+	GetProblemHints(ctx context.Context, problem *models.Problem) ([]*models.ProblemHint, error)
+	CreateHint(ctx context.Context, problem *models.Problem, hint *models.ProblemHint) error
+	UpdateHint(ctx context.Context, hint *models.ProblemHint, content string) error
+	DeleteHint(ctx context.Context, hint *models.ProblemHint) error
 }
 
 type problemService struct {
@@ -54,6 +61,7 @@ type problemService struct {
 	problemNoteRepository repository.ProblemNoteRepository
 	runRepository         repository.RunRepository
 	submissionRepository  repository.SubmissionRepository
+	problemHintRepository repository.ProblemHintRepository
 
 	judge  judger.Judge
 	logger *slog.Logger
@@ -64,6 +72,7 @@ func NewProblemService(
 	problemNoteRepository repository.ProblemNoteRepository,
 	runRepository repository.RunRepository,
 	submissionRepository repository.SubmissionRepository,
+	problemHintRepository repository.ProblemHintRepository,
 
 	judge judger.Judge,
 ) ProblemService {
@@ -72,6 +81,7 @@ func NewProblemService(
 		problemNoteRepository: problemNoteRepository,
 		runRepository:         runRepository,
 		submissionRepository:  submissionRepository,
+		problemHintRepository: problemHintRepository,
 
 		judge:  judge,
 		logger: slog.Default().With("package", "problemsService"),
@@ -136,8 +146,36 @@ func (s *problemService) GetCount(ctx context.Context, difficulty models.Problem
 	return count, nil
 }
 
-func (s *problemService) UpdateProblem(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
-	return nil, nil
+func (s *problemService) UpdateProblem(
+	ctx context.Context,
+	problem *models.Problem,
+	updateProblemPatch map[string]any,
+) error {
+	if err := updateProblemFromPatch(ctx, problem, updateProblemPatch, "title", s.problemRepository.UpdateTitle); err != nil {
+		s.logger.Error("failed to update title", "problem", problem, "updateProblemPatch", updateProblemPatch, "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func updateProblemFromPatch[T any](
+	ctx context.Context,
+	problem *models.Problem,
+	patch map[string]any,
+	key string,
+	updateFunc func(ctx context.Context, id uuid.UUID, value T) error,
+) error {
+	if rawValue, ok := patch[key]; ok {
+		value, ok := rawValue.(T)
+		if !ok {
+			return fmt.Errorf("invalid type for %s: %T", key, rawValue)
+		}
+
+		return updateFunc(ctx, problem.ID, value)
+	}
+
+	return nil
 }
 
 func (s *problemService) Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error {
@@ -389,4 +427,75 @@ func (s *problemService) UpdateNote(ctx context.Context, note *models.ProblemNot
 	}
 
 	return err
+}
+
+func (s *problemService) CreateHint(
+	ctx context.Context,
+	problem *models.Problem,
+	hint *models.ProblemHint,
+) error {
+	hint.ProblemId = problem.ID
+	if err := s.problemHintRepository.Create(ctx, hint); err != nil {
+		s.logger.Error("failed to create hint for problem", "problem", problem, "hint", hint, "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *problemService) DeleteHint(
+	ctx context.Context,
+	hint *models.ProblemHint,
+) error {
+	if err := s.problemHintRepository.Delete(ctx, hint.ID); err != nil {
+		s.logger.Error("failed to delete hint", "hint", hint, "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *problemService) GetHint(
+	ctx context.Context,
+	id uuid.UUID,
+) (*models.ProblemHint, error) {
+	hint, err := s.problemHintRepository.Get(
+		ctx,
+		id,
+	)
+	if err != nil {
+		s.logger.Error("failed to get hint", "id", id, "err", err)
+		return nil, err
+	}
+
+	return hint, nil
+}
+
+func (s *problemService) GetProblemHints(
+	ctx context.Context,
+	problem *models.Problem,
+) ([]*models.ProblemHint, error) {
+	hints, err := s.problemHintRepository.GetHints(
+		ctx,
+		problem.ID,
+	)
+	if err != nil {
+		s.logger.Error("failed to get hints for problem", "problem", problem, "err", err)
+		return []*models.ProblemHint(nil), err
+	}
+
+	return hints, nil
+}
+
+func (s *problemService) UpdateHint(
+	ctx context.Context,
+	hint *models.ProblemHint,
+	content string,
+) error {
+	if err := s.problemHintRepository.Update(ctx, hint.ID, content); err != nil {
+		s.logger.Error("failed to update hint", "hint", hint, "content", content, "err", err)
+		return err
+	}
+
+	return nil
 }
