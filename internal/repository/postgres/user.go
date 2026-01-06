@@ -324,6 +324,7 @@ func (pur *postgresUserRepository) Delete(ctx context.Context, id uuid.UUID) err
 		return fmt.Errorf("failed to query rows affected from database: %w", err)
 	}
 
+	// TODO: I think more than one can be deleted. (ON CASCADE)
 	if rows != 1 {
 		return fmt.Errorf("expect single row affected, got %d rows affected", rows)
 	}
