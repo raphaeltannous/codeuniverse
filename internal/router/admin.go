@@ -19,6 +19,7 @@ func adminRouter(
 	lessonMiddleware func(next http.Handler) http.Handler,
 	userMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
+	hintMiddleware func(next http.Handler) http.Handler,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -110,6 +111,18 @@ func adminRouter(
 			r.Get("/", adminHandler.GetProblem)
 			r.Put("/", adminHandler.UpdateProblem)
 			r.Delete("/", adminHandler.DeleteProblem)
+
+			r.Route("/hints", func(r chi.Router) {
+				r.Get("/", adminHandler.GetProblemHints)
+				r.Post("/", adminHandler.CreateProblemHint)
+
+				r.Route("/{hintId}", func(r chi.Router) {
+					r.Use(hintMiddleware)
+
+					r.Put("/", adminHandler.UpdateProblemHint)
+					r.Delete("/", adminHandler.DeleteProblemHint)
+				})
+			})
 		})
 	})
 

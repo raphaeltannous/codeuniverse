@@ -850,3 +850,117 @@ func (h *AdminHandler) GetSupportedLanguages(w http.ResponseWriter, r *http.Requ
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
+
+func (h *AdminHandler) GetProblemHints(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	hints, err := h.problemService.GetProblemHints(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, hints, http.StatusOK)
+}
+
+func (h *AdminHandler) CreateProblemHint(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Hint string `json:"hint"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	hint := &models.ProblemHint{
+		Hint: requestBody.Hint,
+	}
+
+	err := h.problemService.CreateHint(
+		ctx,
+		problem,
+		hint,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Hint created.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) UpdateProblemHint(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Hint string `json:"hint"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	hint, ok := ctx.Value(middleware.ProblemHintCtxKey).(*models.ProblemHint)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err := h.problemService.UpdateHint(
+		ctx,
+		hint,
+		requestBody.Hint,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Hint updated.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) DeleteProblemHint(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	hint, ok := ctx.Value(middleware.ProblemHintCtxKey).(*models.ProblemHint)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err := h.problemService.DeleteHint(
+		ctx,
+		hint,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Hint deleted.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}

@@ -122,6 +122,7 @@ func service(
 	userProfileRepo := postgres.NewUserProfileRepository(db)
 	problemRepository := postgres.NewProblemRepository(db)
 	problemNoteRepository := postgres.NewProblemNoteRepository(db)
+	problemHintRepository := postgres.NewProblemHintRepository(db)
 	courseRepository := postgres.NewPostgresCourseRepository(db)
 	lessonRepository := postgres.NewPostgresLessonRepository(db)
 	courseProgressRepository := postgres.NewCourseProgressRepository(db)
@@ -152,6 +153,7 @@ func service(
 		problemNoteRepository,
 		runRepository,
 		submissionRepository,
+		problemHintRepository,
 
 		judge,
 	)
@@ -188,6 +190,9 @@ func service(
 	userMiddleware := func(next http.Handler) http.Handler {
 		return middleware.UserMiddleware(next, userService)
 	}
+	hintMiddleware := func(next http.Handler) http.Handler {
+		return middleware.ProblemHintMiddleware(next, problemService)
+	}
 
 	return router.Service(
 		userHandler,
@@ -202,5 +207,6 @@ func service(
 		courseMiddleware,
 		lessonMiddleware,
 		userMiddleware,
+		hintMiddleware,
 	)
 }
