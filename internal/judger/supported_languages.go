@@ -17,22 +17,22 @@ type Language struct {
 	logger         *slog.Logger
 }
 
-var problemsDataDir string
+var ProblemsDataDir string
 
 func init() {
-	problemsDataDir = os.Getenv("CODEUNIVERSE_PROBLEMS_DATA_DIR")
+	ProblemsDataDir = os.Getenv("CODEUNIVERSE_PROBLEMS_DATA_DIR")
 
-	if problemsDataDir == "" {
+	if ProblemsDataDir == "" {
 		log.Fatal("CODEUNIVERSE_PROBLEMS_DATA_DIR is not set.")
 	}
 
-	absPath, err := filepath.Abs(problemsDataDir)
+	absPath, err := filepath.Abs(ProblemsDataDir)
 	if err != nil {
 		log.Fatal("failed to convert CODEUNIVERSE_PROBLEMS_DATA_DIR to absolute path.")
 	}
 
-	problemsDataDir = absPath
-	slog.Info("problemsDataDir is updated.", "problemsDataDir", problemsDataDir)
+	ProblemsDataDir = absPath
+	slog.Info("problemsDataDir is updated.", "problemsDataDir", ProblemsDataDir)
 }
 
 var SupportedLanguages = map[string]Language{
@@ -67,7 +67,7 @@ var SupportedLanguages = map[string]Language{
 }
 
 func (l *Language) DoesItHaveTests(problemSlug string) bool {
-	workspaceDir := filepath.Join(problemsDataDir, "problems", problemSlug, l.internalSlug)
+	workspaceDir := filepath.Join(ProblemsDataDir, "problems", problemSlug, l.internalSlug)
 
 	object, err := os.Stat(workspaceDir)
 	if err != nil {

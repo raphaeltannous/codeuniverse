@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"git.riyt.dev/codeuniverse/internal/judger"
 	"git.riyt.dev/codeuniverse/internal/models"
@@ -54,6 +55,17 @@ type ProblemService interface {
 	CreateHint(ctx context.Context, problem *models.Problem, hint *models.ProblemHint) error
 	UpdateHint(ctx context.Context, hint *models.ProblemHint, content string) error
 	DeleteHint(ctx context.Context, hint *models.ProblemHint) error
+
+	GetProblemCodes(ctx context.Context, problem *models.Problem) ([]*models.ProblemCode, error)
+	SaveProblemCode(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode) error
+
+	GetProblemTestcases(ctx context.Context, problem *models.Problem) ([]*models.ProblemTestcase, error)
+	AddProblemTestcase(ctx context.Context, problem *models.Problem, testcase *models.ProblemTestcase) error
+	UpdateProblemTestcase(ctx context.Context, problem *models.Problem, testcaseId int, testcase *models.ProblemTestcase) error
+	DeleteProblemTestcase(ctx context.Context, problem *models.Problem, testcaseId int) error
+
+	GetProblemCodeConfig(ctx context.Context, problem *models.Problem) (*models.ProblemCodeConfig, error)
+	UpdateProblemCodeConfig(ctx context.Context, problem *models.Problem, config *models.ProblemCodeConfig) error
 }
 
 type problemService struct {
@@ -62,9 +74,139 @@ type problemService struct {
 	runRepository         repository.RunRepository
 	submissionRepository  repository.SubmissionRepository
 	problemHintRepository repository.ProblemHintRepository
+	problemCodeRepository repository.ProblemCodeRepository
 
 	judge  judger.Judge
 	logger *slog.Logger
+}
+
+func (s *problemService) AddProblemTestcase(
+	ctx context.Context,
+	problem *models.Problem,
+	testcase *models.ProblemTestcase,
+) error {
+	problemTestcases, err := s.GetProblemTestcases(ctx, problem)
+	if err != nil {
+		return err
+	}
+
+	maxTestcaseId := 0
+	for _, problemTestcase := range problemTestcases {
+		maxTestcaseId = max(maxTestcaseId, problemTestcase.Id)
+	}
+
+	testcase.Id = maxTestcaseId + 1
+	problemTestcases = append(problemTestcases, testcase)
+	err = s.problemCodeRepository.SaveTestcases(
+		ctx,
+		problem,
+		problemTestcases,
+	)
+	if err != nil {
+		s.logger.Error("failed to add testcase", "problem", problem, "testcase", testcase, "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *problemService) DeleteProblemTestcase(
+	ctx context.Context,
+	problem *models.Problem,
+	testcaseId int,
+) error {
+	problemTestcases, err := s.GetProblemTestcases(ctx, problem)
+	if err != nil {
+		return err
+	}
+
+	problemTestcases = slices.DeleteFunc(problemTestcases, func(a *models.ProblemTestcase) bool {
+		return a.Id == testcaseId
+	})
+
+	err = s.problemCodeRepository.SaveTestcases(
+		ctx,
+		problem,
+		problemTestcases,
+	)
+	if err != nil {
+		s.logger.Error("failed to delete problem code testcase", "problem", problem, "testcaseId", testcaseId, "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *problemService) GetProblemCodeConfig(ctx context.Context, problem *models.Problem) (*models.ProblemCodeConfig, error) {
+	config, err := s.problemCodeRepository.GetProblemCodeConfig(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		s.logger.Error("failed to get problem code config", "problem", problem, "err", err)
+		return nil, err
+	}
+
+	return config, nil
+}
+
+func (s *problemService) GetProblemTestcases(ctx context.Context, problem *models.Problem) ([]*models.ProblemTestcase, error) {
+	problemTestcases, err := s.problemCodeRepository.GetTestcases(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		s.logger.Error("failed to get problem code testcases", "problem", problem, "err", err)
+		return nil, nil
+	}
+
+	return problemTestcases, nil
+}
+
+func (s *problemService) UpdateProblemCodeConfig(ctx context.Context, problem *models.Problem, config *models.ProblemCodeConfig) error {
+	err := s.problemCodeRepository.SaveProblemCodeConfig(
+		ctx,
+		problem,
+		config,
+	)
+	if err != nil {
+		s.logger.Error("failed to save new problem code config", "problem", problem, "config", config, "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *problemService) UpdateProblemTestcase(
+	ctx context.Context,
+	problem *models.Problem,
+	testcaseId int,
+	testcase *models.ProblemTestcase,
+) error {
+	problemTestcases, err := s.GetProblemTestcases(ctx, problem)
+	if err != nil {
+		return err
+	}
+
+	for i, problemTestcase := range problemTestcases {
+		if problemTestcase.Id == testcaseId {
+			testcase.Id = testcaseId
+			problemTestcases[i] = testcase
+			break
+		}
+	}
+
+	err = s.problemCodeRepository.SaveTestcases(
+		ctx,
+		problem,
+		problemTestcases,
+	)
+	if err != nil {
+		s.logger.Error("failed to update problem code testcase", "problem", problem, "testcaseId", testcaseId, "testcase", testcase, "err", err)
+		return err
+	}
+
+	return nil
 }
 
 func NewProblemService(
@@ -73,6 +215,7 @@ func NewProblemService(
 	runRepository repository.RunRepository,
 	submissionRepository repository.SubmissionRepository,
 	problemHintRepository repository.ProblemHintRepository,
+	problemCodeRepository repository.ProblemCodeRepository,
 
 	judge judger.Judge,
 ) ProblemService {
@@ -82,6 +225,7 @@ func NewProblemService(
 		runRepository:         runRepository,
 		submissionRepository:  submissionRepository,
 		problemHintRepository: problemHintRepository,
+		problemCodeRepository: problemCodeRepository,
 
 		judge:  judge,
 		logger: slog.Default().With("package", "problemsService"),
@@ -519,6 +663,30 @@ func (s *problemService) UpdateHint(
 ) error {
 	if err := s.problemHintRepository.Update(ctx, hint.ID, content); err != nil {
 		s.logger.Error("failed to update hint", "hint", hint, "content", content, "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *problemService) GetProblemCodes(ctx context.Context, problem *models.Problem) ([]*models.ProblemCode, error) {
+	problemCodes, err := s.problemCodeRepository.GetProblemCodes(ctx, problem)
+	if err != nil {
+		s.logger.Error("failed to get problemCodes", "problem", problem, "err", err)
+		return nil, err
+	}
+
+	return problemCodes, nil
+}
+
+func (s *problemService) SaveProblemCode(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode) error {
+	err := s.problemCodeRepository.SaveProblemCode(
+		ctx,
+		problem,
+		problemCode,
+	)
+	if err != nil {
+		s.logger.Error("failed to save problemCode", "problem", problem, "problemCode", problemCode, "err", err)
 		return err
 	}
 

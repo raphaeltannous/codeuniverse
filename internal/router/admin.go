@@ -123,6 +123,33 @@ func adminRouter(
 					r.Delete("/", adminHandler.DeleteProblemHint)
 				})
 			})
+
+			r.Route("/code-snippets", func(r chi.Router) {
+				r.Get("/", adminHandler.GetProblemCodes)
+
+				r.Route("/{languageSlug}", func(r chi.Router) {
+					// TODO middleware?
+
+					r.Put("/", adminHandler.UpdateProblemCodeSnippet)
+				})
+			})
+
+			r.Route("/config", func(r chi.Router) {
+				r.Get("/", adminHandler.GetProblemConfig)
+				r.Put("/", adminHandler.UpdateProblemConfig)
+			})
+
+			r.Route("/testcases", func(r chi.Router) {
+				r.Get("/", adminHandler.GetProblemTestcases)
+				r.Post("/", adminHandler.CreateProblemTestcase)
+
+				r.Route("/{testcaseId}", func(r chi.Router) {
+					r.Use(middleware.ProblemCodeTestcaseIdMiddleware)
+
+					r.Put("/", adminHandler.UpdateProblemTestcase)
+					r.Delete("/", adminHandler.DeleteProblemTestcase)
+				})
+			})
 		})
 	})
 

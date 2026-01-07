@@ -933,9 +933,8 @@ func (h *AdminHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 
 	type responseProblem struct {
 		*models.Problem
-		Hints        []string                 `json:"hints"`
-		CodeSnippets []*models.CodeSnippet    `json:"codeSnippets"`
-		TestCases    *models.ProblemTestcases `json:"testCases"`
+		Hints        []string                         `json:"hints"`
+		CodeSnippets []*models.ProblemCodeCodeSnippet `json:"codeSnippets"`
 	}
 	responseProblems := make([]*responseProblem, 0)
 
@@ -945,8 +944,7 @@ func (h *AdminHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 			&responseProblem{
 				Problem:      problem,
 				Hints:        []string{},
-				CodeSnippets: []*models.CodeSnippet{},
-				TestCases:    &models.ProblemTestcases{},
+				CodeSnippets: []*models.ProblemCodeCodeSnippet{},
 			},
 		)
 
@@ -1087,6 +1085,288 @@ func (h *AdminHandler) DeleteProblemHint(w http.ResponseWriter, r *http.Request)
 
 	response := map[string]string{
 		"message": "Hint deleted.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) GetProblemCodes(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	problemCodes, err := h.problemService.GetProblemCodes(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, problemCodes, http.StatusOK)
+}
+
+func (h *AdminHandler) UpdateProblemCodeSnippet(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		CodeSnippet  string `json:"codeSnippet"`
+		Checker      string `json:"checker"`
+		Driver       string `json:"driver"`
+		IsPublic     bool   `json:"isPublic"`
+		LanguageName string `json:"languageName"`
+		LanguageSlug string `json:"languageSlug"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	language, err := models.NewProblemLanguage(requestBody.LanguageSlug)
+	if err != nil {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_LANGUAGE",
+			"Invalid language.",
+		)
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		return
+	}
+	problemCode := &models.ProblemCode{
+		CodeSnippet: requestBody.CodeSnippet,
+		Checker:     requestBody.Checker,
+		Driver:      requestBody.Driver,
+		IsPublic:    requestBody.IsPublic,
+		Language:    language,
+	}
+
+	err = h.problemService.SaveProblemCode(
+		ctx,
+		problem,
+		problemCode,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Code snippet updated.",
+	}
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) GetProblemTestcases(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	problemTestcases, err := h.problemService.GetProblemTestcases(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, problemTestcases, http.StatusOK)
+}
+
+func (h *AdminHandler) CreateProblemTestcase(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Input    any  `json:"input"`
+		Expected any  `json:"expected"`
+		IsPublic bool `json:"isPublic"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	testcase := &models.ProblemTestcase{
+		Input:    requestBody.Input,
+		Expected: requestBody.Expected,
+		IsPublic: requestBody.IsPublic,
+	}
+
+	err := h.problemService.AddProblemTestcase(
+		ctx,
+		problem,
+		testcase,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Testcase added.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) UpdateProblemTestcase(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		Input    any  `json:"input"`
+		Expected any  `json:"expected"`
+		IsPublic bool `json:"isPublic"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	testcaseId, ok := ctx.Value(middleware.ProblemCodeTestcaseIdCtxKey).(int)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	testcase := &models.ProblemTestcase{
+		Input:    requestBody.Input,
+		Expected: requestBody.Expected,
+		IsPublic: requestBody.IsPublic,
+	}
+
+	err := h.problemService.UpdateProblemTestcase(
+		ctx,
+		problem,
+		testcaseId,
+		testcase,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Testcase updated.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) DeleteProblemTestcase(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	testcaseId, ok := ctx.Value(middleware.ProblemCodeTestcaseIdCtxKey).(int)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err := h.problemService.DeleteProblemTestcase(
+		ctx,
+		problem,
+		testcaseId,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Testcase deleted.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *AdminHandler) GetProblemConfig(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	config, err := h.problemService.GetProblemCodeConfig(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, config, http.StatusOK)
+}
+
+func (h *AdminHandler) UpdateProblemConfig(w http.ResponseWriter, r *http.Request) {
+	var requestBody struct {
+		TimeLimit   int `json:"timeLimit"`
+		MemoryLimit int `json:"memoryLimit"`
+	}
+
+	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	config := &models.ProblemCodeConfig{
+		TimeLimit:   requestBody.TimeLimit,
+		MemoryLimit: requestBody.MemoryLimit,
+	}
+	if config.TimeLimit <= 0 || config.MemoryLimit <= 0 {
+		apiError := handlersutils.NewAPIError(
+			"INVALID_CONFIG",
+			"Config value cannot be zero or negative.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		return
+	}
+
+	err := h.problemService.UpdateProblemCodeConfig(
+		ctx,
+		problem,
+		config,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Problem config updated.",
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)

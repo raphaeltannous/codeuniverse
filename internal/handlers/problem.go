@@ -75,12 +75,12 @@ func (h *ProblemHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
 
 	var response struct {
 		*models.Problem
-		Hints        []*models.ProblemHint `json:"hints"`
-		CodeSnippets []*models.CodeSnippet `json:"codeSnippets"`
+		Hints        []*models.ProblemHint            `json:"hints"`
+		CodeSnippets []*models.ProblemCodeCodeSnippet `json:"codeSnippets"`
 	}
 	response.Problem = problem
 	response.Hints = []*models.ProblemHint{}
-	response.CodeSnippets = []*models.CodeSnippet{}
+	response.CodeSnippets = []*models.ProblemCodeCodeSnippet{}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
 }

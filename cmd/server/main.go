@@ -18,6 +18,7 @@ import (
 	"git.riyt.dev/codeuniverse/internal/logger"
 	"git.riyt.dev/codeuniverse/internal/mailer"
 	"git.riyt.dev/codeuniverse/internal/middleware"
+	"git.riyt.dev/codeuniverse/internal/repository/filesystem"
 	"git.riyt.dev/codeuniverse/internal/repository/postgres"
 	"git.riyt.dev/codeuniverse/internal/router"
 	"git.riyt.dev/codeuniverse/internal/services"
@@ -132,6 +133,11 @@ func service(
 	passwordResetRepo := postgres.NewPasswordResetRepository(db)
 	emailVerificationRepo := postgres.NewEmailVerificationRepository(db)
 
+	problemCodeRepository, err := filesystem.NewFilesystemProblemCodeRepository(judger.ProblemsDataDir)
+	if err != nil {
+		log.Fatal("failed to init problemCodeRepository", err)
+	}
+
 	dbTransactor := postgres.NewPostgreSQLTransactor(db)
 
 	// services
@@ -154,6 +160,7 @@ func service(
 		runRepository,
 		submissionRepository,
 		problemHintRepository,
+		problemCodeRepository,
 
 		judge,
 	)

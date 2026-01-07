@@ -33,7 +33,7 @@ func (g *golangJudge) Run(ctx context.Context, run *models.Run, problemSlug stri
 	if !ok {
 		return errors.New("unsupported language")
 	}
-	problemTestDir := filepath.Join(problemsDataDir, "problems", problemSlug, l.internalSlug)
+	problemTestDir := filepath.Join(ProblemsDataDir, "problems", problemSlug, l.internalSlug)
 	srcDir := os.DirFS(problemTestDir)
 
 	err = os.CopyFS(runWorkspace, srcDir)
@@ -41,19 +41,19 @@ func (g *golangJudge) Run(ctx context.Context, run *models.Run, problemSlug stri
 		return err
 	}
 
-	utilsDir := os.DirFS(filepath.Join(problemsDataDir, "utils", l.internalSlug))
+	utilsDir := os.DirFS(filepath.Join(ProblemsDataDir, "utils", l.internalSlug))
 	err = os.CopyFS(filepath.Join(runWorkspace, "utils"), utilsDir)
 	if err != nil {
 		return err
 	}
 
-	solutionsDir := os.DirFS(filepath.Join(problemsDataDir, "solutions", l.internalSlug, problemSlug))
+	solutionsDir := os.DirFS(filepath.Join(ProblemsDataDir, "solutions", l.internalSlug, problemSlug))
 	err = os.CopyFS(filepath.Join(runWorkspace, "solutions"), solutionsDir)
 	if err != nil {
 		return err
 	}
 
-	srcTestFile, err := os.Open(filepath.Join(problemsDataDir, "problems", problemSlug, "example-tests.txt"))
+	srcTestFile, err := os.Open(filepath.Join(ProblemsDataDir, "problems", problemSlug, "example-tests.txt"))
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 	if !ok {
 		return errors.New("unsupported language")
 	}
-	problemTestDir := filepath.Join(problemsDataDir, "problems", problemSlug, l.internalSlug)
+	problemTestDir := filepath.Join(ProblemsDataDir, "problems", problemSlug, l.internalSlug)
 	srcDir := os.DirFS(problemTestDir)
 
 	err = os.CopyFS(submitWorkspace, srcDir)
@@ -159,19 +159,19 @@ func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission,
 		return err
 	}
 
-	utilsDir := os.DirFS(filepath.Join(problemsDataDir, "utils", l.internalSlug))
+	utilsDir := os.DirFS(filepath.Join(ProblemsDataDir, "utils", l.internalSlug))
 	err = os.CopyFS(filepath.Join(submitWorkspace, "utils"), utilsDir)
 	if err != nil {
 		return err
 	}
 
-	solutionsDir := os.DirFS(filepath.Join(problemsDataDir, "solutions", l.internalSlug, problemSlug))
+	solutionsDir := os.DirFS(filepath.Join(ProblemsDataDir, "solutions", l.internalSlug, problemSlug))
 	err = os.CopyFS(filepath.Join(submitWorkspace, "solutions"), solutionsDir)
 	if err != nil {
 		return err
 	}
 
-	srcTestFile, err := os.Open(filepath.Join(problemsDataDir, "problems", problemSlug, "tests.txt"))
+	srcTestFile, err := os.Open(filepath.Join(ProblemsDataDir, "problems", problemSlug, "tests.txt"))
 	if err != nil {
 		return err
 	}

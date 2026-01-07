@@ -8,21 +8,14 @@ import (
 )
 
 type ProblemCodeRepository interface {
-	SaveCodeSnippet(ctx context.Context, problem *models.Problem, snippet *models.CodeSnippet) error
-	// GetCodeSnippets(ctx context.Context, problem *models.Problem) ([]*models.CodeSnippet, error)
-	// DeleteCodeSnippet(ctx context.Context, problem *models.Problem, language *models.ProblemLanguage) error
+	SaveProblemCode(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode) error
+	GetProblemCodes(ctx context.Context, problem *models.Problem) ([]*models.ProblemCode, error)
 
-	// SaveDriverCode(ctx context.Context, problem *models.Problem, code string) error
-	// GetDriverCode(ctx context.Context, problem *models.Problem) (string, error)
-	// DeleteDriverCode(ctx context.Context, problem *models.Problem) error
+	SaveTestcases(ctx context.Context, problem *models.Problem, problemTestcases []*models.ProblemTestcase) error
+	GetTestcases(ctx context.Context, problem *models.Problem) ([]*models.ProblemTestcase, error)
 
-	// SaveSolutionCode(ctx context.Context, problem *models.Problem, code string) error
-	// GetSolutionCode(ctx context.Context, problem *models.Problem) (string, error)
-	// DeleteSolutionCode(ctx context.Context, problem *models.Problem) error
-
-	// SaveTests(ctx context.Context, problem *models.Problem, problemTestcases *models.ProblemTestcases) error
-	// GetTests(ctx context.Context, problem *models.Problem) (*models.ProblemTestcases, error)
-	// DeleteTestcases(ctx context.Context, problem *models.Problem) error
+	SaveProblemCodeConfig(ctx context.Context, problem *models.Problem, config *models.ProblemCodeConfig) error
+	GetProblemCodeConfig(ctx context.Context, problem *models.Problem) (*models.ProblemCodeConfig, error)
 }
 
 var (

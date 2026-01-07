@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -96,4 +97,53 @@ func (p ProblemLanguage) CodeSnippetFilename() string {
 	}
 
 	return filename + p.FileExtension()
+}
+
+func (p ProblemLanguage) DriverFilename() string {
+	filename := "unknown"
+
+	switch p {
+	case LanguageGo:
+		filename = "driver"
+	case LanguagePython:
+		filename = "driver"
+	case LanguageCpp:
+		filename = "driver"
+	case LanguageTypescript:
+		filename = "driver"
+	case LanguageJavascript:
+		filename = "driver"
+	default:
+		filename = "unknown"
+	}
+
+	return filename + p.FileExtension()
+}
+
+func (p ProblemLanguage) CheckerFilename() string {
+	filename := "unknown"
+
+	switch p {
+	case LanguageGo:
+		filename = "main_test"
+	case LanguagePython:
+		filename = "main_test"
+	case LanguageCpp:
+		filename = "main_test"
+	case LanguageTypescript:
+		filename = "main_test"
+	case LanguageJavascript:
+		filename = "main_test"
+	default:
+		filename = "unknown"
+	}
+
+	return filename + p.FileExtension()
+}
+
+func (p ProblemLanguage) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]string{
+		"languageName": p.String(),
+		"languageSlug": p.Slug(),
+	})
 }
