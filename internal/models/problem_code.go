@@ -22,9 +22,16 @@ func (p ProblemCode) MarshalJSON() ([]byte, error) {
 }
 
 type ProblemCodeCodeSnippet struct {
-	Code         string `json:"code"`
-	LanguageName string `json:"languageName"`
-	LanguageSlug string `json:"languageSlug"`
+	Code     string          `json:"code"`
+	Language ProblemLanguage `json:"language"`
+}
+
+func (p ProblemCodeCodeSnippet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]any{
+		"code":         p.Code,
+		"languageName": p.Language.String(),
+		"languageSlug": p.Language.Slug(),
+	})
 }
 
 type ProblemCodeMetadata struct {

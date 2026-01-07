@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -16,6 +17,10 @@ const (
 var (
 	ErrInvalidProblemDifficulty = errors.New("invalid problem level")
 )
+
+func (p ProblemDifficulty) MarshalJSON() ([]byte, error) {
+	return fmt.Appendf(nil, "%q", p.String()), nil
+}
 
 func NewProblemDifficulty(level string) (ProblemDifficulty, error) {
 	switch strings.ToLower(level) {

@@ -21,6 +21,13 @@ type Problem struct {
 	UpdatedAt time.Time `db:"updated_at" json:"-"`
 }
 
+type PublicProblem struct {
+	*Problem
+	Hints        []string                  `json:"hints"`
+	CodeSnippets []*ProblemCodeCodeSnippet `json:"codeSnippets"`
+	Testcases    []*ProblemTestcase        `json:"testcases"`
+}
+
 type ProblemStats struct {
 	EasyCount   int `json:"easyCount"`
 	MediumCount int `json:"mediumCount"`

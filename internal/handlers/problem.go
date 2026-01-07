@@ -73,14 +73,57 @@ func (h *ProblemHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var response struct {
-		*models.Problem
-		Hints        []*models.ProblemHint            `json:"hints"`
-		CodeSnippets []*models.ProblemCodeCodeSnippet `json:"codeSnippets"`
+	hints, err := h.problemService.GetProblemHints(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
 	}
+
+	codeSnippets, err := h.problemService.GetProblemCodes(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	testcases, err := h.problemService.GetProblemTestcases(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := new(models.PublicProblem)
 	response.Problem = problem
-	response.Hints = []*models.ProblemHint{}
-	response.CodeSnippets = []*models.ProblemCodeCodeSnippet{}
+
+	response.Hints = make([]string, len(hints))
+	for i, hint := range hints {
+		response.Hints[i] = hint.Hint
+	}
+
+	response.CodeSnippets = make([]*models.ProblemCodeCodeSnippet, 0, len(codeSnippets))
+	for _, codeSnippet := range codeSnippets {
+		if codeSnippet.IsPublic {
+			response.CodeSnippets = append(response.CodeSnippets, &models.ProblemCodeCodeSnippet{
+				Code:     codeSnippet.CodeSnippet,
+				Language: codeSnippet.Language,
+			})
+		}
+	}
+
+	response.Testcases = make([]*models.ProblemTestcase, 0, 3)
+	for _, testcase := range testcases {
+		if testcase.IsPublic {
+			response.Testcases = append(response.Testcases, testcase)
+		}
+	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
 }

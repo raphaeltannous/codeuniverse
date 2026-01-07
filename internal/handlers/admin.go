@@ -861,14 +861,7 @@ func (h *AdminHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var response struct {
-		*models.Problem
-		Difficulty string `json:"difficulty"`
-	}
-	response.Problem = problem
-	response.Difficulty = problem.Difficulty.String()
-
-	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+	handlersutils.WriteResponseJSON(w, problem, http.StatusOK)
 }
 
 func (h *AdminHandler) DeleteProblem(w http.ResponseWriter, r *http.Request) {
