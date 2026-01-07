@@ -17,8 +17,8 @@ type Problem struct {
 	IsPremium bool `db:"is_premium" json:"isPremium"`
 	IsPublic  bool `db:"is_public" json:"isPublic"`
 
-	CreatedAt time.Time `db:"created_at" json:"-"`
-	UpdatedAt time.Time `db:"updated_at" json:"-"`
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 }
 
 type PublicProblem struct {

@@ -865,7 +865,27 @@ func (h *AdminHandler) GetProblem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) DeleteProblem(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	problem, ok := ctx.Value(middleware.ProblemCtxKey).(*models.Problem)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
 
+	err := h.problemService.Delete(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Problem deleted.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
 func (h *AdminHandler) GetProblems(w http.ResponseWriter, r *http.Request) {

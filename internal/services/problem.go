@@ -19,7 +19,7 @@ var (
 
 type ProblemService interface {
 	Create(ctx context.Context, problem *models.Problem) (*models.Problem, error)
-	Delete(ctx context.Context, id uuid.UUID) error
+	Delete(ctx context.Context, problem *models.Problem) error
 
 	GetById(ctx context.Context, uuidString string) (*models.Problem, error)
 	GetBySlug(ctx context.Context, slug string) (*models.Problem, error)
@@ -242,7 +242,20 @@ func (s *problemService) Create(ctx context.Context, problem *models.Problem) (*
 	return problem, nil
 }
 
-func (s *problemService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *problemService) Delete(ctx context.Context, problem *models.Problem) error {
+	err := s.problemRepository.Delete(
+		ctx,
+		problem.ID,
+	)
+	if err != nil {
+		s.logger.Error("failed to delete problem", "problem", problem, "err", err)
+		return err
+	}
+
+	if problem.ID.String() != "" {
+		return s.problemCodeRepository.DeleteProblem(ctx, problem)
+	}
+
 	return nil
 }
 

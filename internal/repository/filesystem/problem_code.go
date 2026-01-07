@@ -20,6 +20,15 @@ type filesystemProblemCodeRepository struct {
 	baseDirectory string
 }
 
+func (f *filesystemProblemCodeRepository) DeleteProblem(ctx context.Context, problem *models.Problem) error {
+	problemPath, err := f.getProblemPath(problem)
+	if err != nil {
+		return fmt.Errorf("failed to delete problemPath: %w", err)
+	}
+
+	return os.RemoveAll(problemPath)
+}
+
 func (f *filesystemProblemCodeRepository) GetProblemCodeConfig(
 	ctx context.Context,
 	problem *models.Problem,

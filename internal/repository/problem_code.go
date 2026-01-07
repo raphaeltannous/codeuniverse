@@ -8,6 +8,8 @@ import (
 )
 
 type ProblemCodeRepository interface {
+	DeleteProblem(ctx context.Context, problem *models.Problem) error
+
 	SaveProblemCode(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode) error
 	GetProblemCodes(ctx context.Context, problem *models.Problem) ([]*models.ProblemCode, error)
 

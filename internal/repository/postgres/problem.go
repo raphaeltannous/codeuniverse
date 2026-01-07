@@ -216,6 +216,20 @@ func (p *postgresProblemRepository) Delete(
 	ctx context.Context,
 	id uuid.UUID,
 ) error {
+	query := `
+		DELETE FROM problems
+		WHERE id = $1;
+	`
+
+	_, err := p.db.ExecContext(
+		ctx,
+		query,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete problem: %w", err)
+	}
+
 	return nil
 }
 
