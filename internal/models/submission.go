@@ -25,6 +25,13 @@ type Submission struct {
 	UpdatedAt time.Time `db:"updated_at" json:"-"`
 }
 
+type SubmissionResult struct {
+	Status   ResultStatus
+	Input    any
+	Expected any
+	Got      any
+}
+
 func NewSubmission(
 	userId uuid.UUID,
 	problemId uuid.UUID,

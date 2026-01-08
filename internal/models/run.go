@@ -25,6 +25,13 @@ type Run struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 }
 
+type RunResult struct {
+	Status   ResultStatus
+	Input    any
+	Expected any
+	Got      any
+}
+
 func NewRun(
 	userId uuid.UUID,
 	problemId uuid.UUID,
