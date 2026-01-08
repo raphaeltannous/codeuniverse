@@ -138,12 +138,9 @@ func (h *ProblemHandler) DeleteProblem(w http.ResponseWriter, r *http.Request) {
 	handlersutils.Unimplemented(w, r)
 }
 
-// POST
 func (h *ProblemHandler) Run(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
-		ProblemSlug  string `json:"problemSlug"`
-		LanguageSlug string `json:"languageSlug"`
-		Code         string `json:"code"`
+		Code string `json:"code"`
 	}
 
 	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
@@ -164,6 +161,12 @@ func (h *ProblemHandler) Run(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	language, ok := ctx.Value(middleware.ProblemLanguageCtxKey).(models.ProblemLanguage)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
 	handlerChannel := make(chan string)
 
 	go func() {
@@ -171,7 +174,7 @@ func (h *ProblemHandler) Run(w http.ResponseWriter, r *http.Request) {
 			context.WithoutCancel(ctx),
 			user,
 			problem,
-			requestBody.LanguageSlug,
+			language,
 			requestBody.Code,
 			handlerChannel,
 		)

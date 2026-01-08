@@ -322,7 +322,7 @@ func (f *filesystemProblemCodeRepository) GetTestcases(
 }
 
 func (f *filesystemProblemCodeRepository) getProblemPath(problem *models.Problem) (string, error) {
-	problemPath := filepath.Join(f.baseDirectory, problem.ID.String())
+	problemPath := filepath.Join(f.baseDirectory, "problems", problem.ID.String())
 
 	if _, err := os.Stat(problemPath); errors.Is(err, os.ErrNotExist) {
 		if err := os.MkdirAll(problemPath, 0750); err != nil {

@@ -31,7 +31,7 @@ type ProblemService interface {
 	UpdateProblem(ctx context.Context, problem *models.Problem, problemUpdatePatch map[string]any) error
 
 	Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
-	Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
+	Run(ctx context.Context, user *models.User, problem *models.Problem, language models.ProblemLanguage, code string, handlerChannel chan string) error
 
 	GetRun(ctx context.Context, user *models.User, runId uuid.UUID) (*models.Run, error)
 
@@ -385,7 +385,8 @@ func (s *problemService) Submit(ctx context.Context, user *models.User, problem 
 	err = s.judge.Submit(
 		ctx,
 		submission,
-		problem.Slug,
+		problem,
+		nil, // TODO
 	)
 	if err != nil {
 		s.logger.Error("failed to submit judge", "err", err)
@@ -407,11 +408,18 @@ func (s *problemService) Submit(ctx context.Context, user *models.User, problem 
 	return nil
 }
 
-func (s *problemService) Run(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error {
+func (s *problemService) Run(
+	ctx context.Context,
+	user *models.User,
+	problem *models.Problem,
+	language models.ProblemLanguage,
+	code string,
+	handlerChannel chan string,
+) error {
 	run := models.NewRun(
 		user.ID,
 		problem.ID,
-		languageSlug,
+		language.Slug(),
 		code,
 		"PENDING",
 	)
@@ -431,7 +439,8 @@ func (s *problemService) Run(ctx context.Context, user *models.User, problem *mo
 	err = s.judge.Run(
 		ctx,
 		run,
-		problem.Slug,
+		problem,
+		nil, // TODO
 	)
 	if err != nil {
 		s.logger.Error("failed to run judge", "err", err)
