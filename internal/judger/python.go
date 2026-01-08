@@ -8,24 +8,24 @@ import (
 	"github.com/docker/docker/client"
 )
 
-type python3Judge struct {
+type pythonJudge struct {
 	cli *client.Client
 
 	logger *slog.Logger
 }
 
-func (p *python3Judge) Run(ctx context.Context, run *models.Run, problemSlug string) error {
+func (p *pythonJudge) Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode) (*models.RunResult, error) {
 	panic("unimplemented")
 }
 
-func (p *python3Judge) Submit(ctx context.Context, submission *models.Submission, problemSlug string) error {
+func (p *pythonJudge) Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode) (*models.SubmissionResult, error) {
 	panic("unimplemented")
 }
 
-func newPython3Judge(cli *client.Client) languageJudge {
-	return &python3Judge{
+func newPythonJudge(cli *client.Client, logger *slog.Logger) languageJudger {
+	return &pythonJudge{
 		cli: cli,
 
-		logger: slog.Default().With("package", "judge.pythonJudge"),
+		logger: logger,
 	}
 }

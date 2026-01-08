@@ -14,18 +14,18 @@ type typescriptJudge struct {
 	logger *slog.Logger
 }
 
-func (t *typescriptJudge) Run(ctx context.Context, run *models.Run, problemSlug string) error {
+func (t *typescriptJudge) Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode) (*models.RunResult, error) {
 	panic("unimplemented")
 }
 
-func (t *typescriptJudge) Submit(ctx context.Context, submission *models.Submission, problemSlug string) error {
+func (t *typescriptJudge) Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode) (*models.SubmissionResult, error) {
 	panic("unimplemented")
 }
 
-func newTypescriptJudge(cli *client.Client) languageJudge {
+func newTypescriptJudge(cli *client.Client, logger *slog.Logger) languageJudger {
 	return &typescriptJudge{
 		cli: cli,
 
-		logger: slog.Default().With("package", "judge.typescriptJudge"),
+		logger: logger,
 	}
 }

@@ -1,98 +1,62 @@
 package judger
 
 import (
-	"errors"
-	"log"
 	"log/slog"
-	"os"
-	"path/filepath"
 
+	"git.riyt.dev/codeuniverse/internal/models"
 	"github.com/docker/docker/client"
 )
 
-type Language struct {
+type LanguageJudge struct {
 	containerImage string
-	internalSlug   string
-	new            func(cli *client.Client) languageJudge
+	judge          languageJudger
 	logger         *slog.Logger
 }
 
-var ProblemsDataDir string
-
-func init() {
-	ProblemsDataDir = os.Getenv("CODEUNIVERSE_PROBLEMS_DATA_DIR")
-
-	if ProblemsDataDir == "" {
-		log.Fatal("CODEUNIVERSE_PROBLEMS_DATA_DIR is not set.")
-	}
-
-	absPath, err := filepath.Abs(ProblemsDataDir)
-	if err != nil {
-		log.Fatal("failed to convert CODEUNIVERSE_PROBLEMS_DATA_DIR to absolute path.")
-	}
-
-	ProblemsDataDir = absPath
-	slog.Info("problemsDataDir is updated.", "problemsDataDir", ProblemsDataDir)
+var supportedLanguagesNewFunc = map[models.ProblemLanguage]func(cli *client.Client, logger *slog.Logger) languageJudger{
+	models.LanguageGo:         newGolangJudge,
+	models.LanguagePython:     newPythonJudge,
+	models.LanguageCpp:        newCPPJudge,
+	models.LanguageTypescript: newTypescriptJudge,
+	models.LanguageJavascript: newJavascriptJudge,
+	models.LanguageJava:       newJavaJudge,
+	models.LanguageRuby:       newRubyJudge,
 }
 
-var SupportedLanguages = map[string]Language{
-	"c++": {
-		"gcc:15.2-trixie",
-		"cpp",
-		newCPPJudge,
-		slog.Default().With("package", "judge.cppLanguage")},
-	"golang": {
-		"golang:1.25.4-alpine",
-		"go",
-		newGolangJudge,
-		slog.Default().With("package", "judge.goLanguage")},
-	"python3": {
-		"python:3.13.7-alpine",
-		"py3",
-		newPython3Judge,
-		slog.Default().With("package", "judge.py3Language"),
+var supportedLanguages = map[models.ProblemLanguage]*LanguageJudge{
+	models.LanguageGo: {
+		containerImage: "golang:1.25.4-alpine",
+		judge:          nil,
+		logger:         slog.Default().With("package", "judger.goLanguage"),
 	},
-	"javascript": {
-		"node:22.21.1-alpine",
-		"js",
-		newJavascriptJudge,
-		slog.Default().With("package", "judge.jsLanguage"),
+	models.LanguagePython: {
+		containerImage: "python:3.13.7-alpine",
+		judge:          nil,
+		logger:         slog.Default().With("package", "judger.pythonLanguage"),
 	},
-	"typescript": {
-		"node:22.21.1-alpine",
-		"ts",
-		newTypescriptJudge,
-		slog.Default().With("package", "judge.tsLanguage"),
+	models.LanguageCpp: {
+		containerImage: "gcc:15.2-trixie",
+		judge:          nil,
+		logger:         slog.Default().With("package", "judger.cppLanguage"),
 	},
-}
-
-func (l *Language) DoesItHaveTests(problemSlug string) bool {
-	workspaceDir := filepath.Join(ProblemsDataDir, "problems", problemSlug, l.internalSlug)
-
-	object, err := os.Stat(workspaceDir)
-	if err != nil {
-		switch {
-		case errors.Is(err, os.ErrNotExist):
-			return false
-		default:
-			l.logger.Error(
-				"failed to see stats for workspaceDir",
-				"workspaceDir",
-				workspaceDir,
-				"err",
-				err,
-			)
-		}
-	}
-
-	isDir := object.IsDir()
-	if !isDir {
-		l.logger.Error(
-			"seems that we have a file instead of a directory",
-			"workspaceDir",
-			workspaceDir,
-		)
-	}
-
-	return isDir
+	models.LanguageTypescript: {
+		containerImage: "node:22.21.1-alpine",
+		judge:          nil,
+		logger:         slog.Default().With("package", "judger.typescriptLanguage"),
+	},
+	models.LanguageJavascript: {
+		containerImage: "node:22.21.1-alpine",
+		judge:          nil,
+		logger:         slog.Default().With("package", "judger.javascriptLanguage"),
+	},
+	models.LanguageJava: {
+		containerImage: "amazoncorretto:21-alpine-jdk",
+		judge:          nil,
+		logger:         slog.Default().With("package", "judger.javaLanguage"),
+	},
+	models.LanguageRuby: {
+		containerImage: "ruby:3.4.8-alpine",
+		judge:          nil,
+		logger:         slog.Default().With("package", "judger.rubyLanguage"),
+	},
 }

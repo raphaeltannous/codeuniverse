@@ -14,18 +14,18 @@ type cppJudge struct {
 	logger *slog.Logger
 }
 
-func (c *cppJudge) Run(ctx context.Context, run *models.Run, problemSlug string) error {
+func (c *cppJudge) Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode) (*models.RunResult, error) {
 	panic("unimplemented")
 }
 
-func (c *cppJudge) Submit(ctx context.Context, submission *models.Submission, problemSlug string) error {
+func (c *cppJudge) Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode) (*models.SubmissionResult, error) {
 	panic("unimplemented")
 }
 
-func newCPPJudge(cli *client.Client) languageJudge {
+func newCPPJudge(cli *client.Client, logger *slog.Logger) languageJudger {
 	return &cppJudge{
 		cli: cli,
 
-		logger: slog.Default().With("package", "judge.cppJudge"),
+		logger: logger,
 	}
 }

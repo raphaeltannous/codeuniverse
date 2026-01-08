@@ -3,6 +3,7 @@ package judger
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 
@@ -16,14 +17,15 @@ var (
 	ErrLanguageNotSupported = errors.New("language not supported")
 )
 
-type languageJudge interface {
-	Run(ctx context.Context, run *models.Run, problemSlug string) error
-	Submit(ctx context.Context, submission *models.Submission, problemSlug string) error
+type languageJudger interface {
+	Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode) (*models.RunResult, error)
+	Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode) (*models.SubmissionResult, error)
 }
 
 type Judge struct {
-	cli    *client.Client
-	logger *slog.Logger
+	cli       *client.Client
+	logger    *slog.Logger
+	languages map[models.ProblemLanguage]*LanguageJudge
 }
 
 func NewJudge() (*Judge, error) {
@@ -43,8 +45,14 @@ func (judge *Judge) Close() error {
 }
 
 func (judge *Judge) InitializeContainers(ctx context.Context) error {
-	for _, language := range SupportedLanguages {
-		if err := judge.pullImageIfNotExists(ctx, language.containerImage); err != nil {
+	for language, languageJudge := range supportedLanguages {
+		if newFunc, ok := supportedLanguagesNewFunc[language]; ok {
+			languageJudge.judge = newFunc(judge.cli, languageJudge.logger)
+		} else {
+			return fmt.Errorf("failed to find newFunc for language %s", language)
+		}
+
+		if err := judge.pullImageIfNotExists(ctx, languageJudge.containerImage); err != nil {
 			return err
 		}
 	}
@@ -90,20 +98,20 @@ func (judge *Judge) pullImage(ctx context.Context, wantedImage string) error {
 	return err
 }
 
-func (judge *Judge) Run(ctx context.Context, run *models.Run, problemSlug string) error {
-	language, ok := SupportedLanguages[run.Language]
-	if !ok {
-		return ErrLanguageNotSupported
-	}
-
-	return language.new(judge.cli).Run(ctx, run, problemSlug)
+func (judge *Judge) Run(
+	ctx context.Context,
+	run *models.Run,
+	problem *models.Problem,
+	problemCode *models.ProblemCode,
+) error {
+	return nil
 }
 
-func (judge *Judge) Submit(ctx context.Context, submission *models.Submission, problemSlug string) error {
-	language, ok := SupportedLanguages[submission.Language]
-	if !ok {
-		return ErrLanguageNotSupported
-	}
-
-	return language.new(judge.cli).Submit(ctx, submission, problemSlug)
+func (judge *Judge) Submit(
+	ctx context.Context,
+	submission *models.Submission,
+	problem *models.Problem,
+	problemCode *models.ProblemCode,
+) error {
+	return nil
 }
