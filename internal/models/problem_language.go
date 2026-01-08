@@ -3,11 +3,21 @@ package models
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 )
 
+var (
+	ErrInvalidProblemLanguage = errors.New("invalid problem language")
+)
+
 type ProblemLanguage int
+
+func (p ProblemLanguage) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]string{
+		"languageName": p.String(),
+		"languageSlug": p.Slug(),
+	})
+}
 
 const (
 	LanguageGo ProblemLanguage = iota + 1
@@ -15,13 +25,79 @@ const (
 	LanguageCpp
 	LanguageTypescript
 	LanguageJavascript
+	LanguageJava
+	LanguageRuby
 
 	LanguageEnd
 )
 
-var (
-	ErrInvalidProblemLanguage = errors.New("invalid problem language")
-)
+type problemLanguageMetadata struct {
+	name                string
+	slug                string
+	fileExtension       string
+	codeSnippetFilename string
+	driverFilename      string
+	checkerFilename     string
+}
+
+var problemLanguages = map[ProblemLanguage]*problemLanguageMetadata{
+	LanguageGo: {
+		name:                "Go",
+		slug:                "go",
+		fileExtension:       ".go",
+		codeSnippetFilename: "main",
+		driverFilename:      "driver",
+		checkerFilename:     "main_test",
+	},
+	LanguagePython: {
+		name:                "Python",
+		slug:                "python",
+		fileExtension:       ".py",
+		codeSnippetFilename: "main",
+		driverFilename:      "driver",
+		checkerFilename:     "main_test",
+	},
+	LanguageCpp: {
+		name:                "Cpp",
+		slug:                "cpp",
+		fileExtension:       ".cpp",
+		codeSnippetFilename: "main",
+		driverFilename:      "driver",
+		checkerFilename:     "main_test",
+	},
+	LanguageTypescript: {
+		name:                "Typescript",
+		slug:                "typescript",
+		fileExtension:       ".ts",
+		codeSnippetFilename: "main",
+		driverFilename:      "driver",
+		checkerFilename:     "main_test",
+	},
+	LanguageJavascript: {
+		name:                "Javascript",
+		slug:                "javascript",
+		fileExtension:       ".js",
+		codeSnippetFilename: "main",
+		driverFilename:      "driver",
+		checkerFilename:     "main_test",
+	},
+	LanguageJava: {
+		name:                "Java",
+		slug:                "java",
+		fileExtension:       ".java",
+		codeSnippetFilename: "Main",
+		driverFilename:      "Driver",
+		checkerFilename:     "MainTest",
+	},
+	LanguageRuby: {
+		name:                "Ruby",
+		slug:                "ruby",
+		fileExtension:       ".rb",
+		codeSnippetFilename: "main",
+		driverFilename:      "driver",
+		checkerFilename:     "main_test",
+	},
+}
 
 func NewProblemLanguage(language string) (ProblemLanguage, error) {
 	switch strings.ToLower(language) {
@@ -35,115 +111,59 @@ func NewProblemLanguage(language string) (ProblemLanguage, error) {
 		return LanguageTypescript, nil
 	case "javascript":
 		return LanguageJavascript, nil
+	case "java":
+		return LanguageJava, nil
+	case "ruby":
+		return LanguageRuby, nil
 	default:
 		return 0, ErrInvalidProblemLanguage
 	}
 }
 
 func (p ProblemLanguage) String() string {
-	switch p {
-	case LanguageGo:
-		return "Go"
-	case LanguagePython:
-		return "Python"
-	case LanguageCpp:
-		return "Cpp"
-	case LanguageTypescript:
-		return "Typescript"
-	case LanguageJavascript:
-		return "Javascript"
-	default:
-		return "Unknown"
+	if language, ok := problemLanguages[p]; ok {
+		return language.name
 	}
+
+	return "Unknown"
 }
 
 func (p ProblemLanguage) Slug() string {
-	return fmt.Sprintf("%s", strings.ToLower(p.String()))
+	if language, ok := problemLanguages[p]; ok {
+		return language.slug
+	}
+
+	return "unknown"
 }
 
 func (p ProblemLanguage) FileExtension() string {
-	switch p {
-	case LanguageGo:
-		return ".go"
-	case LanguagePython:
-		return ".py"
-	case LanguageCpp:
-		return ".cpp"
-	case LanguageTypescript:
-		return ".ts"
-	case LanguageJavascript:
-		return ".js"
-	default:
-		return ".txt"
+	if language, ok := problemLanguages[p]; ok {
+		return language.fileExtension
 	}
+
+	return ".txt"
 }
 
 func (p ProblemLanguage) CodeSnippetFilename() string {
-	filename := "unknown"
-
-	switch p {
-	case LanguageGo:
-		filename = "main"
-	case LanguagePython:
-		filename = "main"
-	case LanguageCpp:
-		filename = "main"
-	case LanguageTypescript:
-		filename = "main"
-	case LanguageJavascript:
-		filename = "main"
-	default:
-		filename = "unknown"
+	if language, ok := problemLanguages[p]; ok {
+		return language.codeSnippetFilename + language.fileExtension
 	}
 
-	return filename + p.FileExtension()
+	return "unknown"
 }
 
 func (p ProblemLanguage) DriverFilename() string {
-	filename := "unknown"
-
-	switch p {
-	case LanguageGo:
-		filename = "driver"
-	case LanguagePython:
-		filename = "driver"
-	case LanguageCpp:
-		filename = "driver"
-	case LanguageTypescript:
-		filename = "driver"
-	case LanguageJavascript:
-		filename = "driver"
-	default:
-		filename = "unknown"
+	if language, ok := problemLanguages[p]; ok {
+		return language.driverFilename + language.fileExtension
 	}
 
-	return filename + p.FileExtension()
+	return "unknown"
 }
 
 func (p ProblemLanguage) CheckerFilename() string {
-	filename := "unknown"
-
-	switch p {
-	case LanguageGo:
-		filename = "main_test"
-	case LanguagePython:
-		filename = "main_test"
-	case LanguageCpp:
-		filename = "main_test"
-	case LanguageTypescript:
-		filename = "main_test"
-	case LanguageJavascript:
-		filename = "main_test"
-	default:
-		filename = "unknown"
+	if language, ok := problemLanguages[p]; ok {
+		return language.checkerFilename + language.fileExtension
 	}
 
-	return filename + p.FileExtension()
-}
-
-func (p ProblemLanguage) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]string{
-		"languageName": p.String(),
-		"languageSlug": p.Slug(),
-	})
+	return "unknown"
 }
