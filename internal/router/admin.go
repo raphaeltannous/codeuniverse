@@ -128,7 +128,7 @@ func adminRouter(
 				r.Get("/", adminHandler.GetProblemCodes)
 
 				r.Route("/{languageSlug}", func(r chi.Router) {
-					// TODO middleware?
+					r.Use(middleware.ProblemLanguageMiddleware)
 
 					r.Put("/", adminHandler.UpdateProblemCodeSnippet)
 				})

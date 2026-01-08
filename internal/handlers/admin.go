@@ -1144,15 +1144,12 @@ func (h *AdminHandler) UpdateProblemCodeSnippet(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	language, err := models.NewProblemLanguage(requestBody.LanguageSlug)
-	if err != nil {
-		apiError := handlersutils.NewAPIError(
-			"INVALID_LANGUAGE",
-			"Invalid language.",
-		)
-		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+	language, ok := ctx.Value(middleware.ProblemLanguageCtxKey).(models.ProblemLanguage)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
+
 	problemCode := &models.ProblemCode{
 		CodeSnippet: requestBody.CodeSnippet,
 		Checker:     requestBody.Checker,
@@ -1161,7 +1158,7 @@ func (h *AdminHandler) UpdateProblemCodeSnippet(w http.ResponseWriter, r *http.R
 		Language:    language,
 	}
 
-	err = h.problemService.SaveProblemCode(
+	err := h.problemService.SaveProblemCode(
 		ctx,
 		problem,
 		problemCode,
