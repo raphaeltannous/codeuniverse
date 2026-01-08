@@ -16,6 +16,8 @@ const (
 
 	StatusCompileError
 	StatusRuntimeError
+
+	StatusInternalServerError
 )
 
 func (r ResultStatus) String() string {
@@ -31,6 +33,8 @@ func (r ResultStatus) String() string {
 
 		StatusCompileError: "Compile Error",
 		StatusRuntimeError: "Runtime Error",
+
+		StatusInternalServerError: "Internal Server Error",
 	}
 
 	if value, ok := statuses[r]; ok {

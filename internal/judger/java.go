@@ -14,11 +14,11 @@ type javaJudge struct {
 	logger *slog.Logger
 }
 
-func (j *javaJudge) Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode) (*models.RunResult, error) {
+func (j *javaJudge) Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
 	panic("unimplemented")
 }
 
-func (j *javaJudge) Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode) (*models.SubmissionResult, error) {
+func (j *javaJudge) Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.SubmissionResult, error) {
 	panic("unimplemented")
 }
 

@@ -40,7 +40,11 @@ func problemsRouter(
 			})
 
 			r.Route("/run", func(r chi.Router) {
-				r.Post("/", problemHandler.Run)
+				r.Route("/{languageSlug}", func(r chi.Router) {
+					r.Use(middleware.ProblemLanguageMiddleware)
+
+					r.Post("/", problemHandler.Run)
+				})
 
 				r.Get("/{runId}/check", problemHandler.GetRun)
 			})

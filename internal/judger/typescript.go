@@ -14,11 +14,23 @@ type typescriptJudge struct {
 	logger *slog.Logger
 }
 
-func (t *typescriptJudge) Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode) (*models.RunResult, error) {
+func (t *typescriptJudge) Run(
+	ctx context.Context,
+	run *models.Run,
+	problem *models.Problem,
+	problemCode *models.ProblemCode,
+	problemTestcases []*models.ProblemTestcase,
+) (*models.RunResult, error) {
 	panic("unimplemented")
 }
 
-func (t *typescriptJudge) Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode) (*models.SubmissionResult, error) {
+func (t *typescriptJudge) Submit(
+	ctx context.Context,
+	submission *models.Submission,
+	problem *models.Problem,
+	problemCode *models.ProblemCode,
+	problemTestcases []*models.ProblemTestcase,
+) (*models.SubmissionResult, error) {
 	panic("unimplemented")
 }
 

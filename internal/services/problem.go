@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"time"
 
 	"git.riyt.dev/codeuniverse/internal/judger"
 	"git.riyt.dev/codeuniverse/internal/models"
@@ -436,11 +437,49 @@ func (s *problemService) Run(
 	handlerChannel <- run.ID.String()
 	close(handlerChannel)
 
-	err = s.judge.Run(
+	problemCode, err := s.problemCodeRepository.GetProblemCode(
+		ctx,
+		problem,
+		language,
+	)
+	if err != nil {
+		return err
+	}
+	problemCode.CodeSnippet = code
+
+	problemTestcases, err := s.problemCodeRepository.GetTestcases(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		return nil
+	}
+	wantedTestcases := make([]*models.ProblemTestcase, 0, 3)
+	for _, testcase := range problemTestcases {
+		if testcase.IsPublic {
+			wantedTestcases = append(wantedTestcases, testcase)
+		}
+	}
+
+	problemCodeConfig, err := s.GetProblemCodeConfig(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(
+		ctx,
+		time.Duration(problemCodeConfig.TimeLimit)*time.Millisecond,
+	)
+	defer cancel()
+
+	_, err = s.judge.Run(
 		ctx,
 		run,
 		problem,
-		nil, // TODO
+		problemCode,
+		wantedTestcases,
 	)
 	if err != nil {
 		s.logger.Error("failed to run judge", "err", err)

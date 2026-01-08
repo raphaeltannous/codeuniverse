@@ -18,8 +18,8 @@ var (
 )
 
 type languageJudger interface {
-	Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode) (*models.RunResult, error)
-	Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode) (*models.SubmissionResult, error)
+	Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error)
+	Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.SubmissionResult, error)
 }
 
 type Judge struct {
@@ -47,7 +47,7 @@ func (judge *Judge) Close() error {
 func (judge *Judge) InitializeContainers(ctx context.Context) error {
 	for language, languageJudge := range supportedLanguages {
 		if newFunc, ok := supportedLanguagesNewFunc[language]; ok {
-			languageJudge.judge = newFunc(judge.cli, languageJudge.logger)
+			languageJudge.judge = newFunc(judge.cli, slog.Default().With("package", language.Slug()+"Language"))
 		} else {
 			return fmt.Errorf("failed to find newFunc for language %s", language)
 		}
@@ -103,8 +103,20 @@ func (judge *Judge) Run(
 	run *models.Run,
 	problem *models.Problem,
 	problemCode *models.ProblemCode,
-) error {
-	return nil
+	problemTestcases []*models.ProblemTestcase,
+) (*models.RunResult, error) {
+	result, err := supportedLanguages[problemCode.Language].judge.Run(
+		ctx,
+		run,
+		problem,
+		problemCode,
+		problemTestcases,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (judge *Judge) Submit(
