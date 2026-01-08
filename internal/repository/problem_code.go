@@ -12,6 +12,7 @@ type ProblemCodeRepository interface {
 
 	SaveProblemCode(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode) error
 	GetProblemCodes(ctx context.Context, problem *models.Problem) ([]*models.ProblemCode, error)
+	GetProblemCode(ctx context.Context, problem *models.Problem, language models.ProblemLanguage) (*models.ProblemCode, error)
 
 	SaveTestcases(ctx context.Context, problem *models.Problem, problemTestcases []*models.ProblemTestcase) error
 	GetTestcases(ctx context.Context, problem *models.Problem) ([]*models.ProblemTestcase, error)

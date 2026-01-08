@@ -90,35 +90,44 @@ func (f *filesystemProblemCodeRepository) SaveProblemCodeConfig(
 func (f *filesystemProblemCodeRepository) GetProblemCodes(ctx context.Context, problem *models.Problem) ([]*models.ProblemCode, error) {
 	problemCodes := make([]*models.ProblemCode, 0, models.LanguageEnd-1)
 	for lang := models.LanguageGo; lang < models.LanguageEnd; lang++ {
-		problemCode := new(models.ProblemCode)
-		problemCode.Language = lang
-
-		var err error
-		problemCode.Checker, err = f.getLanguageFile(problem, lang, lang.CheckerFilename())
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-
-		problemCode.CodeSnippet, err = f.getLanguageFile(problem, lang, lang.CodeSnippetFilename())
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-
-		problemCode.Driver, err = f.getLanguageFile(problem, lang, lang.DriverFilename())
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-
-		problemCodeMetadata, err := f.getMetadataLanguageFile(problem, lang)
+		problemCode, err := f.GetProblemCode(ctx, problem, lang)
 		if err != nil {
 			return nil, err
 		}
-		problemCode.IsPublic = problemCodeMetadata.IsPublic
 
 		problemCodes = append(problemCodes, problemCode)
 	}
 
 	return problemCodes, nil
+}
+
+func (f *filesystemProblemCodeRepository) GetProblemCode(ctx context.Context, problem *models.Problem, language models.ProblemLanguage) (*models.ProblemCode, error) {
+	problemCode := new(models.ProblemCode)
+	problemCode.Language = language
+
+	var err error
+	problemCode.Checker, err = f.getLanguageFile(problem, language, language.CheckerFilename())
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+
+	problemCode.CodeSnippet, err = f.getLanguageFile(problem, language, language.CodeSnippetFilename())
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+
+	problemCode.Driver, err = f.getLanguageFile(problem, language, language.DriverFilename())
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+
+	problemCodeMetadata, err := f.getMetadataLanguageFile(problem, language)
+	if err != nil {
+		return nil, err
+	}
+	problemCode.IsPublic = problemCodeMetadata.IsPublic
+
+	return problemCode, nil
 }
 
 func (f *filesystemProblemCodeRepository) SaveProblemCode(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode) error {
