@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -38,6 +39,24 @@ func init() {
 	} else if !allowedEnv[codeuniverseEnv] {
 		log.Fatal("CODEUNIVERSE_ENV should either be production, or development")
 	}
+}
+
+var ProblemsDataDir string
+
+func init() {
+	ProblemsDataDir = os.Getenv("CODEUNIVERSE_PROBLEMS_DATA_DIR")
+
+	if ProblemsDataDir == "" {
+		log.Fatal("CODEUNIVERSE_PROBLEMS_DATA_DIR is not set.")
+	}
+
+	absPath, err := filepath.Abs(ProblemsDataDir)
+	if err != nil {
+		log.Fatal("failed to convert CODEUNIVERSE_PROBLEMS_DATA_DIR to absolute path.")
+	}
+
+	ProblemsDataDir = absPath
+	slog.Info("problemsDataDir is updated.", "problemsDataDir", ProblemsDataDir)
 }
 
 func main() {
@@ -133,7 +152,7 @@ func service(
 	passwordResetRepo := postgres.NewPasswordResetRepository(db)
 	emailVerificationRepo := postgres.NewEmailVerificationRepository(db)
 
-	problemCodeRepository, err := filesystem.NewFilesystemProblemCodeRepository(judger.ProblemsDataDir)
+	problemCodeRepository, err := filesystem.NewFilesystemProblemCodeRepository(ProblemsDataDir)
 	if err != nil {
 		log.Fatal("failed to init problemCodeRepository", err)
 	}
