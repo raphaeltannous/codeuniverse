@@ -19,6 +19,12 @@ func (p ProblemLanguage) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// The languages that are supported, to be ran in a docker container.
+// The container image is assigned in the judger package.
+//
+// TODO: Rethink.
+//   - I do not think splitting container image to another package is logical.
+//   - I think having container image here is better since here are the languages.
 const (
 	LanguageGo ProblemLanguage = iota + 1
 	LanguagePython
@@ -32,70 +38,78 @@ const (
 )
 
 type problemLanguageMetadata struct {
-	name                string
-	slug                string
-	fileExtension       string
-	codeSnippetFilename string
-	driverFilename      string
-	checkerFilename     string
+	name                   string
+	slug                   string
+	fileExtension          string
+	codeSnippetFilename    string
+	driverFilename         string
+	checkerFilename        string
+	backendCheckerFilename string
 }
 
 var problemLanguages = map[ProblemLanguage]*problemLanguageMetadata{
 	LanguageGo: {
-		name:                "Go",
-		slug:                "go",
-		fileExtension:       ".go",
-		codeSnippetFilename: "main",
-		driverFilename:      "driver",
-		checkerFilename:     "main_test",
+		name:                   "Go",
+		slug:                   "go",
+		fileExtension:          ".go",
+		codeSnippetFilename:    "main",
+		driverFilename:         "driver",
+		checkerFilename:        "checker",
+		backendCheckerFilename: "backend_checker",
 	},
 	LanguagePython: {
-		name:                "Python",
-		slug:                "python",
-		fileExtension:       ".py",
-		codeSnippetFilename: "main",
-		driverFilename:      "driver",
-		checkerFilename:     "main_test",
+		name:                   "Python",
+		slug:                   "python",
+		fileExtension:          ".py",
+		codeSnippetFilename:    "main",
+		driverFilename:         "driver",
+		checkerFilename:        "checker",
+		backendCheckerFilename: "backend_checker",
 	},
 	LanguageCpp: {
-		name:                "Cpp",
-		slug:                "cpp",
-		fileExtension:       ".cpp",
-		codeSnippetFilename: "main",
-		driverFilename:      "driver",
-		checkerFilename:     "main_test",
+		name:                   "Cpp",
+		slug:                   "cpp",
+		fileExtension:          ".cpp",
+		codeSnippetFilename:    "main",
+		driverFilename:         "driver",
+		checkerFilename:        "checker",
+		backendCheckerFilename: "backend_checker",
 	},
 	LanguageTypescript: {
-		name:                "Typescript",
-		slug:                "typescript",
-		fileExtension:       ".ts",
-		codeSnippetFilename: "main",
-		driverFilename:      "driver",
-		checkerFilename:     "main_test",
+		name:                   "Typescript",
+		slug:                   "typescript",
+		fileExtension:          ".ts",
+		codeSnippetFilename:    "main",
+		driverFilename:         "driver",
+		checkerFilename:        "checker",
+		backendCheckerFilename: "backend_checker",
 	},
 	LanguageJavascript: {
-		name:                "Javascript",
-		slug:                "javascript",
-		fileExtension:       ".js",
-		codeSnippetFilename: "main",
-		driverFilename:      "driver",
-		checkerFilename:     "main_test",
+		name:                   "Javascript",
+		slug:                   "javascript",
+		fileExtension:          ".js",
+		codeSnippetFilename:    "main",
+		driverFilename:         "driver",
+		checkerFilename:        "checker",
+		backendCheckerFilename: "backend_checker",
 	},
 	LanguageJava: {
-		name:                "Java",
-		slug:                "java",
-		fileExtension:       ".java",
-		codeSnippetFilename: "Main",
-		driverFilename:      "Driver",
-		checkerFilename:     "MainTest",
+		name:                   "Java",
+		slug:                   "java",
+		fileExtension:          ".java",
+		codeSnippetFilename:    "Main",
+		driverFilename:         "Driver",
+		checkerFilename:        "MainChecker",
+		backendCheckerFilename: "MainBackendChecker",
 	},
 	LanguageRuby: {
-		name:                "Ruby",
-		slug:                "ruby",
-		fileExtension:       ".rb",
-		codeSnippetFilename: "main",
-		driverFilename:      "driver",
-		checkerFilename:     "main_test",
+		name:                   "Ruby",
+		slug:                   "ruby",
+		fileExtension:          ".rb",
+		codeSnippetFilename:    "main",
+		driverFilename:         "driver",
+		checkerFilename:        "checker",
+		backendCheckerFilename: "backend_checker",
 	},
 }
 
@@ -163,6 +177,14 @@ func (p ProblemLanguage) DriverFilename() string {
 func (p ProblemLanguage) CheckerFilename() string {
 	if language, ok := problemLanguages[p]; ok {
 		return language.checkerFilename + language.fileExtension
+	}
+
+	return "unknown"
+}
+
+func (p ProblemLanguage) BackendCheckerFilename() string {
+	if language, ok := problemLanguages[p]; ok {
+		return language.backendCheckerFilename + language.fileExtension
 	}
 
 	return "unknown"
