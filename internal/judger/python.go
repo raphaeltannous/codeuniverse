@@ -11,6 +11,7 @@ import (
 	"git.riyt.dev/codeuniverse/internal/models"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 )
 
 type pythonJudge struct {
@@ -92,8 +93,11 @@ func (p *pythonJudge) Run(
 		},
 		&container.HostConfig{
 			Binds:         []string{runWorkspace + ":/codeuniverse/run:rw"},
-			AutoRemove:    true,
+			AutoRemove:    false,
 			ReadonlyPaths: []string{},
+			Resources: container.Resources{
+				Memory: 256 * 1024 * 1024,
+			},
 		},
 		nil,
 		nil,
@@ -108,12 +112,49 @@ func (p *pythonJudge) Run(
 	}
 	p.logger.Debug("Container started.")
 
+	var peakMemory uint64
+	statsCtx, cancelStats := context.WithCancel(ctx)
+	defer cancelStats()
+
+	go func() {
+		stats, err := p.cli.ContainerStats(statsCtx, resp.ID, true)
+		if err != nil {
+			return
+		}
+		defer stats.Body.Close()
+
+		decoder := json.NewDecoder(stats.Body)
+		for {
+			var v container.StatsResponse
+			if err := decoder.Decode(&v); err != nil {
+				return
+			}
+			if v.MemoryStats.Usage > peakMemory {
+				peakMemory = v.MemoryStats.Usage
+			}
+		}
+	}()
+
 	statusChannel, errChannel := p.cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 
 	select {
 	case status := <-statusChannel:
 		p.logger.Debug("container finised", "status", status)
+		out, err := p.cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
+		if err != nil {
+			panic(err)
+		}
+
+		stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+		cancelStats()
 	case err := <-errChannel:
+		out, err := p.cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
+		if err != nil {
+			panic(err)
+		}
+
+		stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+		cancelStats()
 		p.logger.Debug("container finished", "err", err)
 	case <-ctx.Done():
 		p.logger.Debug("wait finished with ctx timeout")
@@ -123,6 +164,7 @@ func (p *pythonJudge) Run(
 	}
 
 	p.logger.Debug("Container stopped")
+	p.logger.Debug("final peak memory", "usage", float64(peakMemory)/(1024*1024))
 
 	return nil, nil
 }
