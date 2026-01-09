@@ -19,6 +19,8 @@ type ProblemCodeRepository interface {
 
 	SaveProblemCodeConfig(ctx context.Context, problem *models.Problem, config *models.ProblemCodeConfig) error
 	GetProblemCodeConfig(ctx context.Context, problem *models.Problem) (*models.ProblemCodeConfig, error)
+
+	// GetProblemCodeTemplate(ctx context.Context, problem *models.Problem, language models.ProblemLanguage) (*models.ProblemCode, error)
 }
 
 var (

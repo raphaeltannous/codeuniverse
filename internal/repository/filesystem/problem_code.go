@@ -17,6 +17,24 @@ var (
 )
 
 type filesystemProblemCodeRepository struct {
+	// The structure of the baseDirectory will be as follow:
+	// - baseDirectory/problems/problemUUID/					Contains user codesnippet and wanted files for docker.
+	//   - /languageSlug										Seperate each language alone.
+	//     - /language.DriverFilename							The file that loads the testcases.
+	//     - /language.CheckerFilename							Code that accepts testcases and returns result.
+	//     - /language.CodeSnippetFilename						User facing code snippet for the language.
+	//     - /metadata.json										Currently contains if the language is public or not.
+	//   - /config.json											Docker container config. (TimeLimit/MemoryLimit).
+	//   - /testcases.json
+	// - baseDirectory/languages/
+	//   - /templates/languageSlug								Templates for the creating a new problem.
+	//     - /language.DriverFilename
+	//     - /language.CheckerFilename
+	//     - /language.CodeSnippetFilename
+	//   - /runtime/languageSlug								Files that are copied to the docker container and are available at /codeuniverse/run.
+	//     - /language.BackendCheckerFilename					The file that will import and call the function in language.CheckerFilename file.
+	//     - other libs.
+
 	baseDirectory string
 }
 
@@ -109,16 +127,31 @@ func (f *filesystemProblemCodeRepository) GetProblemCode(ctx context.Context, pr
 	problemCode.Checker, err = f.getLanguageFile(problem, language, language.CheckerFilename())
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
+	} else if errors.Is(err, os.ErrNotExist) {
+		problemCode.Checker, err = f.getLanguageTemplateFile(language, language.CheckerFilename())
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
 	}
 
 	problemCode.CodeSnippet, err = f.getLanguageFile(problem, language, language.CodeSnippetFilename())
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
+	} else if errors.Is(err, os.ErrNotExist) {
+		problemCode.CodeSnippet, err = f.getLanguageTemplateFile(language, language.CodeSnippetFilename())
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
 	}
 
 	problemCode.Driver, err = f.getLanguageFile(problem, language, language.DriverFilename())
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
+	} else if errors.Is(err, os.ErrNotExist) {
+		problemCode.Driver, err = f.getLanguageTemplateFile(language, language.DriverFilename())
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
 	}
 
 	problemCodeMetadata, err := f.getMetadataLanguageFile(problem, language)
@@ -174,6 +207,26 @@ func (f *filesystemProblemCodeRepository) SaveProblemCode(ctx context.Context, p
 	}
 
 	return nil
+}
+
+func (f *filesystemProblemCodeRepository) getLanguageTemplateFile(
+	language models.ProblemLanguage,
+	filename string,
+) (string, error) {
+	languageTemplatePath, err := f.getLanguageTemplatePath(
+		language,
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to get language template path: %w", err)
+	}
+	filePath := filepath.Join(languageTemplatePath, filename)
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	return string(content), nil
 }
 
 func (f *filesystemProblemCodeRepository) getLanguageFile(
@@ -340,6 +393,23 @@ func (f *filesystemProblemCodeRepository) getProblemPath(problem *models.Problem
 	}
 
 	return problemPath, nil
+}
+
+func (f *filesystemProblemCodeRepository) getLanguageTemplatePath(language models.ProblemLanguage) (string, error) {
+	templatesPath := filepath.Join(
+		f.baseDirectory,
+		"languages",
+		"templates",
+	)
+
+	languageTemplatePath := filepath.Join(templatesPath, language.Slug())
+	if _, err := os.Stat(languageTemplatePath); errors.Is(err, os.ErrNotExist) {
+		if err := os.MkdirAll(languageTemplatePath, 0750); err != nil {
+			return "", err
+		}
+	}
+
+	return languageTemplatePath, nil
 }
 
 func (f *filesystemProblemCodeRepository) getLanguagePath(problem *models.Problem, language models.ProblemLanguage) (string, error) {
