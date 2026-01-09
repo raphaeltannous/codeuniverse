@@ -1,6 +1,6 @@
 module git.riyt.dev/codeuniverse
 
-go 1.25.3
+go 1.25.5
 
 ignore (
 	./.development
@@ -10,7 +10,7 @@ ignore (
 )
 
 require (
-	github.com/docker/docker v28.3.1+incompatible
+	github.com/docker/docker v28.5.2+incompatible
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
@@ -29,7 +29,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
