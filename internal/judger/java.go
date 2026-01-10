@@ -18,10 +18,6 @@ func (j *javaJudge) Run(ctx context.Context, problem *models.Problem, problemCod
 	panic("unimplemented")
 }
 
-func (j *javaJudge) Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.SubmissionResult, error) {
-	panic("unimplemented")
-}
-
 func newJavaJudge(cli *client.Client, logger *slog.Logger) languageJudger {
 	return &javaJudge{
 		cli: cli,

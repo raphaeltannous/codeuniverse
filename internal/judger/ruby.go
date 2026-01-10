@@ -23,16 +23,6 @@ func (r *rubyJudge) Run(
 	panic("unimplemented")
 }
 
-func (r *rubyJudge) Submit(
-	ctx context.Context,
-	submission *models.Submission,
-	problem *models.Problem,
-	problemCode *models.ProblemCode,
-	problemTestcases []*models.ProblemTestcase,
-) (*models.SubmissionResult, error) {
-	panic("unimplemented")
-}
-
 func newRubyJudge(cli *client.Client, logger *slog.Logger) languageJudger {
 	return &rubyJudge{
 		cli: cli,

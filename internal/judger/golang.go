@@ -18,10 +18,6 @@ func (g *golangJudge) Run(ctx context.Context, problem *models.Problem, problemC
 	panic("unimplemented")
 }
 
-func (g *golangJudge) Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.SubmissionResult, error) {
-	panic("unimplemented")
-}
-
 func newGolangJudge(cli *client.Client, logger *slog.Logger) languageJudger {
 	return &golangJudge{
 		cli: cli,
