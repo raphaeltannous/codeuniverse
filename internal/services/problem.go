@@ -368,7 +368,7 @@ func (s *problemService) Submit(ctx context.Context, user *models.User, problem 
 
 		languageSlug,
 		code,
-		"PENDING",
+		"Compile Error",
 	)
 
 	submission, err := s.submissionRepository.Create(
@@ -382,29 +382,6 @@ func (s *problemService) Submit(ctx context.Context, user *models.User, problem 
 	}
 	handlerChannel <- submission.ID.String()
 	close(handlerChannel)
-
-	err = s.judge.Submit(
-		ctx,
-		submission,
-		problem,
-		nil, // TODO
-	)
-	if err != nil {
-		s.logger.Error("failed to submit judge", "err", err)
-		return err
-	}
-
-	if err := s.submissionRepository.UpdateAcceptanceStatus(ctx, submission.ID, submission.IsAccepted); err != nil {
-		return err
-	}
-
-	if err := s.submissionRepository.UpdateStatus(ctx, submission.ID, submission.Status); err != nil {
-		return err
-	}
-
-	if err := s.submissionRepository.UpdateExecutionTime(ctx, submission.ID, submission.ExecutionTime); err != nil {
-		return err
-	}
 
 	return nil
 }

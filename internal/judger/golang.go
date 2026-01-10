@@ -14,7 +14,12 @@ type golangJudge struct {
 	logger *slog.Logger
 }
 
-func (g *golangJudge) Run(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
+func (g *golangJudge) Run(
+	ctx context.Context,
+	problem *models.Problem,
+	problemCode *models.ProblemCode,
+	problemTestcases []*models.ProblemTestcase,
+) (*models.RunResult, error) {
 	panic("unimplemented")
 }
 

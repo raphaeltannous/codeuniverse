@@ -116,12 +116,3 @@ func (judge *Judge) Run(
 
 	return result, nil
 }
-
-func (judge *Judge) Submit(
-	ctx context.Context,
-	submission *models.Submission,
-	problem *models.Problem,
-	problemCode *models.ProblemCode,
-) error {
-	return nil
-}
