@@ -16,7 +16,6 @@ type rubyJudge struct {
 
 func (r *rubyJudge) Run(
 	ctx context.Context,
-	run *models.Run,
 	problem *models.Problem,
 	problemCode *models.ProblemCode,
 	problemTestcases []*models.ProblemTestcase,

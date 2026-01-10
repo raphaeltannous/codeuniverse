@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"github.com/docker/docker/api/types/container"
@@ -22,7 +23,6 @@ type pythonJudge struct {
 
 func (p *pythonJudge) Run(
 	ctx context.Context,
-	run *models.Run,
 	problem *models.Problem,
 	problemCode *models.ProblemCode,
 	problemTestcases []*models.ProblemTestcase,
@@ -38,47 +38,25 @@ func (p *pythonJudge) Run(
 	p.logger.Debug("Created workspace", "runWorkspace", runWorkspace)
 	p.logger.Debug("Setting up workspace.")
 
-	writeFunc := func(filename string, content string) (*models.RunResult, error) {
-		filePath := filepath.Join(runWorkspace, filename)
-		if err := os.WriteFile(filePath, []byte(content), 0640); err != nil {
-			p.logger.Error("failed to write file", "filename", filename, "content", content, "err", err)
-			return &models.RunResult{Status: models.StatusInternalServerError}, err
-		}
-
-		return nil, nil
-	}
-
-	if result, err := writeFunc(language.CheckerFilename(), problemCode.Checker); err != nil {
+	if result, err := writeToWorkspace(runWorkspace, language.CheckerFilename(), problemCode.Checker, p.logger); err != nil {
 		return result, err
 	}
 
-	if result, err := writeFunc(language.DriverFilename(), problemCode.Driver); err != nil {
+	if result, err := writeToWorkspace(runWorkspace, language.DriverFilename(), problemCode.Driver, p.logger); err != nil {
 		return result, err
 	}
 
-	if result, err := writeFunc(language.CodeSnippetFilename(), problemCode.CodeSnippet); err != nil {
+	if result, err := writeToWorkspace(runWorkspace, language.CodeSnippetFilename(), problemCode.CodeSnippet, p.logger); err != nil {
 		return result, err
 	}
 
-	writeTestcasesFunc := func(testcases []*models.ProblemTestcase) (*models.RunResult, error) {
-		testcasesPath := filepath.Join(runWorkspace, "testcases.json")
-		testcasesFile, err := os.Create(testcasesPath)
-		if err != nil {
-			p.logger.Error("failed to create tescases file", "testcasesPath", testcasesPath, "err", err)
-			return &models.RunResult{Status: models.StatusInternalServerError}, err
-		}
-		defer testcasesFile.Close()
-
-		encoder := json.NewEncoder(testcasesFile)
-		if err := encoder.Encode(testcases); err != nil {
-			p.logger.Error("failed to write testcases to file", "testcasesPath", testcasesPath, "err", err)
-			return &models.RunResult{Status: models.StatusInternalServerError}, err
-		}
-
-		return nil, nil
+	p.logger.Debug("Copying runtime files", "files", problemCode.RuntimeFiles)
+	if result, err := copyRuntimeFilesToWorkspace(runWorkspace, problemCode.RuntimeFiles); err != nil {
+		p.logger.Error("Failed to copy runtime files", "runtimeFiles", problemCode.RuntimeFiles, "err", err)
+		return result, err
 	}
 
-	if result, err := writeTestcasesFunc(problemTestcases); err != nil {
+	if result, err := writeTestcasesToWorkspace(runWorkspace, problemTestcases); err != nil {
 		return result, err
 	}
 	p.logger.Debug("Finished setting up runWorkspace.")
@@ -87,7 +65,7 @@ func (p *pythonJudge) Run(
 		ctx,
 		&container.Config{
 			Image:           supportedLanguages[language].containerImage,
-			Cmd:             []string{"python", language.CheckerFilename()},
+			Cmd:             []string{"python", language.BackendCheckerFilename()},
 			NetworkDisabled: true,
 			WorkingDir:      "/codeuniverse/run",
 		},
@@ -116,57 +94,64 @@ func (p *pythonJudge) Run(
 	statsCtx, cancelStats := context.WithCancel(ctx)
 	defer cancelStats()
 
-	go func() {
-		stats, err := p.cli.ContainerStats(statsCtx, resp.ID, true)
-		if err != nil {
-			return
-		}
-		defer stats.Body.Close()
-
-		decoder := json.NewDecoder(stats.Body)
-		for {
-			var v container.StatsResponse
-			if err := decoder.Decode(&v); err != nil {
-				return
-			}
-			if v.MemoryStats.Usage > peakMemory {
-				peakMemory = v.MemoryStats.Usage
-			}
-		}
-	}()
+	go watchContainerMemory(statsCtx, p.cli, resp.ID, &peakMemory)
 
 	statusChannel, errChannel := p.cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 
 	select {
 	case status := <-statusChannel:
-		p.logger.Debug("container finised", "status", status)
-		out, err := p.cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
-		if err != nil {
-			panic(err)
+		cancelStats()
+
+		runResults := new(models.RunResult)
+		switch status.StatusCode {
+		case 0:
+			jsonResults, err := os.Open(filepath.Join(runWorkspace, "results.json"))
+			if err != nil {
+				return &models.RunResult{Status: models.StatusInternalServerError}, err
+			}
+
+			results := new(models.Results)
+			decoder := json.NewDecoder(jsonResults)
+			if err := decoder.Decode(results); err != nil {
+				return &models.RunResult{Status: models.StatusInternalServerError}, err
+			}
+
+			runResults = models.NewRunResult(results)
+		case 1:
+			runResults.Status = models.StatusCompileError
 		}
 
-		stdcopy.StdCopy(os.Stdout, os.Stderr, out)
-		cancelStats()
+		runResults.MemoryUsage = float64(peakMemory) / (1024 * 1024)
+		stdOutErrSrc, err := p.cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
+		if err != nil {
+			p.logger.Error("failed to get stdOut and stdErr container logs", "err", err)
+			return &models.RunResult{Status: models.StatusInternalServerError}, err
+		}
+
+		var stdOut strings.Builder
+		var stdErr strings.Builder
+		if _, err := stdcopy.StdCopy(&stdOut, &stdErr, stdOutErrSrc); err != nil {
+			p.logger.Error("failed to write stdOut and stdErr container logs", "err", err)
+			return &models.RunResult{Status: models.StatusInternalServerError}, err
+		}
+
+		runResults.StdOut = stdOut.String()
+		runResults.StdErr = stdErr.String()
+
+		return runResults, nil
 	case err := <-errChannel:
-		out, err := p.cli.ContainerLogs(ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
-		if err != nil {
-			panic(err)
-		}
-
-		stdcopy.StdCopy(os.Stdout, os.Stderr, out)
 		cancelStats()
-		p.logger.Debug("container finished", "err", err)
+		p.logger.Error("failed to wait for container", "err", err)
+
+		return &models.RunResult{Status: models.StatusInternalServerError}, err
 	case <-ctx.Done():
 		p.logger.Debug("wait finished with ctx timeout")
 		if err := p.cli.ContainerStop(context.WithoutCancel(ctx), resp.ID, container.StopOptions{}); err != nil {
 			p.logger.Error("failed to stop container after ctx timeout", "err", err)
 		}
+
+		return &models.RunResult{Status: models.StatusTimeLimitExceeded}, nil
 	}
-
-	p.logger.Debug("Container stopped")
-	p.logger.Debug("final peak memory", "usage", float64(peakMemory)/(1024*1024))
-
-	return nil, nil
 }
 
 func (p *pythonJudge) Submit(

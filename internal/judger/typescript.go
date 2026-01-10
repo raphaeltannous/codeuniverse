@@ -16,7 +16,6 @@ type typescriptJudge struct {
 
 func (t *typescriptJudge) Run(
 	ctx context.Context,
-	run *models.Run,
 	problem *models.Problem,
 	problemCode *models.ProblemCode,
 	problemTestcases []*models.ProblemTestcase,

@@ -14,7 +14,7 @@ type javascriptJudge struct {
 	logger *slog.Logger
 }
 
-func (j *javascriptJudge) Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
+func (j *javascriptJudge) Run(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
 	panic("unimplemented")
 }
 

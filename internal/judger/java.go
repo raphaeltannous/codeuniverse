@@ -14,7 +14,7 @@ type javaJudge struct {
 	logger *slog.Logger
 }
 
-func (j *javaJudge) Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
+func (j *javaJudge) Run(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
 	panic("unimplemented")
 }
 

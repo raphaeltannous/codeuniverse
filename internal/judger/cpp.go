@@ -14,7 +14,7 @@ type cppJudge struct {
 	logger *slog.Logger
 }
 
-func (c *cppJudge) Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
+func (c *cppJudge) Run(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
 	panic("unimplemented")
 }
 
