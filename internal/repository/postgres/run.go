@@ -3,8 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
-	"fmt"
 
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
@@ -74,18 +74,58 @@ func (p *postgresRunRepository) UpdateMemoryUsage(ctx context.Context, id uuid.U
 	)
 }
 
-func (p *postgresRunRepository) UpdateAcceptanceStatus(ctx context.Context, id uuid.UUID, status bool) error {
+func (p *postgresRunRepository) UpdateFailedTestcases(ctx context.Context, id uuid.UUID, failedTestcases []*models.FailedTestcase) error {
+	if failedTestcases == nil {
+		return nil
+	}
+
 	return p.updateColumnValue(
 		ctx,
 		id,
-		"is_accepted",
-		status,
+		"failed_testcases",
+		failedTestcases,
+	)
+}
+
+func (p *postgresRunRepository) UpdateStderr(ctx context.Context, id uuid.UUID, stderr string) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"stderr",
+		stderr,
+	)
+}
+
+func (p *postgresRunRepository) UpdateStdout(ctx context.Context, id uuid.UUID, stdout string) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"stdout",
+		stdout,
 	)
 }
 
 func (p *postgresRunRepository) GetById(ctx context.Context, id uuid.UUID) (*models.Run, error) {
 	query := `
-		SELECT id, user_id, problem_id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
+		SELECT
+			id,
+
+			user_id,
+			problem_id,
+
+			language,
+			code,
+			status,
+
+			execution_time,
+			memory_usage,
+
+			failed_testcases,
+			stdout,
+			stderr,
+
+			created_at,
+			updated_at
 		FROM runs
 		WHERE id = $1;
 	`
@@ -102,8 +142,7 @@ func (p *postgresRunRepository) GetById(ctx context.Context, id uuid.UUID) (*mod
 			return nil, repository.ErrRunNotFound
 		}
 
-		fmt.Println(err)
-		return nil, repository.ErrInternalServerError
+		return nil, err
 	}
 
 	return run, nil
@@ -121,17 +160,46 @@ func (p *postgresRunRepository) updateColumnValue(ctx context.Context, id uuid.U
 }
 
 func (p *postgresRunRepository) scanRunFunc(scanner postgresScanner, run *models.Run) error {
-	return scanner.Scan(
+	var failedTestcasesJson []byte
+	var status string
+
+	err := scanner.Scan(
 		&run.ID,
+
 		&run.UserId,
 		&run.ProblemId,
+
 		&run.Language,
 		&run.Code,
-		&run.Status,
+		&status,
+
 		&run.ExecutionTime,
 		&run.MemoryUsage,
-		&run.IsAccepted,
+
+		&failedTestcasesJson,
+		&run.StdOut,
+		&run.StdErr,
+
 		&run.CreatedAt,
 		&run.UpdatedAt,
 	)
+	if err != nil {
+		return err
+	}
+
+	var failedTestcases []*models.FailedTestcase
+
+	err = json.Unmarshal(failedTestcasesJson, &failedTestcases)
+	if err != nil {
+		return err
+	}
+
+	run.FailedTestcases = failedTestcases
+
+	run.Status, err = models.ParseResultStatus(status)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -26,10 +26,6 @@ func updateColumnValue(
 		column,
 	)
 
-	if s, ok := value.(string); ok && s == "" {
-		value = nil
-	}
-
 	result, err := db.ExecContext(
 		ctx,
 		query,

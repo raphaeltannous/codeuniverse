@@ -137,7 +137,7 @@ func (p *postgresSubmissionRepository) GetAcceptedSubmissionsCount(ctx context.C
 	query := `
 		SELECT COUNT(*)
 		FROM submissions
-		WHERE status = 'ACCEPTED';
+		WHERE status = 'Accepted';
 	`
 
 	row := p.db.QueryRowContext(ctx, query)
@@ -198,7 +198,7 @@ func (p *postgresSubmissionRepository) GetDailySubmissions(ctx context.Context, 
 		SELECT
 			DATE(created_at) as date,
 			COUNT(*) as submissions,
-			COUNT(CASE WHEN status = 'ACCEPTED' THEN 1 END) as accepted
+			COUNT(CASE WHEN status = 'Accepted' THEN 1 END) as accepted
 		FROM submissions
 		WHERE created_at >= NOW() - $1::interval
 		GROUP BY DATE(created_at)
@@ -237,7 +237,7 @@ func (p *postgresSubmissionRepository) GetDailySubmissionsHours(ctx context.Cont
 		SELECT
 			DATE_TRUNC('hour', created_at) as date,
 			COUNT(*) as submissions,
-			COUNT(CASE WHEN status = 'ACCEPTED' THEN 1 END) as accepted
+			COUNT(CASE WHEN status = 'Accepted' THEN 1 END) as accepted
 		FROM submissions
 		WHERE created_at >= NOW() - $1::interval
 		GROUP BY DATE_TRUNC('hour', created_at)

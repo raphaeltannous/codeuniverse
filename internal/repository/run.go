@@ -14,7 +14,9 @@ type RunRepository interface {
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
 	UpdateExecutionTime(ctx context.Context, id uuid.UUID, executionTime float64) error
 	UpdateMemoryUsage(ctx context.Context, id uuid.UUID, memoryUsage float64) error
-	UpdateAcceptanceStatus(ctx context.Context, id uuid.UUID, status bool) error
+	UpdateFailedTestcases(ctx context.Context, id uuid.UUID, failedTestcases []*models.FailedTestcase) error
+	UpdateStdout(ctx context.Context, id uuid.UUID, stdout string) error
+	UpdateStderr(ctx context.Context, id uuid.UUID, stderr string) error
 
 	GetById(ctx context.Context, id uuid.UUID) (*models.Run, error)
 }
