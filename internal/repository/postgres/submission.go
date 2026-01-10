@@ -47,15 +47,6 @@ func (p *postgresSubmissionRepository) Delete(ctx context.Context, id uuid.UUID)
 	panic("unimplemented")
 }
 
-func (p *postgresSubmissionRepository) UpdateAcceptanceStatus(ctx context.Context, id uuid.UUID, status bool) error {
-	return p.updateColumnValue(
-		ctx,
-		id,
-		"is_accepted",
-		status,
-	)
-}
-
 func (p *postgresSubmissionRepository) UpdateExecutionTime(ctx context.Context, id uuid.UUID, executionTime float64) error {
 	return p.updateColumnValue(
 		ctx,
@@ -80,6 +71,33 @@ func (p *postgresSubmissionRepository) UpdateStatus(ctx context.Context, id uuid
 		id,
 		"status",
 		status,
+	)
+}
+
+func (p *postgresSubmissionRepository) UpdateFailedTestcases(ctx context.Context, id uuid.UUID, failedTestcases []*models.FailedTestcase) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"failed_testcases",
+		failedTestcases,
+	)
+}
+
+func (p *postgresSubmissionRepository) UpdateStderr(ctx context.Context, id uuid.UUID, stderr string) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"stderr",
+		stderr,
+	)
+}
+
+func (p *postgresSubmissionRepository) UpdateStdout(ctx context.Context, id uuid.UUID, stdout string) error {
+	return p.updateColumnValue(
+		ctx,
+		id,
+		"stdout",
+		stdout,
 	)
 }
 
