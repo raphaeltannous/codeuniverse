@@ -3,11 +3,12 @@ package models
 import "encoding/json"
 
 type ProblemCode struct {
-	CodeSnippet string          `json:"codeSnippet"`
-	Checker     string          `json:"checker"`
-	Driver      string          `json:"driver"`
-	IsPublic    bool            `json:"isPublic"`
-	Language    ProblemLanguage `json:"language"`
+	CodeSnippet  string          `json:"codeSnippet"`
+	Checker      string          `json:"checker"`
+	Driver       string          `json:"driver"`
+	RuntimeFiles []string        `json:"-"`
+	IsPublic     bool            `json:"isPublic"`
+	Language     ProblemLanguage `json:"language"`
 }
 
 func (p ProblemCode) MarshalJSON() ([]byte, error) {
