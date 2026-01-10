@@ -422,7 +422,7 @@ func (s *problemService) Run(
 		problem.ID,
 		language.Slug(),
 		code,
-		"PENDING",
+		models.StatusPending,
 	)
 
 	run, err := s.runRepository.Create(
@@ -474,7 +474,7 @@ func (s *problemService) Run(
 	)
 	defer cancel()
 
-	_, err = s.judge.Run(
+	runResults, err := s.judge.Run(
 		ctx,
 		run,
 		problem,
@@ -486,11 +486,58 @@ func (s *problemService) Run(
 		return err
 	}
 
-	if err := s.runRepository.UpdateAcceptanceStatus(ctx, run.ID, run.IsAccepted); err != nil {
+	s.logger.Debug("container finished", "runResults", runResults)
+	if err := s.runRepository.UpdateExecutionTime(
+		ctx,
+		run.ID,
+		runResults.ExecutionTime,
+	); err != nil {
+		s.logger.Error("failed to execution time", "err", err)
 		return err
 	}
 
-	if err := s.runRepository.UpdateStatus(ctx, run.ID, run.Status); err != nil {
+	if err := s.runRepository.UpdateMemoryUsage(
+		ctx,
+		run.ID,
+		runResults.MemoryUsage,
+	); err != nil {
+		s.logger.Error("failed to memory usage", "err", err)
+		return err
+	}
+
+	if err := s.runRepository.UpdateStatus(
+		ctx,
+		run.ID,
+		runResults.Status.String(),
+	); err != nil {
+		s.logger.Error("failed to status", "err", err)
+		return err
+	}
+
+	if err := s.runRepository.UpdateFailedTestcases(
+		ctx,
+		run.ID,
+		runResults.FailedTestcases,
+	); err != nil {
+		s.logger.Error("failed to update testcases", "err", err)
+		return err
+	}
+
+	if err := s.runRepository.UpdateStdout(
+		ctx,
+		run.ID,
+		runResults.StdOut,
+	); err != nil {
+		s.logger.Error("failed to stdout", "err", err)
+		return err
+	}
+
+	if err := s.runRepository.UpdateStderr(
+		ctx,
+		run.ID,
+		runResults.StdErr,
+	); err != nil {
+		s.logger.Error("failed to stderr", "err", err)
 		return err
 	}
 
@@ -504,7 +551,7 @@ func (s *problemService) GetRun(ctx context.Context, user *models.User, runId uu
 	)
 	if err != nil {
 		if !errors.Is(err, repository.ErrRunNotFound) {
-			s.logger.Error("repository: failed to get run", "err", err, "runId", runId)
+			s.logger.Error("repository: failed to get run", "runId", runId, "err", err)
 		}
 		return nil, err
 	}
