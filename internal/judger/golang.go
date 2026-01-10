@@ -14,13 +14,22 @@ type golangJudge struct {
 	logger *slog.Logger
 }
 
-func (g *golangJudge) Run(
+func (j *golangJudge) Run(
 	ctx context.Context,
 	problem *models.Problem,
 	problemCode *models.ProblemCode,
 	problemTestcases []*models.ProblemTestcase,
 ) (*models.RunResult, error) {
-	panic("unimplemented")
+	return run(
+		ctx,
+		j.cli,
+		problemCode,
+		problemTestcases,
+		&runConfig{
+			cmd: []string{"go", "run", "."},
+		},
+		j.logger,
+	)
 }
 
 func newGolangJudge(cli *client.Client, logger *slog.Logger) languageJudger {
