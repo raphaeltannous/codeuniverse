@@ -119,6 +119,47 @@ func (f *filesystemProblemCodeRepository) GetProblemCodes(ctx context.Context, p
 	return problemCodes, nil
 }
 
+func (f *filesystemProblemCodeRepository) getRuntimeFilesList(
+	language models.ProblemLanguage,
+) ([]string, error) {
+	runtimeLanguageDir := filepath.Join(
+		f.baseDirectory,
+		"languages",
+		"runtime",
+		language.Slug(),
+	)
+
+	dirStat, err := os.Stat(runtimeLanguageDir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return []string{}, nil
+		}
+
+		return []string(nil), nil
+	}
+
+	if dirStat.IsDir() {
+		files, err := os.ReadDir(runtimeLanguageDir)
+		if err != nil {
+			return []string(nil), nil
+		}
+
+		runtimeFiles := make([]string, 0, len(files))
+		for _, file := range files {
+			if !file.IsDir() {
+				runtimeFiles = append(
+					runtimeFiles,
+					filepath.Join(runtimeLanguageDir, file.Name()),
+				)
+			}
+		}
+
+		return runtimeFiles, nil
+	}
+
+	return []string(nil), nil
+}
+
 func (f *filesystemProblemCodeRepository) GetProblemCode(ctx context.Context, problem *models.Problem, language models.ProblemLanguage) (*models.ProblemCode, error) {
 	problemCode := new(models.ProblemCode)
 	problemCode.Language = language
@@ -152,6 +193,11 @@ func (f *filesystemProblemCodeRepository) GetProblemCode(ctx context.Context, pr
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
+	}
+
+	problemCode.RuntimeFiles, err = f.getRuntimeFilesList(language)
+	if err != nil {
+		return nil, err
 	}
 
 	problemCodeMetadata, err := f.getMetadataLanguageFile(problem, language)
