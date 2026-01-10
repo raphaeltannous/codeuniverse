@@ -18,7 +18,7 @@ var (
 )
 
 type languageJudger interface {
-	Run(ctx context.Context, run *models.Run, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error)
+	Run(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error)
 	Submit(ctx context.Context, submission *models.Submission, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.SubmissionResult, error)
 }
 
@@ -107,7 +107,6 @@ func (judge *Judge) Run(
 ) (*models.RunResult, error) {
 	result, err := supportedLanguages[problemCode.Language].judge.Run(
 		ctx,
-		run,
 		problem,
 		problemCode,
 		problemTestcases,
