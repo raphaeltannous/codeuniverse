@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -75,6 +76,10 @@ func (p *postgresSubmissionRepository) UpdateStatus(ctx context.Context, id uuid
 }
 
 func (p *postgresSubmissionRepository) UpdateFailedTestcases(ctx context.Context, id uuid.UUID, failedTestcases []*models.FailedTestcase) error {
+	if failedTestcases == nil {
+		return nil
+	}
+
 	return p.updateColumnValue(
 		ctx,
 		id,
@@ -291,7 +296,25 @@ func (p *postgresSubmissionRepository) GetDailySubmissionsHours(ctx context.Cont
 
 func (p *postgresSubmissionRepository) GetById(ctx context.Context, id uuid.UUID) (*models.Submission, error) {
 	query := `
-		SELECT id, user_id, problem_id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
+		SELECT
+			id,
+
+			user_id,
+			problem_id,
+
+			language,
+			code,
+			status,
+
+			execution_time,
+			memory_usage,
+
+			failed_testcases,
+			stdout,
+			stderr,
+
+			created_at,
+			updated_at
 		FROM submissions
 		WHERE id = $1;
 	`
@@ -316,7 +339,25 @@ func (p *postgresSubmissionRepository) GetById(ctx context.Context, id uuid.UUID
 
 func (p *postgresSubmissionRepository) GetProblemSubmissions(ctx context.Context, userId uuid.UUID, problemId uuid.UUID) ([]*models.Submission, error) {
 	query := `
-		SELECT id, user_id, problem_id, language, code, status, execution_time, memory_usage, is_accepted, created_at, updated_at
+		SELECT
+			id,
+
+			user_id,
+			problem_id,
+
+			language,
+			code,
+			status,
+
+			execution_time,
+			memory_usage,
+
+			failed_testcases,
+			stdout,
+			stderr,
+
+			created_at,
+			updated_at
 		FROM submissions
 		WHERE user_id = $1 AND problem_id = $2;
 	`
@@ -410,19 +451,48 @@ func (p *postgresSubmissionRepository) updateColumnValue(ctx context.Context, id
 }
 
 func (p *postgresSubmissionRepository) scanSubmissionFunc(scanner postgresScanner, submission *models.Submission) error {
-	return scanner.Scan(
+	var failedTestcasesJson []byte
+	var status string
+
+	err := scanner.Scan(
 		&submission.ID,
+
 		&submission.UserId,
 		&submission.ProblemId,
+
 		&submission.Language,
 		&submission.Code,
-		&submission.Status,
+		&status,
+
 		&submission.ExecutionTime,
 		&submission.MemoryUsage,
-		&submission.IsAccepted,
+
+		&failedTestcasesJson,
+		&submission.StdOut,
+		&submission.StdErr,
+
 		&submission.CreatedAt,
 		&submission.UpdatedAt,
 	)
+	if err != nil {
+		return err
+	}
+
+	var failedTestcases []*models.FailedTestcase
+
+	err = json.Unmarshal(failedTestcasesJson, &failedTestcases)
+	if err != nil {
+		return err
+	}
+
+	submission.FailedTestcases = failedTestcases
+
+	submission.Status, err = models.ParseResultStatus(status)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewSubmissionRepository(db *sql.DB) repository.SubmissionRepository {

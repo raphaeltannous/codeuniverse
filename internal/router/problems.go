@@ -34,7 +34,11 @@ func problemsRouter(
 			r.Use(authMiddleware)
 
 			r.Route("/submit", func(r chi.Router) {
-				r.Post("/", problemHandler.Submit)
+				r.Route("/{languageSlug}", func(r chi.Router) {
+					r.Use(middleware.ProblemLanguageMiddleware)
+
+					r.Post("/", problemHandler.Submit)
+				})
 
 				r.Get("/{submissionId}/check", problemHandler.GetSubmission)
 			})

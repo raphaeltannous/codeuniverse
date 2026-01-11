@@ -31,7 +31,7 @@ type ProblemService interface {
 
 	UpdateProblem(ctx context.Context, problem *models.Problem, problemUpdatePatch map[string]any) error
 
-	Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error
+	Submit(ctx context.Context, user *models.User, problem *models.Problem, language models.ProblemLanguage, code string, handlerChannel chan string) error
 	Run(ctx context.Context, user *models.User, problem *models.Problem, language models.ProblemLanguage, code string, handlerChannel chan string) error
 
 	GetRun(ctx context.Context, user *models.User, runId uuid.UUID) (*models.Run, error)
@@ -361,14 +361,21 @@ func updateProblemFromPatch[T any](
 	return nil
 }
 
-func (s *problemService) Submit(ctx context.Context, user *models.User, problem *models.Problem, languageSlug, code string, handlerChannel chan string) error {
+func (s *problemService) Submit(
+	ctx context.Context,
+	user *models.User,
+	problem *models.Problem,
+	language models.ProblemLanguage,
+	code string,
+	handlerChannel chan string,
+) error {
 	submission := models.NewSubmission(
 		user.ID,
 		problem.ID,
 
-		languageSlug,
+		language.Slug(),
 		code,
-		"Compile Error",
+		models.StatusPending,
 	)
 
 	submission, err := s.submissionRepository.Create(
@@ -382,6 +389,107 @@ func (s *problemService) Submit(ctx context.Context, user *models.User, problem 
 	}
 	handlerChannel <- submission.ID.String()
 	close(handlerChannel)
+
+	problemCode, err := s.problemCodeRepository.GetProblemCode(
+		ctx,
+		problem,
+		language,
+	)
+	if err != nil {
+		return err
+	}
+	problemCode.CodeSnippet = code
+
+	problemTestcases, err := s.problemCodeRepository.GetTestcases(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		return nil
+	}
+
+	problemCodeConfig, err := s.GetProblemCodeConfig(
+		ctx,
+		problem,
+	)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(
+		ctx,
+		time.Duration(problemCodeConfig.TimeLimit)*time.Millisecond,
+	)
+	defer cancel()
+
+	runResults, err := s.judge.Run(
+		ctx,
+		problem,
+		problemCode,
+		problemTestcases,
+	)
+	if err != nil {
+		s.logger.Error("failed to run judge", "err", err)
+		return err
+	}
+
+	if len(runResults.FailedTestcases) > 0 {
+		runResults.FailedTestcases = runResults.FailedTestcases[:1:1]
+	}
+
+	s.logger.Debug("container finished", "runResults", runResults)
+	if err := s.submissionRepository.UpdateExecutionTime(
+		ctx,
+		submission.ID,
+		runResults.ExecutionTime,
+	); err != nil {
+		s.logger.Error("failed to execution time", "err", err)
+		return err
+	}
+
+	if err := s.submissionRepository.UpdateMemoryUsage(
+		ctx,
+		submission.ID,
+		runResults.MemoryUsage,
+	); err != nil {
+		s.logger.Error("failed to memory usage", "err", err)
+		return err
+	}
+
+	if err := s.submissionRepository.UpdateStatus(
+		ctx,
+		submission.ID,
+		runResults.Status.String(),
+	); err != nil {
+		s.logger.Error("failed to status", "err", err)
+		return err
+	}
+
+	if err := s.submissionRepository.UpdateFailedTestcases(
+		ctx,
+		submission.ID,
+		runResults.FailedTestcases,
+	); err != nil {
+		s.logger.Error("failed to update testcases", "err", err)
+		return err
+	}
+
+	if err := s.submissionRepository.UpdateStdout(
+		ctx,
+		submission.ID,
+		runResults.StdOut,
+	); err != nil {
+		s.logger.Error("failed to stdout", "err", err)
+		return err
+	}
+
+	if err := s.submissionRepository.UpdateStderr(
+		ctx,
+		submission.ID,
+		runResults.StdErr,
+	); err != nil {
+		s.logger.Error("failed to stderr", "err", err)
+		return err
+	}
 
 	return nil
 }
@@ -453,7 +561,6 @@ func (s *problemService) Run(
 
 	runResults, err := s.judge.Run(
 		ctx,
-		run,
 		problem,
 		problemCode,
 		wantedTestcases,

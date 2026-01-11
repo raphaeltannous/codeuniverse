@@ -18,6 +18,7 @@ type FailedTestcase struct {
 	Input    any `json:"input"`
 	Expected any `json:"expected"`
 	Got      any `json:"got"`
+	StdOut   any `json:"stdOut"`
 }
 
 type ResultStatus int

@@ -99,7 +99,6 @@ func (judge *Judge) pullImage(ctx context.Context, wantedImage string) error {
 
 func (judge *Judge) Run(
 	ctx context.Context,
-	run *models.Run,
 	problem *models.Problem,
 	problemCode *models.ProblemCode,
 	problemTestcases []*models.ProblemTestcase,
