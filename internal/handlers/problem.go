@@ -42,10 +42,31 @@ func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 		limit = middleware.LimitDefault
 	}
 
+	premium, ok := ctx.Value(middleware.ProblemPremiumFilterCtxKey).(repository.ProblemParam)
+	if !ok {
+		premium = 0
+	}
+	difficulty, ok := ctx.Value(middleware.ProblemDifficultyFilterCtxKey).(models.ProblemDifficulty)
+	if !ok {
+		difficulty = 0
+	}
+	sortBy, ok := ctx.Value(middleware.ProblemSortByFilterCtxKey).(repository.ProblemParam)
+	if !ok {
+		sortBy = 0
+	}
+	sortOrder, ok := ctx.Value(middleware.ProblemSortOrderFilterCtxKey).(repository.ProblemParam)
+	if !ok {
+		sortOrder = 0
+	}
+
 	getParams := &repository.GetProblemsParams{
-		Offset: offset,
-		Limit:  limit,
-		Search: search,
+		Offset:     offset,
+		Limit:      limit,
+		Search:     search,
+		IsPremium:  premium,
+		Difficulty: difficulty,
+		SortBy:     sortBy,
+		SortOrder:  sortOrder,
 	}
 
 	problems, total, err := h.problemService.GetProblems(ctx, getParams)
@@ -489,4 +510,16 @@ func (h *ProblemHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *ProblemHandler) GetProgress(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, user.IsActive, http.StatusOK)
 }

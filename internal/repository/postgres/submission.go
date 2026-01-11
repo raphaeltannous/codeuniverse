@@ -16,6 +16,11 @@ type postgresSubmissionRepository struct {
 	db *sql.DB
 }
 
+// GetSolvedProblems implements [repository.SubmissionRepository].
+func (p *postgresSubmissionRepository) GetSolvedProblems(ctx context.Context, userId uuid.UUID) ([]string, error) {
+	panic("unimplemented")
+}
+
 func (p *postgresSubmissionRepository) Create(ctx context.Context, submission *models.Submission) (*models.Submission, error) {
 	query := `
 		INSERT INTO

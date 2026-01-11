@@ -22,6 +22,7 @@ type SubmissionRepository interface {
 	GetProblemSubmissions(ctx context.Context, userId, problemId uuid.UUID) ([]*models.Submission, error)
 	GetSubmissionsStats(ctx context.Context, userId uuid.UUID) (*models.SubmissionStats, error)
 
+	GetSolvedProblems(ctx context.Context, userId uuid.UUID) ([]string, error)
 	GetSubmissionsCount(ctx context.Context) (int, error)
 	GetSubmissionsLastNDaysCount(ctx context.Context, since int) (int, error)
 	GetPendingSubmissionsCount(ctx context.Context) (int, error)

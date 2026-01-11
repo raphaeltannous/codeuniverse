@@ -22,7 +22,18 @@ func problemsRouter(
 		r.Use(middleware.LimitMiddleware)
 		r.Use(middleware.SearchMiddleware)
 
+		r.Use(middleware.ProblemPremiumFilterMiddleware)
+		r.Use(middleware.ProblemDifficultyFilterMiddleware)
+		r.Use(middleware.ProblemSortByFilterMiddleware)
+		r.Use(middleware.ProblemSortOrderFilterMiddleware)
+
 		r.Get("/", problemHandler.GetProblems)
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(authMiddleware)
+
+		r.Get("/progress", problemHandler.GetProgress)
 	})
 
 	r.Route("/{problemSlug}", func(r chi.Router) {
