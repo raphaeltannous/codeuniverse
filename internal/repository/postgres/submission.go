@@ -16,11 +16,6 @@ type postgresSubmissionRepository struct {
 	db *sql.DB
 }
 
-// GetSolvedProblems implements [repository.SubmissionRepository].
-func (p *postgresSubmissionRepository) GetSolvedProblems(ctx context.Context, userId uuid.UUID) ([]string, error) {
-	panic("unimplemented")
-}
-
 func (p *postgresSubmissionRepository) Create(ctx context.Context, submission *models.Submission) (*models.Submission, error) {
 	query := `
 		INSERT INTO
@@ -394,24 +389,55 @@ func (p *postgresSubmissionRepository) GetProblemSubmissions(ctx context.Context
 	return submissions, nil
 }
 
+func (p *postgresSubmissionRepository) GetSolvedProblems(ctx context.Context, userId uuid.UUID) ([]string, error) {
+	query := `
+		SELECT
+			p.slug
+		FROM submissions s
+		JOIN problems p ON p.id = s.problem_id
+		WHERE s.status = 'Accepted' AND s.user_id = $1;
+	`
+
+	rows, err := p.db.QueryContext(
+		ctx,
+		query,
+		userId,
+	)
+	if err != nil {
+		return []string(nil), fmt.Errorf("failed to get rows for solved problems: %w", err)
+	}
+
+	var solvedProblems []string
+	for rows.Next() {
+		var slug string
+
+		if err := rows.Scan(&slug); err != nil {
+			return []string(nil), fmt.Errorf("failed to scan slug from solved prolbems: %w", err)
+		}
+
+		solvedProblems = append(solvedProblems, slug)
+	}
+
+	return solvedProblems, nil
+}
 func (p *postgresSubmissionRepository) GetSubmissionsStats(ctx context.Context, userId uuid.UUID) (*models.SubmissionStats, error) {
 	query := `
 		SELECT
 		    COUNT(*) AS total_submissions,
-		    COUNT(*) FILTER (WHERE is_accepted = true) AS accepted_submissions,
+		    COUNT(*) FILTER (WHERE status = 'Accepted') AS accepted_submissions,
 
-		    COUNT(DISTINCT problem_id) FILTER (WHERE is_accepted = true) AS problems_solved,
+		    COUNT(DISTINCT problem_id) FILTER (WHERE status = 'Accepted') AS problems_solved,
 
 		    COUNT(DISTINCT problem_id) FILTER (
-		        WHERE is_accepted = true AND p.difficulty = 'Easy'
+		        WHERE status = 'Accepted' AND p.difficulty = 'Easy'
 		    ) AS easy_solved,
 
 		    COUNT(DISTINCT problem_id) FILTER (
-		        WHERE is_accepted = true AND p.difficulty = 'Medium'
+		        WHERE status = 'Accepted' AND p.difficulty = 'Medium'
 		    ) AS medium_solved,
 
 		    COUNT(DISTINCT problem_id) FILTER (
-		        WHERE is_accepted = true AND p.difficulty = 'Hard'
+		        WHERE status = 'Accepted' AND p.difficulty = 'Hard'
 		    ) AS hard_solved
 		FROM submissions s
 		JOIN problems p ON p.id = s.problem_id
