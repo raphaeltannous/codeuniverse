@@ -97,11 +97,21 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    jwtToken,
+		Path:     "/",
+		MaxAge:   60 * 60 * 7,
+		Secure:   false,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	response := map[string]string{
-		"jwtToken": jwtToken,
+		"message": "Signup successful.",
 	}
 
-	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
+	handlersutils.WriteResponseJSON(w, response, http.StatusCreated)
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -228,11 +238,39 @@ func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    jwtToken,
+		Path:     "/",
+		MaxAge:   60 * 60 * 7,
+		Secure:   false,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	response := map[string]string{
-		"jwtToken": jwtToken,
+		"message": "Login successful.",
 	}
 
-	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted) // TODO: what should be the reponse status?
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	response := map[string]string{
+		"message": "Logged out.",
+	}
+
+	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
 func (h *UserHandler) ResendMfaVerification(w http.ResponseWriter, r *http.Request) {
@@ -306,24 +344,8 @@ func (h *UserHandler) ResendMfaVerification(w http.ResponseWriter, r *http.Reque
 	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted) // TODO: correct status?
 }
 
-func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{
-		"message": "Bye!",
-	}
-
-	handlersutils.WriteResponseJSON(w, response, http.StatusContinue)
-}
-
-func (h *UserHandler) RefreshJWTToken(w http.ResponseWriter, r *http.Request) {
-	handlersutils.WriteResponseJSON(w, handlersutils.NewAPIError("NOT_IMPLEMENTED", "Not Implemented."), http.StatusAccepted)
-}
-
 func (h *UserHandler) JWTTokenStatus(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{
-		"message": "Token is valid.",
-	}
-
-	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *UserHandler) PasswordResetRequest(w http.ResponseWriter, r *http.Request) {

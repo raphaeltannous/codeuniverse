@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils"
@@ -15,19 +14,18 @@ const UserAuthCtxKey = "userAuth"
 
 func AuthMiddleware(next http.Handler, userService services.UserService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		cookie, err := r.Cookie("jwt")
+		if err != nil {
 			apiError := handlersutils.NewAPIError(
-				"MISSING_TOKEN",
-				"Missing Token.",
+				"UNAUTHORIZED",
+				"Unauthorized.",
 			)
 
 			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
 			return
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		token, err := utils.ValidateJWT(tokenString)
+		token, err := utils.ValidateJWT(cookie.Value)
 		if err != nil || !token.Valid {
 			apiError := handlersutils.NewAPIError(
 				"INVALID_TOKEN",
