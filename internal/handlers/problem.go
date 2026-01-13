@@ -521,5 +521,14 @@ func (h *ProblemHandler) GetProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlersutils.WriteResponseJSON(w, user.IsActive, http.StatusOK)
+	solvedProblems, err := h.problemService.GetSolvedProblems(
+		ctx,
+		user,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteResponseJSON(w, solvedProblems, http.StatusOK)
 }
