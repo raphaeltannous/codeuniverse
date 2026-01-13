@@ -35,7 +35,6 @@ func authRouter(
 		r.Use(authMiddleware)
 
 		r.Post("/logout", userHandler.Logout)
-		r.Post("/refresh", userHandler.RefreshJWTToken)
 		r.Get("/status", userHandler.JWTTokenStatus)
 	})
 
