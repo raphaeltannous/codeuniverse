@@ -23,7 +23,7 @@ func AdminOnly(next http.Handler) http.Handler {
 				"Not an admin",
 			)
 
-			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusForbidden)
 			return
 		}
 
