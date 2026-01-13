@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"git.riyt.dev/codeuniverse/internal/handlers"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 func Service(
@@ -27,8 +29,22 @@ func Service(
 ) http.Handler {
 	r := chi.NewRouter()
 
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:8080"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.Logger)
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(1 * time.Second)
+			next.ServeHTTP(w, r)
+		})
+	})
 
 	r.Mount("/api", apiRouter(
 		userHandler,
