@@ -26,7 +26,7 @@ type ProblemService interface {
 	GetBySlug(ctx context.Context, slug string) (*models.Problem, error)
 
 	GetProblems(ctx context.Context, getParams *repository.GetProblemsParams) ([]*models.Problem, int, error)
-	GetSolvedProblems(ctx context.Context, user *models.Problem) ([]string, error)
+	GetSolvedProblems(ctx context.Context, user *models.User) ([]string, error)
 
 	GetCount(ctx context.Context, difficulty models.ProblemDifficulty) (int, error)
 
@@ -82,8 +82,14 @@ type problemService struct {
 	logger *slog.Logger
 }
 
-func (s *problemService) GetSolvedProblems(ctx context.Context, user *models.Problem) ([]string, error) {
-	panic("unimplemented")
+func (s *problemService) GetSolvedProblems(ctx context.Context, user *models.User) ([]string, error) {
+	solvedProblems, err := s.submissionRepository.GetSolvedProblems(ctx, user.ID)
+	if err != nil {
+		s.logger.Error("failed to get solved problems", "err", err)
+		return []string(nil), err
+	}
+
+	return solvedProblems, nil
 }
 
 func (s *problemService) AddProblemTestcase(
