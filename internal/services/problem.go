@@ -426,14 +426,14 @@ func (s *problemService) Submit(
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(
+	runCtx, cancel := context.WithTimeout(
 		ctx,
 		time.Duration(problemCodeConfig.TimeLimit)*time.Millisecond,
 	)
 	defer cancel()
 
 	runResults, err := s.judge.Run(
-		ctx,
+		runCtx,
 		problem,
 		problemCode,
 		problemTestcases,
@@ -564,14 +564,14 @@ func (s *problemService) Run(
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(
+	runCtx, cancel := context.WithTimeout(
 		ctx,
 		time.Duration(problemCodeConfig.TimeLimit)*time.Millisecond,
 	)
 	defer cancel()
 
 	runResults, err := s.judge.Run(
-		ctx,
+		runCtx,
 		problem,
 		problemCode,
 		wantedTestcases,
