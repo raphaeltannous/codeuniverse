@@ -97,21 +97,13 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
-		Value:    jwtToken,
-		Path:     "/",
-		MaxAge:   60 * 60 * 7,
-		Secure:   false,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	handlersutils.WriteJwtCookie(w, jwtToken)
 
-	response := map[string]string{
-		"message": "Signup successful.",
-	}
-
-	handlersutils.WriteResponseJSON(w, response, http.StatusCreated)
+	handlersutils.WriteSuccessMessage(
+		w,
+		"Signup completed.",
+		http.StatusCreated,
+	)
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -238,21 +230,13 @@ func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
-		Value:    jwtToken,
-		Path:     "/",
-		MaxAge:   60 * 60 * 7,
-		Secure:   false,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	handlersutils.WriteJwtCookie(w, jwtToken)
 
-	response := map[string]string{
-		"message": "Login successful.",
-	}
-
-	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+	handlersutils.WriteSuccessMessage(
+		w,
+		"Login successful",
+		http.StatusOK,
+	)
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {

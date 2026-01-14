@@ -85,7 +85,11 @@ func (h *AdminHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlersutils.WriteResponseJSON(w, course, http.StatusCreated)
+	handlersutils.WriteSuccessMessage(
+		w,
+		"Course created.",
+		http.StatusCreated,
+	)
 }
 
 func (h *AdminHandler) UpdateCourseInfo(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +135,7 @@ func (h *AdminHandler) UpdateCourseInfo(w http.ResponseWriter, r *http.Request) 
 	}
 
 	response := map[string]string{
-		"message": "Course is updated.",
+		"message": "Course updated.",
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
@@ -202,11 +206,11 @@ func (h *AdminHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]string{
-		"message": "Course deleted.",
-	}
-
-	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+	handlersutils.WriteSuccessMessage(
+		w,
+		"Course deleted.",
+		http.StatusOK,
+	)
 }
 
 func (h *AdminHandler) UpdateThumbnail(w http.ResponseWriter, r *http.Request) {
@@ -287,12 +291,11 @@ func (h *AdminHandler) UpdateThumbnail(w http.ResponseWriter, r *http.Request) {
 
 	h.staticService.DeleteCourseThumbnail(ctx, course.ThumbnailURL)
 
-	response := map[string]string{
-		"thumbnailUrl": thumbnailUrl,
-		"message":      "Thumbnail uploaded successfully.",
-	}
-
-	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+	handlersutils.WriteSuccessMessage(
+		w,
+		"Thumbnail updated.",
+		http.StatusOK,
+	)
 }
 
 func (h *AdminHandler) GetLessons(w http.ResponseWriter, r *http.Request) {
