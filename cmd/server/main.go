@@ -41,22 +41,31 @@ func init() {
 	}
 }
 
-var ProblemsDataDir string
+var (
+	problemsDataDir string
+	stripeSecret    string
+)
 
 func init() {
-	ProblemsDataDir = os.Getenv("CODEUNIVERSE_PROBLEMS_DATA_DIR")
+	problemsDataDir = os.Getenv("CODEUNIVERSE_PROBLEMS_DATA_DIR")
 
-	if ProblemsDataDir == "" {
+	if problemsDataDir == "" {
 		log.Fatal("CODEUNIVERSE_PROBLEMS_DATA_DIR is not set.")
 	}
 
-	absPath, err := filepath.Abs(ProblemsDataDir)
+	absPath, err := filepath.Abs(problemsDataDir)
 	if err != nil {
 		log.Fatal("failed to convert CODEUNIVERSE_PROBLEMS_DATA_DIR to absolute path.")
 	}
 
-	ProblemsDataDir = absPath
-	slog.Info("problemsDataDir is updated.", "problemsDataDir", ProblemsDataDir)
+	problemsDataDir = absPath
+	slog.Info("problemsDataDir is updated.", "problemsDataDir", problemsDataDir)
+
+	stripeSecret = os.Getenv("CODEUNIVERSE_STRIPE_DEV_KEY")
+
+	if stripeSecret == "" {
+		log.Fatal("CODEUNIVERSE_STRIPE_DEV_KEY is not set.")
+	}
 }
 
 func main() {
@@ -138,8 +147,8 @@ func service(
 	judge judger.Judge,
 ) http.Handler {
 	// repositories
-	userRepo := postgres.NewUserRepository(db)
-	userProfileRepo := postgres.NewUserProfileRepository(db)
+	userRepository := postgres.NewUserRepository(db)
+	userProfileRepository := postgres.NewUserProfileRepository(db)
 	problemRepository := postgres.NewProblemRepository(db)
 	problemNoteRepository := postgres.NewProblemNoteRepository(db)
 	problemHintRepository := postgres.NewProblemHintRepository(db)
@@ -148,11 +157,11 @@ func service(
 	courseProgressRepository := postgres.NewCourseProgressRepository(db)
 	runRepository := postgres.NewRunRepository(db)
 	submissionRepository := postgres.NewSubmissionRepository(db)
-	mfaRepo := postgres.NewMfaCodeRepository(db)
-	passwordResetRepo := postgres.NewPasswordResetRepository(db)
-	emailVerificationRepo := postgres.NewEmailVerificationRepository(db)
+	mfaRepository := postgres.NewMfaCodeRepository(db)
+	passwordResetRepository := postgres.NewPasswordResetRepository(db)
+	emailVerificationRepository := postgres.NewEmailVerificationRepository(db)
 
-	problemCodeRepository, err := filesystem.NewFilesystemProblemCodeRepository(ProblemsDataDir)
+	problemCodeRepository, err := filesystem.NewFilesystemProblemCodeRepository(problemsDataDir)
 	if err != nil {
 		log.Fatal("failed to init problemCodeRepository", err)
 	}
@@ -161,13 +170,13 @@ func service(
 
 	// services
 	userService := services.NewUserService(
-		userRepo,
-		userProfileRepo,
+		userRepository,
+		userProfileRepository,
 		submissionRepository,
 		problemRepository,
-		mfaRepo,
-		passwordResetRepo,
-		emailVerificationRepo,
+		mfaRepository,
+		passwordResetRepository,
+		emailVerificationRepository,
 		dbTransactor,
 
 		mailMan,
@@ -192,6 +201,11 @@ func service(
 		courseProgressRepository,
 	)
 
+	stripeService := services.NewStripeService(
+		userRepository,
+		stripeSecret,
+	)
+
 	// handlers
 	userHandler := handlers.NewUserHandler(userService, staticService)
 	problemHandler := handlers.NewProblemsHandlers(problemService)
@@ -199,6 +213,7 @@ func service(
 	staticHandler := handlers.NewStaticHandler(staticService)
 	adminHandler := handlers.NewAdminHandler(courseService, staticService, userService, problemService)
 	courseHandler := handlers.NewCourseHandler(courseService)
+	subscriptionHandler := handlers.NewSubscriptionHandler(stripeService)
 
 	// middlewares
 	authMiddleware := func(next http.Handler) http.Handler {
@@ -227,6 +242,7 @@ func service(
 		staticHandler,
 		adminHandler,
 		courseHandler,
+		subscriptionHandler,
 
 		authMiddleware,
 		problemMiddleware,

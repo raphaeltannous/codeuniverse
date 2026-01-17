@@ -132,6 +132,8 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, params *reposit
 				password_hash,
 				avatar_url,
 
+				stripe_customer_id,
+
 				is_verified,
 				is_active,
 				role,
@@ -180,7 +182,7 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, params *reposit
 
 func (pur *postgresUserRepository) GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, avatar_url, is_verified, is_active, role, created_at, updated_at
+		SELECT id, username, email, password_hash, avatar_url, stripe_customer_id, is_verified, is_active, role, created_at, updated_at
 		FROM users
 		WHERE created_at >= NOW() - INTERVAL '24 hours'
 		ORDER BY created_at DESC
@@ -365,6 +367,15 @@ func (pur *postgresUserRepository) UpdateUsername(ctx context.Context, id uuid.U
 	)
 }
 
+func (pur *postgresUserRepository) UpdateStripeCustomerId(ctx context.Context, id uuid.UUID, customerId string) error {
+	return pur.updateColumnValue(
+		ctx,
+		id,
+		"stripe_customer_id",
+		customerId,
+	)
+}
+
 func (pur *postgresUserRepository) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
 	return pur.updateColumnValue(
 		ctx,
@@ -422,7 +433,7 @@ func (pur *postgresUserRepository) UpdateRole(ctx context.Context, id uuid.UUID,
 func (pur *postgresUserRepository) getUserByColumn(ctx context.Context, column string, value any) (*models.User, error) {
 	query := fmt.Sprintf(
 		`
-			SELECT id, username, email, password_hash, avatar_url, is_verified, is_active, role, created_at, updated_at
+			SELECT id, username, email, password_hash, avatar_url, stripe_customer_id, is_verified, is_active, role, created_at, updated_at
 			FROM users
 			WHERE %s = $1;
 		`,
@@ -445,20 +456,7 @@ func (pur *postgresUserRepository) getUserByColumn(ctx context.Context, column s
 
 func (pur *postgresUserRepository) Search(ctx context.Context, search string) ([]*models.User, error) {
 	query := `
-		SELECT
-			id,
-
-			username,
-			email,
-			password_hash,
-
-			is_verified,
-			is_active,
-
-			role,
-
-			created_at,
-			updated_at
+		SELECT id, username, email, password_hash, avatar_url, stripe_customer_id, is_verified, is_active, role, created_at, updated_at
 		FROM users
 		WHERE
 			username ILIKE '%' || $1 || '%'
@@ -512,6 +510,7 @@ func scanUserFunc(scanner userScanner, user *models.User) error {
 		&user.Email,
 		&user.PasswordHash,
 		&user.AvatarURL,
+		&user.StripeCustomerID,
 		&user.IsVerified,
 		&user.IsActive,
 		&user.Role,

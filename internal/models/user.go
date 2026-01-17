@@ -9,10 +9,11 @@ import (
 type User struct {
 	ID uuid.UUID `db:"id" json:"id"`
 
-	Username     string `db:"username" json:"username"`
-	PasswordHash string `db:"password_hash" json:"-"`
-	Email        string `db:"email" json:"email"`
-	AvatarURL    string `db:"avatar_url" json:"avatarUrl"`
+	Username         string `db:"username" json:"username"`
+	PasswordHash     string `db:"password_hash" json:"-"`
+	Email            string `db:"email" json:"email"`
+	AvatarURL        string `db:"avatar_url" json:"avatarUrl"`
+	StripeCustomerID string `db:"stripe_customer_id" json:"-"`
 
 	IsVerified bool `db:"is_verified" json:"isVerified"`
 	IsActive   bool `db:"is_active" json:"isActive"`

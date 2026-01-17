@@ -31,6 +31,7 @@ type UserRepository interface {
 	UpdateActive(ctx context.Context, id uuid.UUID, status bool) error
 	UpdateVerify(ctx context.Context, id uuid.UUID, status bool) error
 	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
+	UpdateStripeCustomerId(ctx context.Context, id uuid.UUID, customerId string) error
 
 	Search(ctx context.Context, search string) ([]*models.User, error)
 }
