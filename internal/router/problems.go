@@ -13,6 +13,7 @@ func problemsRouter(
 	problemHandler *handlers.ProblemHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
+	partialAuthMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
 ) chi.Router {
 	r := chi.NewRouter()
@@ -37,6 +38,7 @@ func problemsRouter(
 	})
 
 	r.Route("/{problemSlug}", func(r chi.Router) {
+		r.Use(partialAuthMiddleware)
 		r.Use(problemMiddleware)
 
 		r.Get("/", problemHandler.GetProblem)

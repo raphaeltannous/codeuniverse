@@ -133,6 +133,7 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, params *reposit
 				avatar_url,
 
 				stripe_customer_id,
+				premium_status,
 
 				is_verified,
 				is_active,
@@ -182,7 +183,7 @@ func (pur *postgresUserRepository) GetUsers(ctx context.Context, params *reposit
 
 func (pur *postgresUserRepository) GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, avatar_url, stripe_customer_id, is_verified, is_active, role, created_at, updated_at
+		SELECT id, username, email, password_hash, avatar_url, stripe_customer_id, premium_status, is_verified, is_active, role, created_at, updated_at
 		FROM users
 		WHERE created_at >= NOW() - INTERVAL '24 hours'
 		ORDER BY created_at DESC
@@ -334,6 +335,14 @@ func (pur *postgresUserRepository) Delete(ctx context.Context, id uuid.UUID) err
 	return nil
 }
 
+func (pur *postgresUserRepository) GetByStripeCustomerId(ctx context.Context, customerId string) (*models.User, error) {
+	return pur.getUserByColumn(
+		ctx,
+		"stripe_customer_id",
+		customerId,
+	)
+}
+
 func (pur *postgresUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	return pur.getUserByColumn(
 		ctx,
@@ -373,6 +382,15 @@ func (pur *postgresUserRepository) UpdateStripeCustomerId(ctx context.Context, i
 		id,
 		"stripe_customer_id",
 		customerId,
+	)
+}
+
+func (pur *postgresUserRepository) UpdatePremiumStatus(ctx context.Context, id uuid.UUID, status string) error {
+	return pur.updateColumnValue(
+		ctx,
+		id,
+		"premium_status",
+		status,
 	)
 }
 
@@ -433,7 +451,7 @@ func (pur *postgresUserRepository) UpdateRole(ctx context.Context, id uuid.UUID,
 func (pur *postgresUserRepository) getUserByColumn(ctx context.Context, column string, value any) (*models.User, error) {
 	query := fmt.Sprintf(
 		`
-			SELECT id, username, email, password_hash, avatar_url, stripe_customer_id, is_verified, is_active, role, created_at, updated_at
+			SELECT id, username, email, password_hash, avatar_url, stripe_customer_id, premium_status, is_verified, is_active, role, created_at, updated_at
 			FROM users
 			WHERE %s = $1;
 		`,
@@ -452,40 +470,6 @@ func (pur *postgresUserRepository) getUserByColumn(ctx context.Context, column s
 	}
 
 	return user, nil
-}
-
-func (pur *postgresUserRepository) Search(ctx context.Context, search string) ([]*models.User, error) {
-	query := `
-		SELECT id, username, email, password_hash, avatar_url, stripe_customer_id, is_verified, is_active, role, created_at, updated_at
-		FROM users
-		WHERE
-			username ILIKE '%' || $1 || '%'
-			OR email ILIKE '%' || $1 || '%';
-	`
-
-	rows, err := pur.db.QueryContext(
-		ctx,
-		query,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to query users by search: %w", err)
-	}
-	defer rows.Close()
-
-	var users []*models.User
-	for rows.Next() {
-		user := new(models.User)
-
-		err := scanUserFunc(rows, user)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan into user: %w", err)
-		}
-
-		users = append(users, user)
-	}
-
-	return users, nil
 }
 
 func (pur *postgresUserRepository) updateColumnValue(ctx context.Context, id uuid.UUID, column string, value any) error {
@@ -511,6 +495,7 @@ func scanUserFunc(scanner userScanner, user *models.User) error {
 		&user.PasswordHash,
 		&user.AvatarURL,
 		&user.StripeCustomerID,
+		&user.PremiumStatus,
 		&user.IsVerified,
 		&user.IsActive,
 		&user.Role,

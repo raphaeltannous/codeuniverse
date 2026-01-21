@@ -503,17 +503,19 @@ func (h *UserHandler) GetAuthenticatedProfile(w http.ResponseWriter, r *http.Req
 	}
 
 	response := struct {
-		Username   string `json:"username"`
-		AvatarUrl  string `json:"avatarUrl"`
-		IsVerified bool   `json:"isVerified"`
-		IsActive   bool   `json:"isActive"`
-		Role       string `json:"role"`
+		Username      string `json:"username"`
+		AvatarUrl     string `json:"avatarUrl"`
+		IsVerified    bool   `json:"isVerified"`
+		IsActive      bool   `json:"isActive"`
+		Role          string `json:"role"`
+		PremiumStatus string `json:"premiumStatus"`
 	}{
-		Username:   user.Username,
-		AvatarUrl:  user.AvatarURL,
-		IsActive:   user.IsActive,
-		IsVerified: user.IsVerified,
-		Role:       user.Role,
+		Username:      user.Username,
+		AvatarUrl:     user.AvatarURL,
+		IsActive:      user.IsActive,
+		IsVerified:    user.IsVerified,
+		Role:          user.Role,
+		PremiumStatus: user.PremiumStatus,
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)

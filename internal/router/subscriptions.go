@@ -14,12 +14,15 @@ func subscriptionRouter(
 ) chi.Router {
 	r := chi.NewRouter()
 
-	r.Use(authMiddleware)
+	r.Post("/webhook", subscriptionHandler.StripeWebhook)
 
-	r.Get("/status", subscriptionHandler.GetStatus)
-	r.Post("/checkout-session", subscriptionHandler.GetCheckoutSession)
-	r.Post("/cancel", subscriptionHandler.CancelSubscription)
-	r.Post("/update-payment-method", subscriptionHandler.UpdatePaymentMethod)
+	r.Group(func(r chi.Router) {
+		r.Use(authMiddleware)
+
+		r.Get("/status", subscriptionHandler.GetStatus)
+		r.Post("/checkout-session", subscriptionHandler.GetCheckoutSession)
+		r.Post("/update-payment-method", subscriptionHandler.UpdatePaymentMethod)
+	})
 
 	return r
 }

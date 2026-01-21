@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"io"
 	"net/http"
 
 	"git.riyt.dev/codeuniverse/internal/middleware"
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
+	"github.com/stripe/stripe-go/v84/webhook"
 )
 
 type SubscriptionHandler struct {
@@ -29,23 +31,19 @@ func (h *SubscriptionHandler) GetStatus(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	cust, err := h.stripeService.GetCustomer(ctx, user)
-	if err != nil {
-		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
-		return
-	}
-	user.StripeCustomerID = cust.ID
-
-	status, err := h.stripeService.GetSubscriptionStatus(ctx, user)
-	if err != nil {
-		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
-		return
+	if user.StripeCustomerID == "" {
+		cust, err := h.stripeService.GetCustomer(ctx, user)
+		if err != nil {
+			handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+			return
+		}
+		user.StripeCustomerID = cust.ID
 	}
 
 	response := map[string]string{
-		"customerId": cust.ID,
+		"customerId": user.StripeCustomerID,
 		"email":      user.ID.String(),
-		"status":     status,
+		"status":     user.PremiumStatus,
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
@@ -85,35 +83,6 @@ func (h *SubscriptionHandler) GetCheckoutSession(w http.ResponseWriter, r *http.
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
 }
 
-func (h *SubscriptionHandler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
-	if !ok {
-		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
-		return
-	}
-
-	err := h.stripeService.CancelSubscription(
-		ctx,
-		user,
-	)
-	if err != nil {
-		apiError := handlersutils.NewAPIError(
-			"FAILED_TO_CANCEL_SUBSCRIPTION",
-			"Failed to cancel subscription. Please contact support.",
-		)
-
-		handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
-		return
-	}
-
-	handlersutils.WriteSuccessMessage(
-		w,
-		"Subscription cancelled.",
-		http.StatusOK,
-	)
-}
-
 func (h *SubscriptionHandler) UpdatePaymentMethod(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
@@ -142,4 +111,21 @@ func (h *SubscriptionHandler) UpdatePaymentMethod(w http.ResponseWriter, r *http
 	}
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusOK)
+}
+
+func (h *SubscriptionHandler) StripeWebhook(w http.ResponseWriter, r *http.Request) {
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	event, err := webhook.ConstructEvent(b, r.Header.Get("Stripe-Signature"), "whsec_2036c4e5a8c105044b7d676b5982cca2f2c79d5393550f62912669fe14f1d95e")
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	ctx := r.Context()
+	h.stripeService.HandleWebhook(ctx, event)
 }

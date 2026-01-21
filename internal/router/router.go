@@ -21,6 +21,7 @@ func Service(
 	subscriptionHandler *handlers.SubscriptionHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
+	partialAuthMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
 	courseMiddleware func(next http.Handler) http.Handler,
 	lessonMiddleware func(next http.Handler) http.Handler,
@@ -56,6 +57,7 @@ func Service(
 		subscriptionHandler,
 
 		authMiddleware,
+		partialAuthMiddleware,
 		problemMiddleware,
 		courseMiddleware,
 		lessonMiddleware,
@@ -89,6 +91,7 @@ func apiRouter(
 	subscriptionHandler *handlers.SubscriptionHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
+	partialAuthMiddleware func(next http.Handler) http.Handler,
 	problemMiddleware func(next http.Handler) http.Handler,
 	courseMiddleware func(next http.Handler) http.Handler,
 	lessonMiddleware func(next http.Handler) http.Handler,
@@ -100,7 +103,12 @@ func apiRouter(
 	r.Mount("/health", heathRouter())
 	r.Mount("/auth", authRouter(userHandler, authMiddleware))
 
-	r.Mount("/problems", problemsRouter(problemsHandler, authMiddleware, problemMiddleware))
+	r.Mount("/problems", problemsRouter(
+		problemsHandler,
+		authMiddleware,
+		partialAuthMiddleware,
+		problemMiddleware,
+	))
 	r.Mount("/courses", courseRouter(courseHandler, authMiddleware, courseMiddleware, lessonMiddleware))
 
 	r.Mount("/users", usersRouter(userHandler))

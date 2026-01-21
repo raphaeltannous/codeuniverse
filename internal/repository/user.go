@@ -21,6 +21,7 @@ type UserRepository interface {
 	GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error)
 
 	GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+	GetByStripeCustomerId(ctx context.Context, customerId string) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 
@@ -32,8 +33,7 @@ type UserRepository interface {
 	UpdateVerify(ctx context.Context, id uuid.UUID, status bool) error
 	UpdateRole(ctx context.Context, id uuid.UUID, role string) error
 	UpdateStripeCustomerId(ctx context.Context, id uuid.UUID, customerId string) error
-
-	Search(ctx context.Context, search string) ([]*models.User, error)
+	UpdatePremiumStatus(ctx context.Context, id uuid.UUID, status string) error
 }
 
 type UserParam int

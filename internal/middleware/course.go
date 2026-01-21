@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
@@ -32,6 +33,24 @@ func CourseMiddleware(next http.Handler, courseService services.CourseService) h
 			default:
 				handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
 			}
+			return
+		}
+
+		user, ok := ctx.Value(UserAuthCtxKey).(*models.User)
+		if !ok {
+			user = &models.User{
+				Role:          "user",
+				PremiumStatus: "free",
+			}
+		}
+
+		if user.PremiumStatus == "free" && user.Role != "admin" {
+			apiError := handlersutils.NewAPIError(
+				"COURSE_IS_PREMIUM",
+				"Course requires premium plan.",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusForbidden)
 			return
 		}
 

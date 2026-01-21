@@ -90,6 +90,24 @@ func ProblemMiddleware(next http.Handler, problemService services.ProblemService
 			return
 		}
 
+		user, ok := ctx.Value(UserAuthCtxKey).(*models.User)
+		if !ok {
+			user = &models.User{
+				Role:          "user",
+				PremiumStatus: "free",
+			}
+		}
+
+		if problem.IsPremium && user.PremiumStatus == "free" && user.Role != "admin" {
+			apiError := handlersutils.NewAPIError(
+				"PROBLEM_IS_PREMIUM",
+				"Problem requires premium plan.",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusForbidden)
+			return
+		}
+
 		ctx = context.WithValue(ctx, ProblemCtxKey, problem)
 		r = r.WithContext(ctx)
 
