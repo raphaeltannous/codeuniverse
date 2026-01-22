@@ -15,7 +15,16 @@ type javascriptJudge struct {
 }
 
 func (j *javascriptJudge) Run(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
-	panic("unimplemented")
+	return run(
+		ctx,
+		j.cli,
+		problemCode,
+		problemTestcases,
+		&runConfig{
+			cmd: []string{"node", "main.js"},
+		},
+		j.logger,
+	)
 }
 
 func newJavascriptJudge(cli *client.Client, logger *slog.Logger) languageJudger {

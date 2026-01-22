@@ -14,13 +14,22 @@ type rubyJudge struct {
 	logger *slog.Logger
 }
 
-func (r *rubyJudge) Run(
+func (j *rubyJudge) Run(
 	ctx context.Context,
 	problem *models.Problem,
 	problemCode *models.ProblemCode,
 	problemTestcases []*models.ProblemTestcase,
 ) (*models.RunResult, error) {
-	panic("unimplemented")
+	return run(
+		ctx,
+		j.cli,
+		problemCode,
+		problemTestcases,
+		&runConfig{
+			cmd: []string{"ruby", "main.rb"},
+		},
+		j.logger,
+	)
 }
 
 func newRubyJudge(cli *client.Client, logger *slog.Logger) languageJudger {

@@ -40,12 +40,12 @@ var supportedLanguages = map[models.ProblemLanguage]*LanguageJudge{
 		logger:         slog.Default().With("package", "judger.cppLanguage"),
 	},
 	models.LanguageTypescript: {
-		containerImage: "node:22.21.1-alpine",
+		containerImage: "codeuniverse-node:22.21.1-alpine",
 		judge:          nil,
 		logger:         slog.Default().With("package", "judger.typescriptLanguage"),
 	},
 	models.LanguageJavascript: {
-		containerImage: "node:22.21.1-alpine",
+		containerImage: "codeuniverse-node:22.21.1-alpine",
 		judge:          nil,
 		logger:         slog.Default().With("package", "judger.javascriptLanguage"),
 	},

@@ -14,8 +14,20 @@ type cppJudge struct {
 	logger *slog.Logger
 }
 
-func (c *cppJudge) Run(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
-	panic("unimplemented")
+func (j *cppJudge) Run(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
+	return run(
+		ctx,
+		j.cli,
+		problemCode,
+		problemTestcases,
+		&runConfig{
+			cmd: []string{
+				"sh", "-c",
+				"g++ -std=c++23 -o program main.cpp && ./program",
+			},
+		},
+		j.logger,
+	)
 }
 
 func newCPPJudge(cli *client.Client, logger *slog.Logger) languageJudger {

@@ -94,7 +94,7 @@ func (r ResultStatus) String() string {
 		return value
 	}
 
-	return "UNKNOWN RESULT STATUS"
+	return "Internal Server Error"
 }
 
 func (r ResultStatus) MarshalJSON() ([]byte, error) {

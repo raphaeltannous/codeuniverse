@@ -15,7 +15,19 @@ type javaJudge struct {
 }
 
 func (j *javaJudge) Run(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode, problemTestcases []*models.ProblemTestcase) (*models.RunResult, error) {
-	panic("unimplemented")
+	return run(
+		ctx,
+		j.cli,
+		problemCode,
+		problemTestcases,
+		&runConfig{
+			cmd: []string{
+				"sh", "-c",
+				"javac -cp '.:gson.jar' *.java && java -cp '.:gson.jar' BackendChecker",
+			},
+		},
+		j.logger,
+	)
 }
 
 func newJavaJudge(cli *client.Client, logger *slog.Logger) languageJudger {
