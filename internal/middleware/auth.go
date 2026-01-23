@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/services"
 	"git.riyt.dev/codeuniverse/internal/utils"
 	"git.riyt.dev/codeuniverse/internal/utils/handlersutils"
@@ -78,6 +79,30 @@ func AuthMiddleware(next http.Handler, userService services.UserService) http.Ha
 
 		ctx := context.WithValue(r.Context(), UserAuthCtxKey, user)
 		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func UserVerified(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		user, ok := ctx.Value(UserAuthCtxKey).(*models.User)
+		if !ok {
+			handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+			return
+		}
+
+		if !user.IsVerified {
+			apiError := handlersutils.NewAPIError(
+				"USER_NOT_VERIFIED",
+				"User not verified.",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+			return
+		}
 
 		next.ServeHTTP(w, r)
 	})

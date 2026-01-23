@@ -415,6 +415,40 @@ func (h *UserHandler) PasswordResetByToken(w http.ResponseWriter, r *http.Reques
 	handlersutils.WriteResponseJSON(w, reponse, http.StatusAccepted)
 }
 
+func (h *UserHandler) ResendEmailVerification(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
+	if !ok {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	if user.IsVerified {
+		handlersutils.WriteSuccessMessage(
+			w,
+			"You are already verified.",
+			http.StatusOK,
+		)
+		return
+	}
+
+	err := h.userService.SendEmailVerificationEmail(
+		ctx,
+		user.Email,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	handlersutils.WriteSuccessMessage(
+		w,
+		"Email sent. Please check your inbox.",
+		http.StatusOK,
+	)
+}
+
 func (h *UserHandler) VerifyEmailByToken(w http.ResponseWriter, r *http.Request) {
 	var requestBody struct {
 		Token string `json:"token"`
@@ -455,6 +489,16 @@ func (h *UserHandler) VerifyEmailByToken(w http.ResponseWriter, r *http.Request)
 	response := map[string]string{
 		"message": "Email is verified.",
 	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	handlersutils.WriteResponseJSON(w, response, http.StatusAccepted)
 }

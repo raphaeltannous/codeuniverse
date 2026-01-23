@@ -17,7 +17,9 @@ func authRouter(
 
 	r.Route("/signup", func(r chi.Router) {
 		r.Post("/", userHandler.Signup)
+
 		r.Post("/verify", userHandler.VerifyEmailByToken)
+
 	})
 
 	r.Route("/login", func(r chi.Router) {
@@ -36,6 +38,7 @@ func authRouter(
 
 		r.Post("/logout", userHandler.Logout)
 		r.Get("/status", userHandler.JWTTokenStatus)
+		r.Post("/resend-verification", userHandler.ResendEmailVerification)
 	})
 
 	r.Route("/password", func(r chi.Router) {

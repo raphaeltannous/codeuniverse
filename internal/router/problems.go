@@ -47,6 +47,8 @@ func problemsRouter(
 			r.Use(authMiddleware)
 
 			r.Route("/submit", func(r chi.Router) {
+				r.Use(middleware.UserVerified)
+
 				r.Route("/{languageSlug}", func(r chi.Router) {
 					r.Use(middleware.ProblemLanguageMiddleware)
 
@@ -57,6 +59,8 @@ func problemsRouter(
 			})
 
 			r.Route("/run", func(r chi.Router) {
+				r.Use(middleware.UserVerified)
+
 				r.Route("/{languageSlug}", func(r chi.Router) {
 					r.Use(middleware.ProblemLanguageMiddleware)
 
@@ -68,8 +72,6 @@ func problemsRouter(
 
 			r.Route("/submissions", func(r chi.Router) {
 				r.Get("/", problemHandler.GetSubmissions)
-
-				r.Get("/{submissionId}", handlersutils.Unimplemented)
 			})
 
 			r.Route("/notes", func(r chi.Router) {
