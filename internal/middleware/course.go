@@ -29,7 +29,7 @@ func CourseMiddleware(next http.Handler, courseService services.CourseService) h
 			case errors.Is(err, repository.ErrCourseNotFound):
 				apiError.Code = "COURSE_NOT_FOUND"
 				apiError.Message = "Course not found."
-				handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+				handlersutils.WriteResponseJSON(w, apiError, http.StatusNotFound)
 			default:
 				handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
 			}
@@ -51,6 +51,16 @@ func CourseMiddleware(next http.Handler, courseService services.CourseService) h
 			)
 
 			handlersutils.WriteResponseJSON(w, apiError, http.StatusForbidden)
+			return
+		}
+
+		if !course.IsPublished && user.Role != "admin" {
+			apiError := handlersutils.NewAPIError(
+				"COURSE_NOT_FOUND",
+				"Course not found.",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusNotFound)
 			return
 		}
 

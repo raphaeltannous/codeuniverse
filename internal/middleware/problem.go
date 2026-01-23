@@ -83,7 +83,7 @@ func ProblemMiddleware(next http.Handler, problemService services.ProblemService
 			case errors.Is(err, repository.ErrProblemNotFound):
 				apiError.Code = "PROBLEM_NOT_FOUND"
 				apiError.Message = "Problem not found."
-				handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+				handlersutils.WriteResponseJSON(w, apiError, http.StatusNotFound)
 			default:
 				handlersutils.WriteResponseJSON(w, apiError, http.StatusInternalServerError)
 			}
@@ -105,6 +105,16 @@ func ProblemMiddleware(next http.Handler, problemService services.ProblemService
 			)
 
 			handlersutils.WriteResponseJSON(w, apiError, http.StatusForbidden)
+			return
+		}
+
+		if !problem.IsPublic && user.Role != "admin" {
+			apiError := handlersutils.NewAPIError(
+				"PROBLEM_NOT_FOUND",
+				"Problem not found",
+			)
+
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusNotFound)
 			return
 		}
 

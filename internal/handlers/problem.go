@@ -64,6 +64,7 @@ func (h *ProblemHandler) GetProblems(w http.ResponseWriter, r *http.Request) {
 		Limit:      limit,
 		Search:     search,
 		IsPremium:  premium,
+		IsPublic:   repository.ProblemPublic,
 		Difficulty: difficulty,
 		SortBy:     sortBy,
 		SortOrder:  sortOrder,
