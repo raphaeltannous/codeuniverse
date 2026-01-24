@@ -23,8 +23,6 @@ import (
 	"git.riyt.dev/codeuniverse/internal/repository/postgres"
 	"git.riyt.dev/codeuniverse/internal/router"
 	"git.riyt.dev/codeuniverse/internal/services"
-	"git.riyt.dev/codeuniverse/internal/valkey"
-	glide "github.com/valkey-io/valkey-glide/go/v2"
 )
 
 var codeuniverseEnv string
@@ -115,15 +113,9 @@ func main() {
 	}
 	defer db.Close()
 
-	valkeyClient, err := valkey.Connect()
-	if err != nil {
-		panic(err)
-	}
-	defer valkeyClient.Close()
-
 	server := &http.Server{
 		Addr:    ":3333",
-		Handler: service(db, valkeyClient, mailMan, *judge),
+		Handler: service(db, mailMan, *judge),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -151,7 +143,6 @@ func main() {
 
 func service(
 	db *sql.DB,
-	valkeyClient *glide.Client,
 	mailMan mailer.Mailer,
 	judge judger.Judge,
 ) http.Handler {
@@ -212,7 +203,6 @@ func service(
 
 	stripeService := services.NewStripeService(
 		userRepository,
-		valkeyClient,
 		stripeSecret,
 	)
 

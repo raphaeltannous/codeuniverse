@@ -17,7 +17,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/stripe/stripe-go/v84 v84.1.0
-	github.com/valkey-io/valkey-glide/go/v2 v2.2.5
 	golang.org/x/crypto v0.43.0
 )
 
@@ -52,6 +51,5 @@ require (
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 )

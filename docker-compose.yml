@@ -11,13 +11,6 @@ services:
       POSTGRES_USER: "rt"
       POSTGRES_PASSWORD: "postgres"
     restart: unless-stopped
-  valkey:
-    container_name: "codeUniverseValkey"
-    image: valkey/valkey
-    volumes:
-      - "./.development/valkey:/data:rw"
-    ports:
-      - "6379:6379"
   mailpit:
     image: axllent/mailpit
     container_name: mailpit

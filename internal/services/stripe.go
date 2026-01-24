@@ -11,7 +11,6 @@ import (
 	billingportal "github.com/stripe/stripe-go/v84/billingportal/session"
 	"github.com/stripe/stripe-go/v84/checkout/session"
 	"github.com/stripe/stripe-go/v84/customer"
-	glide "github.com/valkey-io/valkey-glide/go/v2"
 )
 
 type StripeService interface {
@@ -24,7 +23,6 @@ type StripeService interface {
 
 type stripeService struct {
 	userRepository repository.UserRepository
-	valkeyClient   *glide.Client
 
 	logger *slog.Logger
 }
@@ -210,7 +208,6 @@ func (s *stripeService) GetCustomer(
 
 func NewStripeService(
 	userRepository repository.UserRepository,
-	valkeyClient *glide.Client,
 
 	key string,
 ) StripeService {
@@ -218,7 +215,6 @@ func NewStripeService(
 
 	return &stripeService{
 		userRepository: userRepository,
-		valkeyClient:   valkeyClient,
 
 		logger: slog.Default().WithGroup("service.StripeService"),
 	}
