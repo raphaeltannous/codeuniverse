@@ -27,6 +27,7 @@ import (
 )
 
 var codeuniverseEnv string
+var address = ":3333"
 
 func init() {
 	allowedEnv := map[string]bool{
@@ -43,6 +44,7 @@ func init() {
 
 	if codeuniverseEnv == "production" {
 		models.Domain = "https://codeuniverse.riyt.dev"
+		address = ":443"
 	} else {
 		models.Domain = "http://localhost:8080"
 	}
@@ -121,7 +123,7 @@ func main() {
 	defer db.Close()
 
 	server := &http.Server{
-		Addr:    ":3333",
+		Addr:    address,
 		Handler: service(db, mailMan, *judge),
 	}
 
