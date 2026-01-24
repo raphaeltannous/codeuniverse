@@ -480,8 +480,7 @@ func (s *userService) SendPasswordResetEmail(ctx context.Context, email string) 
 
 	resetPasswordTmplData := templates.NewResetPasswordTmplData(
 		user.Username,
-		// TODO: is there a better way to point to application url?
-		fmt.Sprintf("http://localhost:8080/accounts/password/reset?token=%s", token),
+		fmt.Sprintf("%s/accounts/password/reset?token=%s", models.Domain, token),
 		"10",
 	)
 
@@ -667,7 +666,7 @@ func (s *userService) SendEmailVerificationEmail(ctx context.Context, email stri
 	verifyEmailTmplData := templates.NewVerifyEmailTmplData(
 		user.Username,
 		user.Email,
-		fmt.Sprintf("http://localhost:8080/accounts/signup/email-verification?token=%s", token),
+		fmt.Sprintf("%s/accounts/signup/email-verification?token=%s", models.Domain, token),
 		"10",
 	)
 

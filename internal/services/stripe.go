@@ -124,7 +124,7 @@ func (s *stripeService) UpdatePaymentMethod(ctx context.Context, user *models.Us
 
 	portalSession, err := billingportal.New(&stripe.BillingPortalSessionParams{
 		Customer:  stripe.String(cust.ID),
-		ReturnURL: stripe.String("http://localhost:8080/subscription"),
+		ReturnURL: stripe.String(models.Domain + "/subscription"),
 	})
 	if err != nil {
 		s.logger.Error("failed to create portal session", "user", user, "err", err)
@@ -149,7 +149,7 @@ func (s *stripeService) GetCheckoutSession(
 
 	params := &stripe.CheckoutSessionParams{
 		UIMode:    stripe.String("embedded"),
-		ReturnURL: stripe.String("http://localhost:8080/subscription"),
+		ReturnURL: stripe.String(models.Domain + "/subscription"),
 		Customer:  stripe.String(cust.ID),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{

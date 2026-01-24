@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"git.riyt.dev/codeuniverse/internal/handlers"
+	"git.riyt.dev/codeuniverse/internal/models"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -31,7 +32,7 @@ func Service(
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8080"},
+		AllowedOrigins:   []string{models.Domain},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type"},
 		AllowCredentials: true,

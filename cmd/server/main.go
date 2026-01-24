@@ -19,6 +19,7 @@ import (
 	"git.riyt.dev/codeuniverse/internal/logger"
 	"git.riyt.dev/codeuniverse/internal/mailer"
 	"git.riyt.dev/codeuniverse/internal/middleware"
+	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository/filesystem"
 	"git.riyt.dev/codeuniverse/internal/repository/postgres"
 	"git.riyt.dev/codeuniverse/internal/router"
@@ -38,6 +39,12 @@ func init() {
 		log.Fatal("CODEUNIVERSE_ENV is not set")
 	} else if !allowedEnv[codeuniverseEnv] {
 		log.Fatal("CODEUNIVERSE_ENV should either be production, or development")
+	}
+
+	if codeuniverseEnv == "production" {
+		models.Domain = "https://codeuniverse.riyt.dev"
+	} else {
+		models.Domain = "http://localhost:8080"
 	}
 }
 

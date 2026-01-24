@@ -111,7 +111,6 @@ func (s *staticService) GetAvatar(ctx context.Context, filename string) (string,
 	filePath := filepath.Join(avatarsDir, filename)
 
 	if _, err := os.Stat(filePath); errors.Is(err, os.ErrNotExist) {
-		s.logger.Debug("avatar not found", "filename", filename, "err", err)
 		return "", ErrNotFound
 	}
 	s.logger.Debug("avatar found", "filename", filename, "filePath", filePath)
