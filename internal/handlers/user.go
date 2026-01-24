@@ -79,9 +79,9 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 			apiError.Message = "User already exists."
 
 			handlersutils.WriteResponseJSON(w, apiError, http.StatusConflict)
-		case services.ErrInvalidEmail, services.ErrInvalidSlug, services.ErrWeakPasswordLength:
+		case services.ErrInvalidEmail, services.ErrInvalidUsername, services.ErrWeakPasswordLength:
 			apiError.Code = "INVALID_CONSTRAINTS"
-			apiError.Message = "Invalid constraints."
+			apiError.Message = err.Error()
 
 			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
 		default:
@@ -149,6 +149,16 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		)
 
 		handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+		return
+	}
+
+	if !user.IsActive {
+		apiError := handlersutils.NewAPIError(
+			"USER_IS_NOT_ACTIVE",
+			"User banned or disabled.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
 		return
 	}
 
@@ -240,15 +250,7 @@ func (h *UserHandler) MfaVerification(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	handlersutils.RemoveJwtCookie(w)
 
 	response := map[string]string{
 		"message": "Logged out.",

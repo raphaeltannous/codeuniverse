@@ -77,6 +77,17 @@ func AuthMiddleware(next http.Handler, userService services.UserService) http.Ha
 			return
 		}
 
+		if !user.IsActive {
+			apiError := handlersutils.NewAPIError(
+				"USER_IS_NOT_ACTIVE",
+				"User banned or disabled.",
+			)
+
+			handlersutils.RemoveJwtCookie(w)
+			handlersutils.WriteResponseJSON(w, apiError, http.StatusUnauthorized)
+			return
+		}
+
 		ctx := context.WithValue(r.Context(), UserAuthCtxKey, user)
 		r = r.WithContext(ctx)
 

@@ -704,9 +704,9 @@ func (h *AdminHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 			apiError.Message = "User already exists."
 
 			handlersutils.WriteResponseJSON(w, apiError, http.StatusConflict)
-		case services.ErrInvalidEmail, services.ErrInvalidSlug, services.ErrWeakPasswordLength:
+		case services.ErrInvalidEmail, services.ErrInvalidUsername, services.ErrWeakPasswordLength:
 			apiError.Code = "INVALID_CONSTRAINTS"
-			apiError.Message = "Invalid constraints."
+			apiError.Message = err.Error()
 
 			handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
 		default:

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/mail"
+	"regexp"
 	"time"
 
 	"git.riyt.dev/codeuniverse/internal/mailer"
@@ -18,9 +19,9 @@ import (
 )
 
 var (
-	ErrInvalidEmail       = errors.New("invalid email")
-	ErrInvalidUsername    = errors.New("invalid username")
-	ErrWeakPasswordLength = errors.New("password should be greater than 8")
+	ErrInvalidEmail       = errors.New("Invalid email.")
+	ErrInvalidUsername    = errors.New("Invalid username.")
+	ErrWeakPasswordLength = errors.New("Password should be greater than 8.")
 
 	ErrTimeIsExpired = errors.New("time is expired")
 
@@ -722,15 +723,6 @@ func (s *userService) isUsernameValid(username string) bool {
 		return false
 	}
 
-	return true
-}
-
-func (s *userService) isPasswordValid(password string) bool {
-	// TODO: I think these functions should return map[string]string or an error.
-	// for example isPasswordValid:
-	// -> errors.New("weak password lenght")
-	// -> errors.New("weak password")
-	// -> errors.New("password does not validate all rules")
-	// and so on.
-	return false
+	re := regexp.MustCompile(`^[A-Za-z0-9]+$`)
+	return re.MatchString(username)
 }
