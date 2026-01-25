@@ -37,7 +37,7 @@ migrate:
 	@goose -env ${MIGRATIONS_ENV} -dir ${MIGRATIONS_DIR} up
 
 ## run: build project and run it
-run: compile
+run:
 	@echo " > Running binary"
 	./${BIN_FOLDER}/${BIN_NAME}
 
