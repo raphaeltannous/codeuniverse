@@ -13,7 +13,7 @@ MIGRATIONS_ENV=./migrations/.env
 setup: mod-download
 
 ## compile: compiles project in current system
-compile: clean generate fmt vet test build
+compile: clean generate fmt vet test build build-frontend
 
 ## watch: format, test, build and run the project
 watch:
@@ -52,6 +52,11 @@ build:
 	@go build \
 		-o ${BIN_FOLDER}/${BIN_NAME} \
 		"${CLI_MAIN_FOLDER}"
+
+build-frontend:
+	@echo "  > Building frontend"
+	@npm --prefix frontend run build
+	@mv frontend/dist ${BIN_FOLDER}
 
 fmt:
 	@echo "  >  Formatting code"
