@@ -11,6 +11,7 @@ import (
 	"git.riyt.dev/codeuniverse/internal/judger"
 	"git.riyt.dev/codeuniverse/internal/models"
 	"git.riyt.dev/codeuniverse/internal/repository"
+	"github.com/gammazero/workerpool"
 	"github.com/google/uuid"
 )
 
@@ -68,6 +69,8 @@ type ProblemService interface {
 
 	GetProblemCodeConfig(ctx context.Context, problem *models.Problem) (*models.ProblemCodeConfig, error)
 	UpdateProblemCodeConfig(ctx context.Context, problem *models.Problem, config *models.ProblemCodeConfig) error
+
+	Shutdown()
 }
 
 type problemService struct {
@@ -80,6 +83,9 @@ type problemService struct {
 
 	judge  judger.Judge
 	logger *slog.Logger
+
+	runWorkerPool    *workerpool.WorkerPool
+	submitWorkerPool *workerpool.WorkerPool
 }
 
 func (s *problemService) GetSolvedProblems(ctx context.Context, user *models.User) ([]string, error) {
@@ -230,6 +236,8 @@ func NewProblemService(
 	problemCodeRepository repository.ProblemCodeRepository,
 
 	judge judger.Judge,
+	maxConcurrentRuns int,
+	maxConcurrentSubmits int,
 ) ProblemService {
 	return &problemService{
 		problemRepository:     problemRepository,
@@ -239,9 +247,16 @@ func NewProblemService(
 		problemHintRepository: problemHintRepository,
 		problemCodeRepository: problemCodeRepository,
 
-		judge:  judge,
-		logger: slog.Default().With("package", "problemsService"),
+		judge:            judge,
+		logger:           slog.Default().With("package", "problemsService"),
+		runWorkerPool:    workerpool.New(maxConcurrentRuns),
+		submitWorkerPool: workerpool.New(maxConcurrentSubmits),
 	}
+}
+
+func (s *problemService) Shutdown() {
+	s.runWorkerPool.StopWait()
+	s.submitWorkerPool.StopWait()
 }
 
 func (s *problemService) Create(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
@@ -426,81 +441,81 @@ func (s *problemService) Submit(
 	if err != nil {
 		return err
 	}
-	runCtx, cancel := context.WithTimeout(
-		ctx,
-		time.Duration(problemCodeConfig.TimeLimit)*time.Millisecond,
-	)
-	defer cancel()
 
-	runResults, err := s.judge.Run(
-		runCtx,
-		problem,
-		problemCode,
-		problemTestcases,
-	)
-	if err != nil {
-		s.logger.Error("failed to run judge", "err", err)
-		return err
-	}
+	s.submitWorkerPool.Submit(func() {
+		if err := s.submissionRepository.UpdateStatus(ctx, submission.ID, models.StatusStarted.String()); err != nil {
+			s.logger.Error("failed to update status to started", "err", err)
+		}
 
-	if len(runResults.FailedTestcases) > 0 {
-		runResults.FailedTestcases = runResults.FailedTestcases[:1:1]
-	}
+		runCtx, cancel := context.WithTimeout(
+			ctx,
+			time.Duration(problemCodeConfig.TimeLimit)*time.Millisecond,
+		)
+		defer cancel()
 
-	s.logger.Debug("container finished", "runResults", runResults)
-	if err := s.submissionRepository.UpdateExecutionTime(
-		ctx,
-		submission.ID,
-		runResults.ExecutionTime,
-	); err != nil {
-		s.logger.Error("failed to execution time", "err", err)
-		return err
-	}
+		runResults, err := s.judge.Run(
+			runCtx,
+			problem,
+			problemCode,
+			problemTestcases,
+		)
+		if err != nil {
+			s.logger.Error("failed to run judge", "err", err)
+		}
 
-	if err := s.submissionRepository.UpdateMemoryUsage(
-		ctx,
-		submission.ID,
-		runResults.MemoryUsage,
-	); err != nil {
-		s.logger.Error("failed to memory usage", "err", err)
-		return err
-	}
+		if len(runResults.FailedTestcases) > 0 {
+			runResults.FailedTestcases = runResults.FailedTestcases[:1:1]
+		}
 
-	if err := s.submissionRepository.UpdateStatus(
-		ctx,
-		submission.ID,
-		runResults.Status.String(),
-	); err != nil {
-		s.logger.Error("failed to status", "err", err)
-		return err
-	}
+		s.logger.Debug("container finished", "runResults", runResults)
+		if err := s.submissionRepository.UpdateExecutionTime(
+			ctx,
+			submission.ID,
+			runResults.ExecutionTime,
+		); err != nil {
+			s.logger.Error("failed to execution time", "err", err)
+		}
 
-	if err := s.submissionRepository.UpdateFailedTestcases(
-		ctx,
-		submission.ID,
-		runResults.FailedTestcases,
-	); err != nil {
-		s.logger.Error("failed to update testcases", "err", err)
-		return err
-	}
+		if err := s.submissionRepository.UpdateMemoryUsage(
+			ctx,
+			submission.ID,
+			runResults.MemoryUsage,
+		); err != nil {
+			s.logger.Error("failed to memory usage", "err", err)
+		}
 
-	if err := s.submissionRepository.UpdateStdout(
-		ctx,
-		submission.ID,
-		runResults.StdOut,
-	); err != nil {
-		s.logger.Error("failed to stdout", "err", err)
-		return err
-	}
+		if err := s.submissionRepository.UpdateStatus(
+			ctx,
+			submission.ID,
+			runResults.Status.String(),
+		); err != nil {
+			s.logger.Error("failed to status", "err", err)
+		}
 
-	if err := s.submissionRepository.UpdateStderr(
-		ctx,
-		submission.ID,
-		runResults.StdErr,
-	); err != nil {
-		s.logger.Error("failed to stderr", "err", err)
-		return err
-	}
+		if err := s.submissionRepository.UpdateFailedTestcases(
+			ctx,
+			submission.ID,
+			runResults.FailedTestcases,
+		); err != nil {
+			s.logger.Error("failed to update testcases", "err", err)
+		}
+
+		if err := s.submissionRepository.UpdateStdout(
+			ctx,
+			submission.ID,
+			runResults.StdOut,
+		); err != nil {
+			s.logger.Error("failed to stdout", "err", err)
+		}
+
+		if err := s.submissionRepository.UpdateStderr(
+			ctx,
+			submission.ID,
+			runResults.StdErr,
+		); err != nil {
+			s.logger.Error("failed to stderr", "err", err)
+		}
+	})
 
 	return nil
 }
@@ -564,77 +579,77 @@ func (s *problemService) Run(
 	if err != nil {
 		return err
 	}
-	runCtx, cancel := context.WithTimeout(
-		ctx,
-		time.Duration(problemCodeConfig.TimeLimit)*time.Millisecond,
-	)
-	defer cancel()
 
-	runResults, err := s.judge.Run(
-		runCtx,
-		problem,
-		problemCode,
-		wantedTestcases,
-	)
-	if err != nil {
-		s.logger.Error("failed to run judge", "err", err)
-		return err
-	}
+	s.runWorkerPool.Submit(func() {
+		if err := s.runRepository.UpdateStatus(ctx, run.ID, models.StatusStarted.String()); err != nil {
+			s.logger.Error("failed to update status to started", "err", err)
+		}
 
-	s.logger.Debug("container finished", "runResults", runResults)
-	if err := s.runRepository.UpdateExecutionTime(
-		ctx,
-		run.ID,
-		runResults.ExecutionTime,
-	); err != nil {
-		s.logger.Error("failed to execution time", "err", err)
-		return err
-	}
+		runCtx, cancel := context.WithTimeout(
+			ctx,
+			time.Duration(problemCodeConfig.TimeLimit)*time.Millisecond,
+		)
+		defer cancel()
 
-	if err := s.runRepository.UpdateMemoryUsage(
-		ctx,
-		run.ID,
-		runResults.MemoryUsage,
-	); err != nil {
-		s.logger.Error("failed to memory usage", "err", err)
-		return err
-	}
+		runResults, err := s.judge.Run(
+			runCtx,
+			problem,
+			problemCode,
+			wantedTestcases,
+		)
+		if err != nil {
+			s.logger.Error("failed to run judge", "err", err)
+		}
 
-	if err := s.runRepository.UpdateStatus(
-		ctx,
-		run.ID,
-		runResults.Status.String(),
-	); err != nil {
-		s.logger.Error("failed to status", "err", err)
-		return err
-	}
+		s.logger.Debug("container finished", "runResults", runResults)
+		if err := s.runRepository.UpdateExecutionTime(
+			ctx,
+			run.ID,
+			runResults.ExecutionTime,
+		); err != nil {
+			s.logger.Error("failed to execution time", "err", err)
+		}
 
-	if err := s.runRepository.UpdateFailedTestcases(
-		ctx,
-		run.ID,
-		runResults.FailedTestcases,
-	); err != nil {
-		s.logger.Error("failed to update testcases", "err", err)
-		return err
-	}
+		if err := s.runRepository.UpdateMemoryUsage(
+			ctx,
+			run.ID,
+			runResults.MemoryUsage,
+		); err != nil {
+			s.logger.Error("failed to memory usage", "err", err)
+		}
 
-	if err := s.runRepository.UpdateStdout(
-		ctx,
-		run.ID,
-		runResults.StdOut,
-	); err != nil {
-		s.logger.Error("failed to stdout", "err", err)
-		return err
-	}
+		if err := s.runRepository.UpdateStatus(
+			ctx,
+			run.ID,
+			runResults.Status.String(),
+		); err != nil {
+			s.logger.Error("failed to status", "err", err)
+		}
 
-	if err := s.runRepository.UpdateStderr(
-		ctx,
-		run.ID,
-		runResults.StdErr,
-	); err != nil {
-		s.logger.Error("failed to stderr", "err", err)
-		return err
-	}
+		if err := s.runRepository.UpdateFailedTestcases(
+			ctx,
+			run.ID,
+			runResults.FailedTestcases,
+		); err != nil {
+			s.logger.Error("failed to update testcases", "err", err)
+		}
+
+		if err := s.runRepository.UpdateStdout(
+			ctx,
+			run.ID,
+			runResults.StdOut,
+		); err != nil {
+			s.logger.Error("failed to stdout", "err", err)
+		}
+
+		if err := s.runRepository.UpdateStderr(
+			ctx,
+			run.ID,
+			runResults.StdErr,
+		); err != nil {
+			s.logger.Error("failed to stderr", "err", err)
+		}
+	})
 
 	return nil
 }

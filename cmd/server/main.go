@@ -126,9 +126,12 @@ func main() {
 	}
 	defer db.Close()
 
+	serviceHandler, shutdown := service(db, mailMan, *judge)
+	defer shutdown()
+
 	server := &http.Server{
 		Addr:    ":3333",
-		Handler: service(db, mailMan, *judge),
+		Handler: serviceHandler,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -158,7 +161,7 @@ func service(
 	db *sql.DB,
 	mailMan mailer.Mailer,
 	judge judger.Judge,
-) http.Handler {
+) (http.Handler, func()) {
 	// repositories
 	userRepository := postgres.NewUserRepository(db)
 	userProfileRepository := postgres.NewUserProfileRepository(db)
@@ -204,6 +207,8 @@ func service(
 		problemCodeRepository,
 
 		judge,
+		10,
+		10,
 	)
 
 	staticService := services.NewStaticService()
@@ -268,5 +273,5 @@ func service(
 		lessonMiddleware,
 		userMiddleware,
 		hintMiddleware,
-	)
+	), problemService.Shutdown
 }

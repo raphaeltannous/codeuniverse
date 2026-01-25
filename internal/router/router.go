@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"git.riyt.dev/codeuniverse/internal/handlers"
 	"git.riyt.dev/codeuniverse/internal/models"
@@ -42,12 +41,12 @@ func Service(
 
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.Logger)
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(1 * time.Second)
-			next.ServeHTTP(w, r)
-		})
-	})
+	// r.Use(func(next http.Handler) http.Handler {
+	// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 		time.Sleep(1 * time.Second)
+	// 		next.ServeHTTP(w, r)
+	// 	})
+	// })
 
 	r.Mount("/api", apiRouter(
 		userHandler,
