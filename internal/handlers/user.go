@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -65,12 +66,24 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		IsActive:     true,
 	}
 
-	user, err := h.userService.RegisterUser(
-		ctx,
-		user,
-	)
+	handlerUserChannel := make(chan *models.User)
+	handlerErrChannel := make(chan error)
+
+	go func() {
+		h.userService.RegisterUser(
+			ctx,
+			user,
+			handlerUserChannel,
+			handlerErrChannel,
+		)
+	}()
+
+	err := <-handlerErrChannel
 
 	if err != nil {
+		close(handlerErrChannel)
+		close(handlerUserChannel)
+
 		apiError := handlersutils.NewInternalServerAPIError()
 
 		switch err {
@@ -90,6 +103,11 @@ func (h *UserHandler) Signup(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	user = <-handlerUserChannel
+
+	close(handlerErrChannel)
+	close(handlerUserChannel)
 
 	jwtToken, err := utils.CreateJWT(user)
 	if err != nil {
@@ -168,15 +186,15 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.userService.SendMfaCodeVerificationEmail(
-		ctx,
-		user,
-		mfaCode,
-	)
-	if err != nil {
-		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
-		return
-	}
+	go func() {
+		mfaCtx := context.WithoutCancel(ctx)
+
+		_ = h.userService.SendMfaCodeVerificationEmail(
+			mfaCtx,
+			user,
+			mfaCode,
+		)
+	}()
 
 	response := map[string]string{
 		"username": user.Username,

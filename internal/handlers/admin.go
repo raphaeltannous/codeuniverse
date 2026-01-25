@@ -729,12 +729,24 @@ func (h *AdminHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 		IsVerified:   requestBody.IsVerified,
 	}
 
-	user, err := h.userService.RegisterUser(
-		ctx,
-		user,
-	)
+	handlerUserChannel := make(chan *models.User)
+	handlerErrChannel := make(chan error)
+
+	go func() {
+		h.userService.RegisterUser(
+			ctx,
+			user,
+			handlerUserChannel,
+			handlerErrChannel,
+		)
+	}()
+
+	err := <-handlerErrChannel
+
 	if err != nil {
 		apiError := handlersutils.NewInternalServerAPIError()
+		close(handlerErrChannel)
+		close(handlerUserChannel)
 
 		switch err {
 		case repository.ErrUserAlreadyExists:
@@ -753,6 +765,10 @@ func (h *AdminHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	user = <-handlerUserChannel
+	close(handlerErrChannel)
+	close(handlerUserChannel)
 
 	response := map[string]string{
 		"message": "User created.",

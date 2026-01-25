@@ -29,7 +29,7 @@ var (
 )
 
 type UserService interface {
-	RegisterUser(ctx context.Context, user *models.User) (*models.User, error)
+	RegisterUser(ctx context.Context, user *models.User, handlerUserChannel chan *models.User, handlerErrChannel chan error)
 	Delete(ctx context.Context, user *models.User) error
 
 	GetById(ctx context.Context, uuidString string) (*models.User, error)
@@ -105,23 +105,27 @@ func NewUserService(
 	}
 }
 
-func (s *userService) RegisterUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (s *userService) RegisterUser(ctx context.Context, user *models.User, handlerUserChannel chan *models.User, handlerErrChannel chan error) {
 	if !s.isEmailValid(user.Email) {
-		return nil, ErrInvalidEmail
+		handlerErrChannel <- ErrInvalidEmail
+		return
 	}
 
 	if !s.isUsernameValid(user.Username) {
-		return nil, ErrInvalidUsername
+		handlerErrChannel <- ErrInvalidUsername
+		return
 	}
 
 	if len(user.PasswordHash) < 8 {
-		return nil, ErrWeakPasswordLength
+		handlerErrChannel <- ErrWeakPasswordLength
+		return
 	}
 
 	hashedPassword, err := utils.HashPassword(user.PasswordHash)
 	if err != nil {
 		s.logger.Error("failed to hash password", "err", err)
-		return nil, fmt.Errorf("failed to hash password")
+		handlerErrChannel <- fmt.Errorf("failed to hash password")
+		return
 	}
 	user.PasswordHash = hashedPassword
 
@@ -137,18 +141,29 @@ func (s *userService) RegisterUser(ctx context.Context, user *models.User) (*mod
 
 	if err != nil {
 		if errors.Is(err, repository.ErrUserAlreadyExists) {
-			return nil, err
+			handlerErrChannel <- err
+			return
 		}
 
 		s.logger.Error("creating user repo error", "err", err, "user.ID", user.ID)
-		return nil, fmt.Errorf("service error creating user")
+		handlerErrChannel <- fmt.Errorf("failed to create user")
+		return
+	}
+
+	handlerErrChannel <- nil
+	handlerUserChannel <- user
+
+	if user.IsVerified {
+		return
 	}
 
 	if !user.IsVerified {
-		return user, s.SendEmailVerificationEmail(ctx, user.Email)
+		sendEmailCtx := context.WithoutCancel(ctx)
+		err := s.SendEmailVerificationEmail(sendEmailCtx, user.Email)
+		if err != nil {
+			s.logger.Error("failed to send email verification", "user", user, "email", user.Email, "err", err)
+		}
 	}
-
-	return user, nil
 }
 
 func (s *userService) Delete(ctx context.Context, user *models.User) error {
