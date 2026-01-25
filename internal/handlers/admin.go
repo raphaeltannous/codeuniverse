@@ -197,13 +197,42 @@ func (h *AdminHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.courseService.DeleteCourse(
+	lessons, err := h.courseService.GetRawCourseLessons(
 		ctx,
 		course,
 	)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
+	}
+
+	err = h.courseService.DeleteCourse(
+		ctx,
+		course,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.staticService.DeleteCourseThumbnail(
+		ctx,
+		course.ThumbnailURL,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
+	for _, lesson := range lessons {
+		err = h.staticService.DeleteLessonVideo(
+			ctx,
+			lesson.VideoURL,
+		)
+		if err != nil {
+			handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	handlersutils.WriteSuccessMessage(
@@ -382,6 +411,15 @@ func (h *AdminHandler) DeleteLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = h.staticService.DeleteLessonVideo(
+		ctx,
+		lesson.VideoURL,
+	)
+	if err != nil {
+		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
+		return
+	}
+
 	response := map[string]string{
 		"message": "Lesson deleted.",
 	}
@@ -514,12 +552,12 @@ func (h *AdminHandler) UpdateLessonVideo(w http.ResponseWriter, r *http.Request)
 		},
 	)
 	if err != nil {
-		h.staticService.DeleteAvatar(ctx, videoUrl)
+		h.staticService.DeleteLessonVideo(ctx, videoUrl)
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return
 	}
 
-	h.staticService.DeleteCourseThumbnail(ctx, lesson.VideoURL)
+	h.staticService.DeleteLessonVideo(ctx, lesson.VideoURL)
 
 	response := map[string]string{
 		"videoUrl": videoUrl,
