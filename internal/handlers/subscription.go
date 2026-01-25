@@ -12,14 +12,17 @@ import (
 )
 
 type SubscriptionHandler struct {
-	stripeService services.StripeService
+	stripeService       services.StripeService
+	stripeWebhookSecret string
 }
 
 func NewSubscriptionHandler(
 	stripeService services.StripeService,
+	stripeWebhookSecret string,
 ) *SubscriptionHandler {
 	return &SubscriptionHandler{
-		stripeService: stripeService,
+		stripeService:       stripeService,
+		stripeWebhookSecret: stripeWebhookSecret,
 	}
 }
 
@@ -120,7 +123,7 @@ func (h *SubscriptionHandler) StripeWebhook(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	event, err := webhook.ConstructEvent(b, r.Header.Get("Stripe-Signature"), "whsec_2036c4e5a8c105044b7d676b5982cca2f2c79d5393550f62912669fe14f1d95e")
+	event, err := webhook.ConstructEvent(b, r.Header.Get("Stripe-Signature"), h.stripeWebhookSecret)
 	if err != nil {
 		handlersutils.WriteResponseJSON(w, handlersutils.NewInternalServerAPIError(), http.StatusInternalServerError)
 		return

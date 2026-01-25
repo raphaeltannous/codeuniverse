@@ -49,8 +49,9 @@ func init() {
 }
 
 var (
-	problemsDataDir string
-	stripeSecret    string
+	problemsDataDir     string
+	stripeSecret        string
+	stripeWebhookSecret string
 )
 
 func init() {
@@ -72,6 +73,11 @@ func init() {
 
 	if stripeSecret == "" {
 		log.Fatal("CODEUNIVERSE_STRIPE_DEV_KEY is not set.")
+	}
+
+	stripeWebhookSecret = os.Getenv("CODEUNIVERSE_STRIPE_WEBHOOK_SECRET")
+	if stripeWebhookSecret == "" {
+		log.Fatal("CODEUNIVERSE_STRIPE_WEBHOOK_SECRET is not set.")
 	}
 }
 
@@ -220,7 +226,7 @@ func service(
 	staticHandler := handlers.NewStaticHandler(staticService)
 	adminHandler := handlers.NewAdminHandler(courseService, staticService, userService, problemService)
 	courseHandler := handlers.NewCourseHandler(courseService)
-	subscriptionHandler := handlers.NewSubscriptionHandler(stripeService)
+	subscriptionHandler := handlers.NewSubscriptionHandler(stripeService, stripeWebhookSecret)
 
 	// middlewares
 	authMiddleware := func(next http.Handler) http.Handler {
