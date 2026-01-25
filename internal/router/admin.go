@@ -9,8 +9,6 @@ import (
 )
 
 func adminRouter(
-	userHandler *handlers.UserHandler,
-	problemHandler *handlers.ProblemHandler,
 	statsHandler *handlers.StatsHandler,
 	adminHandler *handlers.AdminHandler,
 
