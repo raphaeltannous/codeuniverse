@@ -25,6 +25,7 @@ type CourseService interface {
 	DeleteLesson(ctx context.Context, lesson *models.Lesson) error
 
 	GetCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error)
+	GetRawCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error)
 	GetLesson(ctx context.Context, lessonId uuid.UUID) (*models.Lesson, error)
 
 	UpdateLesson(ctx context.Context, lesson *models.Lesson, lessonUpdatePach map[string]any) error
@@ -136,16 +137,25 @@ func (c *courseService) GetCourseBySlug(ctx context.Context, slug string) (*mode
 	course, err := c.courseRepository.GetBySlug(ctx, slug)
 	if err != nil {
 		c.logger.Error("failed to get course by slug", "slug", slug, "err", err)
-		return nil, repository.ErrInternalServerError
+		return nil, err
 	}
 
 	return course, nil
 }
 
-func (c *courseService) GetCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error) {
+func (c *courseService) GetRawCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error) {
 	lessons, err := c.lessonRepository.GetAllByCourse(ctx, course.ID)
 	if err != nil {
 		c.logger.Error("failed to get lessons for course", "course", course, "err", err)
+		return nil, err
+	}
+
+	return lessons, nil
+}
+
+func (c *courseService) GetCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error) {
+	lessons, err := c.GetRawCourseLessons(ctx, course)
+	if err != nil {
 		return nil, err
 	}
 
