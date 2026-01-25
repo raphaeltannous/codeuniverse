@@ -43,7 +43,7 @@ run:
 
 clean:
 	@echo "  >  Cleaning build cache"
-	@-rm -rf ${BIN_FOLDER}/amd64 ${BIN_FOLDER}/${BIN_NAME} \
+	@-rm -rf ${BIN_FOLDER}/amd64 ${BIN_FOLDER}/${BIN_NAME} ${BIN_FOLDER}/dist \
 		&& go clean ./...
 
 build:
