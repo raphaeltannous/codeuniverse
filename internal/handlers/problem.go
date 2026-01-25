@@ -389,6 +389,16 @@ func (h *ProblemHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(requestBody.Markdown) > 5000 {
+		apiError := handlersutils.NewAPIError(
+			"CHARACTERS_LIMIT_EXCEEDED",
+			"Characters limit exceeded.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
+		return
+	}
+
 	ctx := r.Context()
 
 	user, ok := ctx.Value(middleware.UserAuthCtxKey).(*models.User)
@@ -477,6 +487,16 @@ func (h *ProblemHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !handlersutils.DecodeJSONRequest(w, r, &requestBody) {
+		return
+	}
+
+	if len(requestBody.Markdown) > 5000 {
+		apiError := handlersutils.NewAPIError(
+			"CHARACTERS_LIMIT_EXCEEDED",
+			"Characters limit exceeded.",
+		)
+
+		handlersutils.WriteResponseJSON(w, apiError, http.StatusBadRequest)
 		return
 	}
 
