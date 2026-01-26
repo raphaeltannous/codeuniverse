@@ -94,17 +94,27 @@ func main() {
 			"codeuniverse.lb@gmail.com",
 		)
 	case "production":
-		gmailSMTPPassword := os.Getenv("CODEUNIVERSE_SMTP_GMAIL_PASSWORD")
-		if gmailSMTPPassword == "" {
-			log.Fatal("CODEUNIVERSE_SMTP_GMAIL_PASSWORD is not set")
+		resendApiKey := os.Getenv("CODEUNIVERSE_RESEND_API_KEY")
+		if resendApiKey == "" {
+			log.Fatal("CODEUNIVERSE_RESEND_API_KEY is not set")
 		}
-		mailMan = mailer.NewSMTPMailer(
-			"smtp.gmail.com",
-			587,
-			"codeuniverse.lb@gmail.com",
-			gmailSMTPPassword,
-			"codeuniverse.lb@gmail.com",
+
+		mailMan = mailer.NewResendMailer(
+			resendApiKey,
+			"onboarding@codeuniverse.riyt.dev",
 		)
+
+		// gmailSMTPPassword := os.Getenv("CODEUNIVERSE_SMTP_GMAIL_PASSWORD")
+		// if gmailSMTPPassword == "" {
+		// 	log.Fatal("CODEUNIVERSE_SMTP_GMAIL_PASSWORD is not set")
+		// }
+		// mailMan = mailer.NewSMTPMailer(
+		// 	"smtp.gmail.com",
+		// 	587,
+		// 	"codeuniverse.lb@gmail.com",
+		// 	gmailSMTPPassword,
+		// 	"codeuniverse.lb@gmail.com",
+		// )
 	}
 
 	// TODO: command line option for logging level or using environment variables

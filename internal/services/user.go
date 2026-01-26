@@ -593,6 +593,8 @@ func (s *userService) CreateMfaCodeAndToken(ctx context.Context, user *models.Us
 		return "", "", fmt.Errorf("failed to save mfa code to repo")
 	}
 
+	s.logger.Debug("mfa code for user", "username", user.Username, "mfa", mfaCode)
+
 	return mfaCode, token, nil
 }
 
