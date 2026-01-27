@@ -25,7 +25,7 @@ var supportedLanguagesNewFunc = map[models.ProblemLanguage]func(cli *client.Clie
 
 var supportedLanguages = map[models.ProblemLanguage]*LanguageJudge{
 	models.LanguageGo: {
-		containerImage: "golang:1.25.4-alpine",
+		containerImage: "codeuniverse-go:1.25.4-alpine",
 		judge:          nil,
 		logger:         slog.Default().With("package", "judger.goLanguage"),
 	},
@@ -35,7 +35,7 @@ var supportedLanguages = map[models.ProblemLanguage]*LanguageJudge{
 		logger:         slog.Default().With("package", "judger.pythonLanguage"),
 	},
 	models.LanguageCpp: {
-		containerImage: "gcc:15.2-trixie",
+		containerImage: "codeuniverse-cpp:15.2-trixie",
 		judge:          nil,
 		logger:         slog.Default().With("package", "judger.cppLanguage"),
 	},

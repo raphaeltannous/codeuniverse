@@ -23,7 +23,7 @@ func (j *cppJudge) Run(ctx context.Context, problem *models.Problem, problemCode
 		&runConfig{
 			cmd: []string{
 				"sh", "-c",
-				"g++ -std=c++23 -o program main.cpp && ./program",
+				"g++ -std=c++23 -O2 -include /codeuniverse/pch/precompiled.h -o program main.cpp && ./program",
 			},
 		},
 		j.logger,

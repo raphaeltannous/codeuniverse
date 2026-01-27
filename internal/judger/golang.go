@@ -26,7 +26,9 @@ func (j *golangJudge) Run(
 		problemCode,
 		problemTestcases,
 		&runConfig{
-			cmd: []string{"go", "run", "."},
+			cmd: []string{
+				"go", "run", ".",
+			},
 		},
 		j.logger,
 	)
