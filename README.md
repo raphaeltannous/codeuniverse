@@ -6,7 +6,7 @@ Inspired by LeetCode, this project helped me understand how online coding platfo
 
 ## 📺 Video Showcase
 
-> ![CodeUniverse Demo](readme-assets/showcase.mp4)
+> https://github.com/user-attachments/assets/419ae6ba-7780-4ccc-8ad8-818e720b2181
 >
 > Watch a complete walkthrough of CodeUniverse's features, from problem solving to submission judging and user management.
 
