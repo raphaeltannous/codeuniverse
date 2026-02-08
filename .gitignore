@@ -39,5 +39,7 @@
 
 !docker-builds/**
 
+!readme-assets/**
+
 # ...even if they are in subdirectories
 !*/
