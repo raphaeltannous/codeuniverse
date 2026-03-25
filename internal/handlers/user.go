@@ -20,12 +20,12 @@ import (
 
 type UserHandler struct {
 	userService   *services.UserService
-	staticService services.StaticService
+	staticService *services.StaticService
 }
 
 func NewUserHandler(
 	userService *services.UserService,
-	staticService services.StaticService,
+	staticService *services.StaticService,
 ) *UserHandler {
 	return &UserHandler{
 		userService:   userService,

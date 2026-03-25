@@ -15,11 +15,11 @@ import (
 )
 
 type StaticHandler struct {
-	staticService services.StaticService
+	staticService *services.StaticService
 }
 
 func NewStaticHandler(
-	staticService services.StaticService,
+	staticService *services.StaticService,
 ) *StaticHandler {
 	return &StaticHandler{
 		staticService: staticService,

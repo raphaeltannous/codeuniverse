@@ -81,33 +81,18 @@ func init() {
 	}
 }
 
-type StaticService interface {
-	GetAvatar(ctx context.Context, filename string) (string, error)
-	GetCourseThumbnail(ctx context.Context, filename string) (string, error)
-	GetLessonVideo(ctx context.Context, filename string) (string, error)
-
-	SaveAvatar(ctx context.Context, avatarSrc io.Reader, ext string) (string, error)
-	DeleteAvatar(ctx context.Context, avatarPath string) error
-
-	SaveCourseThumbnail(ctx context.Context, thumbnailSrc io.Reader, ext string) (string, error)
-	DeleteCourseThumbnail(ctx context.Context, thumbnailPath string) error
-
-	SaveLessonVideo(ctx context.Context, videoSrc io.Reader, ext string) (string, error)
-	DeleteLessonVideo(ctx context.Context, videoPath string) error
-}
-
-type staticService struct {
+type StaticService struct {
 	logger *slog.Logger
 }
 
-func NewStaticService() StaticService {
-	return &staticService{
+func NewStaticService() *StaticService {
+	return &StaticService{
 		logger: slog.Default().With("package", "staticService"),
 	}
 }
 
 // GetAvatar returns the path to be served using http.ServeFile.
-func (s *staticService) GetAvatar(ctx context.Context, filename string) (string, error) {
+func (s *StaticService) GetAvatar(ctx context.Context, filename string) (string, error) {
 	filePath := filepath.Join(avatarsDir, filename)
 
 	if _, err := os.Stat(filePath); errors.Is(err, os.ErrNotExist) {
@@ -119,7 +104,7 @@ func (s *staticService) GetAvatar(ctx context.Context, filename string) (string,
 }
 
 // GetCourseThumbnail returns the path to be served using http.ServeFile.
-func (s *staticService) GetCourseThumbnail(ctx context.Context, filename string) (string, error) {
+func (s *StaticService) GetCourseThumbnail(ctx context.Context, filename string) (string, error) {
 	filePath := filepath.Join(courseDir, filename)
 
 	if _, err := os.Stat(filePath); errors.Is(err, os.ErrNotExist) {
@@ -132,7 +117,7 @@ func (s *staticService) GetCourseThumbnail(ctx context.Context, filename string)
 }
 
 // GetLessonVideo returns the path to be served using http.ServeFile.
-func (s *staticService) GetLessonVideo(ctx context.Context, filename string) (string, error) {
+func (s *StaticService) GetLessonVideo(ctx context.Context, filename string) (string, error) {
 	videoPath := filepath.Join(lessonsDir, filename)
 
 	if _, err := os.Stat(videoPath); errors.Is(err, os.ErrNotExist) {
@@ -144,7 +129,7 @@ func (s *staticService) GetLessonVideo(ctx context.Context, filename string) (st
 	return videoPath, nil
 }
 
-func (s *staticService) SaveAvatar(ctx context.Context, avatarSrc io.Reader, ext string) (string, error) {
+func (s *StaticService) SaveAvatar(ctx context.Context, avatarSrc io.Reader, ext string) (string, error) {
 	uniqueFilename := uuid.New().String() + ext
 
 	avatarPath := filepath.Join(avatarsDir, uniqueFilename)
@@ -160,7 +145,7 @@ func (s *staticService) SaveAvatar(ctx context.Context, avatarSrc io.Reader, ext
 	return uniqueFilename, err
 }
 
-func (s *staticService) DeleteAvatar(ctx context.Context, avatarPath string) error {
+func (s *StaticService) DeleteAvatar(ctx context.Context, avatarPath string) error {
 	if avatarPath == "default.png" || avatarPath == "" {
 		return nil
 	}
@@ -175,7 +160,7 @@ func (s *staticService) DeleteAvatar(ctx context.Context, avatarPath string) err
 	return nil
 }
 
-func (s *staticService) SaveCourseThumbnail(ctx context.Context, thumbnailSrc io.Reader, ext string) (string, error) {
+func (s *StaticService) SaveCourseThumbnail(ctx context.Context, thumbnailSrc io.Reader, ext string) (string, error) {
 	uniqueFilename := uuid.New().String() + ext
 
 	thumbnailPath := filepath.Join(courseDir, uniqueFilename)
@@ -191,7 +176,7 @@ func (s *staticService) SaveCourseThumbnail(ctx context.Context, thumbnailSrc io
 	return uniqueFilename, err
 }
 
-func (s *staticService) DeleteCourseThumbnail(ctx context.Context, thumbnailPath string) error {
+func (s *StaticService) DeleteCourseThumbnail(ctx context.Context, thumbnailPath string) error {
 	if thumbnailPath == "default.jpg" || thumbnailPath == "" {
 		return nil
 	}
@@ -206,7 +191,7 @@ func (s *staticService) DeleteCourseThumbnail(ctx context.Context, thumbnailPath
 	return nil
 }
 
-func (s *staticService) DeleteLessonVideo(ctx context.Context, videoPath string) error {
+func (s *StaticService) DeleteLessonVideo(ctx context.Context, videoPath string) error {
 	if videoPath == "default.mp4" || videoPath == "" {
 		return nil
 	}
@@ -221,7 +206,7 @@ func (s *staticService) DeleteLessonVideo(ctx context.Context, videoPath string)
 	return nil
 }
 
-func (s *staticService) SaveLessonVideo(ctx context.Context, videoSrc io.Reader, ext string) (string, error) {
+func (s *StaticService) SaveLessonVideo(ctx context.Context, videoSrc io.Reader, ext string) (string, error) {
 	uniqueFilename := uuid.New().String() + ext
 
 	videoPath := filepath.Join(lessonsDir, uniqueFilename)
