@@ -54,6 +54,7 @@ func CourseMiddleware(next http.Handler, courseService *services.CourseService) 
 			return
 		}
 
+		// TODO: Remove PremiumChecking since everything is now free.
 		if !course.IsPublished && user.Role != "admin" {
 			apiError := handlersutils.NewAPIError(
 				"COURSE_NOT_FOUND",
