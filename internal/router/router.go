@@ -19,7 +19,6 @@ func Service(
 	staticHandler *handlers.StaticHandler,
 	adminHandler *handlers.AdminHandler,
 	courseHandler *handlers.CourseHandler,
-	subscriptionHandler *handlers.SubscriptionHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 	partialAuthMiddleware func(next http.Handler) http.Handler,
@@ -55,7 +54,6 @@ func Service(
 		staticHandler,
 		adminHandler,
 		courseHandler,
-		subscriptionHandler,
 
 		authMiddleware,
 		partialAuthMiddleware,
@@ -89,7 +87,6 @@ func apiRouter(
 	staticHandler *handlers.StaticHandler,
 	adminHandler *handlers.AdminHandler,
 	courseHandler *handlers.CourseHandler,
-	subscriptionHandler *handlers.SubscriptionHandler,
 
 	authMiddleware func(next http.Handler) http.Handler,
 	partialAuthMiddleware func(next http.Handler) http.Handler,
@@ -114,7 +111,6 @@ func apiRouter(
 
 	r.Mount("/users", usersRouter(userHandler))
 	r.Mount("/profile", profileRouter(userHandler, authMiddleware))
-	r.Mount("/subscriptions", subscriptionRouter(subscriptionHandler, authMiddleware))
 	r.Mount("/admin", adminRouter(
 		statsHandler,
 		adminHandler,

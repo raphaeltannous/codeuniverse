@@ -49,9 +49,7 @@ func init() {
 }
 
 var (
-	problemsDataDir     string
-	stripeSecret        string
-	stripeWebhookSecret string
+	problemsDataDir string
 )
 
 func init() {
@@ -68,17 +66,6 @@ func init() {
 
 	problemsDataDir = absPath
 	slog.Info("problemsDataDir is updated.", "problemsDataDir", problemsDataDir)
-
-	stripeSecret = os.Getenv("CODEUNIVERSE_STRIPE_DEV_KEY")
-
-	if stripeSecret == "" {
-		log.Fatal("CODEUNIVERSE_STRIPE_DEV_KEY is not set.")
-	}
-
-	stripeWebhookSecret = os.Getenv("CODEUNIVERSE_STRIPE_WEBHOOK_SECRET")
-	if stripeWebhookSecret == "" {
-		log.Fatal("CODEUNIVERSE_STRIPE_WEBHOOK_SECRET is not set.")
-	}
 }
 
 func main() {
@@ -229,11 +216,6 @@ func service(
 		courseProgressRepository,
 	)
 
-	stripeService := services.NewStripeService(
-		userRepository,
-		stripeSecret,
-	)
-
 	// handlers
 	userHandler := handlers.NewUserHandler(userService, staticService)
 	problemHandler := handlers.NewProblemsHandlers(problemService)
@@ -241,7 +223,6 @@ func service(
 	staticHandler := handlers.NewStaticHandler(staticService)
 	adminHandler := handlers.NewAdminHandler(courseService, staticService, userService, problemService)
 	courseHandler := handlers.NewCourseHandler(courseService)
-	subscriptionHandler := handlers.NewSubscriptionHandler(stripeService, stripeWebhookSecret)
 
 	// middlewares
 	authMiddleware := func(next http.Handler) http.Handler {
@@ -274,7 +255,6 @@ func service(
 		staticHandler,
 		adminHandler,
 		courseHandler,
-		subscriptionHandler,
 
 		authMiddleware,
 		partialAuthMiddleware,
