@@ -28,40 +28,7 @@ var (
 	ErrInvalidMfaCode = errors.New("invalid mfa code")
 )
 
-type UserService interface {
-	RegisterUser(ctx context.Context, user *models.User, handlerUserChannel chan *models.User, handlerErrChannel chan error)
-	Delete(ctx context.Context, user *models.User) error
-
-	GetById(ctx context.Context, uuidString string) (*models.User, error)
-	GetByEmail(ctx context.Context, email string) (*models.User, error)
-	GetByUsername(ctx context.Context, username string) (*models.User, error)
-	GetProfile(ctx context.Context, user *models.User) (*models.UserProfile, error)
-
-	UpdateUserPatch(ctx context.Context, user *models.User, userUpdatePatch map[string]any) error
-
-	GetAllUsers(ctx context.Context, getParams *repository.GetUsersParams) ([]*models.User, int, error)
-
-	GetUsersCount(ctx context.Context) (int, error)
-	GetUsersRegisteredLastNDaysCount(ctx context.Context, days int) (int, error)
-	GetAdminCount(ctx context.Context) (int, error)
-
-	GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error)
-
-	UpdateUserProfilePatch(ctx context.Context, user *models.User, userProfileUpdatePatch map[string]string) error
-
-	SendPasswordResetEmail(ctx context.Context, email string) error
-	ResetPasswordByToken(ctx context.Context, token, newPassword string) error
-
-	GetMfaCodeByToken(ctx context.Context, token string) (*models.MfaCode, error)
-	CreateMfaCodeAndToken(ctx context.Context, user *models.User) (string, string, error)
-	SendMfaCodeVerificationEmail(ctx context.Context, user *models.User, mfaCode string) error
-	VerifyMfaCode(ctx context.Context, token, code string) (*models.MfaCode, error)
-
-	SendEmailVerificationEmail(ctx context.Context, email string) error
-	VerifyEmailByToken(ctx context.Context, token string) error
-}
-
-type userService struct {
+type UserService struct {
 	userRepo              repository.UserRepository
 	userProfileRepo       repository.UserProfileRepository
 	submissionRepo        repository.SubmissionRepository
@@ -88,8 +55,8 @@ func NewUserService(
 	dbTransactor repository.Transactor,
 
 	mailMan mailer.Mailer,
-) UserService {
-	return &userService{
+) *UserService {
+	return &UserService{
 		userRepo:              userRepo,
 		userProfileRepo:       userProfileRepo,
 		submissionRepo:        submissionRepo,
@@ -105,7 +72,7 @@ func NewUserService(
 	}
 }
 
-func (s *userService) RegisterUser(ctx context.Context, user *models.User, handlerUserChannel chan *models.User, handlerErrChannel chan error) {
+func (s *UserService) RegisterUser(ctx context.Context, user *models.User, handlerUserChannel chan *models.User, handlerErrChannel chan error) {
 	if !s.isEmailValid(user.Email) {
 		handlerErrChannel <- ErrInvalidEmail
 		return
@@ -166,7 +133,7 @@ func (s *userService) RegisterUser(ctx context.Context, user *models.User, handl
 	}
 }
 
-func (s *userService) Delete(ctx context.Context, user *models.User) error {
+func (s *UserService) Delete(ctx context.Context, user *models.User) error {
 	err := s.userRepo.Delete(
 		ctx,
 		user.ID,
@@ -179,7 +146,7 @@ func (s *userService) Delete(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-func (s *userService) UpdateUserPatch(ctx context.Context, user *models.User, userUpdatePatch map[string]any) error {
+func (s *UserService) UpdateUserPatch(ctx context.Context, user *models.User, userUpdatePatch map[string]any) error {
 	if rawAvatarUrl, ok := userUpdatePatch["avatarUrl"]; ok {
 		switch avatarUrl := rawAvatarUrl.(type) {
 		case string:
@@ -267,7 +234,7 @@ func (s *userService) UpdateUserPatch(ctx context.Context, user *models.User, us
 	return nil
 }
 
-func (s *userService) GetAllUsers(ctx context.Context, getParams *repository.GetUsersParams) ([]*models.User, int, error) {
+func (s *UserService) GetAllUsers(ctx context.Context, getParams *repository.GetUsersParams) ([]*models.User, int, error) {
 	users, total, err := s.userRepo.GetUsers(ctx, getParams)
 	if err != nil {
 		s.logger.Error("failed to get all users", "getParams", getParams, "err", err)
@@ -277,7 +244,7 @@ func (s *userService) GetAllUsers(ctx context.Context, getParams *repository.Get
 	return users, total, nil
 }
 
-func (s *userService) GetAdminCount(ctx context.Context) (int, error) {
+func (s *UserService) GetAdminCount(ctx context.Context) (int, error) {
 	count, err := s.userRepo.GetAdminCount(ctx)
 	if err != nil {
 		s.logger.Error("failed to get admin count", "err", err)
@@ -287,7 +254,7 @@ func (s *userService) GetAdminCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (s *userService) GetUsersCount(ctx context.Context) (int, error) {
+func (s *UserService) GetUsersCount(ctx context.Context) (int, error) {
 	count, err := s.userRepo.GetUsersCount(ctx)
 	if err != nil {
 		s.logger.Error("failed to get users count", "err", err)
@@ -297,7 +264,7 @@ func (s *userService) GetUsersCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (s *userService) GetUsersRegisteredLastNDaysCount(ctx context.Context, since int) (int, error) {
+func (s *UserService) GetUsersRegisteredLastNDaysCount(ctx context.Context, since int) (int, error) {
 	count, err := s.userRepo.GetUsersRegisteredLastNDaysCount(ctx, since)
 	if err != nil {
 		s.logger.Error("failed to get new users count", "since", since, "err", err)
@@ -307,7 +274,7 @@ func (s *userService) GetUsersRegisteredLastNDaysCount(ctx context.Context, sinc
 	return count, nil
 }
 
-func (s *userService) GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error) {
+func (s *UserService) GetRecentRegisteredUsers(ctx context.Context, limit int) ([]*models.User, error) {
 	users, err := s.userRepo.GetRecentRegisteredUsers(ctx, limit)
 	if err != nil {
 		s.logger.Error("failed to get recent registered users", "err", err)
@@ -317,7 +284,7 @@ func (s *userService) GetRecentRegisteredUsers(ctx context.Context, limit int) (
 	return users, nil
 }
 
-func (s *userService) UpdateUserProfilePatch(ctx context.Context, user *models.User, userProfileUpdatePatch map[string]string) error {
+func (s *UserService) UpdateUserProfilePatch(ctx context.Context, user *models.User, userProfileUpdatePatch map[string]string) error {
 	if avatarUrl, ok := userProfileUpdatePatch["avatarUrl"]; ok {
 		if err := s.userRepo.UpdateAvatarUrl(ctx, user.ID, avatarUrl); err != nil {
 			slog.Error("failed to update avatarUrl", "avatarUrl", avatarUrl, "user", user, "err", err)
@@ -385,7 +352,7 @@ func (s *userService) UpdateUserProfilePatch(ctx context.Context, user *models.U
 	return nil
 }
 
-func (s *userService) GetById(ctx context.Context, id string) (*models.User, error) {
+func (s *UserService) GetById(ctx context.Context, id string) (*models.User, error) {
 	if err := uuid.Validate(id); err != nil {
 		return nil, fmt.Errorf("provided id is not a valid uuid: %w", err)
 	}
@@ -402,7 +369,7 @@ func (s *userService) GetById(ctx context.Context, id string) (*models.User, err
 	return s.getByFunc(ctx, getFn)
 }
 
-func (s *userService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+func (s *UserService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	getFn := func(ctx context.Context) (*models.User, error) {
 		return s.userRepo.GetByEmail(ctx, email)
 	}
@@ -410,7 +377,7 @@ func (s *userService) GetByEmail(ctx context.Context, email string) (*models.Use
 	return s.getByFunc(ctx, getFn)
 }
 
-func (s *userService) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+func (s *UserService) GetByUsername(ctx context.Context, username string) (*models.User, error) {
 	getFn := func(ctx context.Context) (*models.User, error) {
 		return s.userRepo.GetByUsername(ctx, username)
 	}
@@ -418,7 +385,7 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 	return s.getByFunc(ctx, getFn)
 }
 
-func (s *userService) GetProfile(ctx context.Context, user *models.User) (*models.UserProfile, error) {
+func (s *UserService) GetProfile(ctx context.Context, user *models.User) (*models.UserProfile, error) {
 	userProfile, err := s.userProfileRepo.GetInfo(ctx, user)
 	if err != nil {
 		s.logger.Error("failed to get userProfile", "err", err, "user", user)
@@ -455,7 +422,7 @@ func (s *userService) GetProfile(ctx context.Context, user *models.User) (*model
 	return userProfile, err
 }
 
-func (s *userService) getByFunc(ctx context.Context, getFn func(ctx context.Context) (*models.User, error)) (*models.User, error) {
+func (s *UserService) getByFunc(ctx context.Context, getFn func(ctx context.Context) (*models.User, error)) (*models.User, error) {
 	user, err := getFn(ctx)
 
 	if err != nil {
@@ -472,7 +439,7 @@ func (s *userService) getByFunc(ctx context.Context, getFn func(ctx context.Cont
 	return user, err
 }
 
-func (s *userService) SendPasswordResetEmail(ctx context.Context, email string) error {
+func (s *UserService) SendPasswordResetEmail(ctx context.Context, email string) error {
 	user, err := s.GetByEmail(ctx, email)
 	if err != nil {
 		return err
@@ -513,7 +480,7 @@ func (s *userService) SendPasswordResetEmail(ctx context.Context, email string) 
 	)
 }
 
-func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPassword string) error {
+func (s *UserService) ResetPasswordByToken(ctx context.Context, token, newPassword string) error {
 	passwordReset, err := s.passwordResetRepo.GetByTokenHash(ctx, utils.HashToken(token))
 	if err != nil {
 		return err
@@ -550,7 +517,7 @@ func (s *userService) ResetPasswordByToken(ctx context.Context, token, newPasswo
 	)
 }
 
-func (s *userService) GetMfaCodeByToken(ctx context.Context, token string) (*models.MfaCode, error) {
+func (s *UserService) GetMfaCodeByToken(ctx context.Context, token string) (*models.MfaCode, error) {
 	mfaCode, err := s.mfaRepo.GetByTokenHash(
 		ctx,
 		utils.HashToken(token),
@@ -569,7 +536,7 @@ func (s *userService) GetMfaCodeByToken(ctx context.Context, token string) (*mod
 	return mfaCode, nil
 }
 
-func (s *userService) CreateMfaCodeAndToken(ctx context.Context, user *models.User) (string, string, error) {
+func (s *UserService) CreateMfaCodeAndToken(ctx context.Context, user *models.User) (string, string, error) {
 	token, err := utils.GenerateToken(32)
 	if err != nil {
 		return "", "", err
@@ -598,7 +565,7 @@ func (s *userService) CreateMfaCodeAndToken(ctx context.Context, user *models.Us
 	return mfaCode, token, nil
 }
 
-func (s *userService) SendMfaCodeVerificationEmail(ctx context.Context, user *models.User, mfaCode string) error {
+func (s *UserService) SendMfaCodeVerificationEmail(ctx context.Context, user *models.User, mfaCode string) error {
 	mfaTmplData := templates.NewTwoFATmplData(
 		user.Username,
 		mfaCode,
@@ -619,7 +586,7 @@ func (s *userService) SendMfaCodeVerificationEmail(ctx context.Context, user *mo
 	)
 }
 
-func (s *userService) VerifyMfaCode(ctx context.Context, token, code string) (*models.MfaCode, error) {
+func (s *UserService) VerifyMfaCode(ctx context.Context, token, code string) (*models.MfaCode, error) {
 	mfaCode, err := s.mfaRepo.GetByTokenHash(
 		ctx,
 		utils.HashToken(token),
@@ -658,7 +625,7 @@ func (s *userService) VerifyMfaCode(ctx context.Context, token, code string) (*m
 	return mfaCode, err
 }
 
-func (s *userService) SendEmailVerificationEmail(ctx context.Context, email string) error {
+func (s *UserService) SendEmailVerificationEmail(ctx context.Context, email string) error {
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return err
@@ -701,7 +668,7 @@ func (s *userService) SendEmailVerificationEmail(ctx context.Context, email stri
 	)
 }
 
-func (s *userService) VerifyEmailByToken(ctx context.Context, token string) error {
+func (s *UserService) VerifyEmailByToken(ctx context.Context, token string) error {
 	emailVerification, err := s.emailVerificationRepo.GetByTokenHash(ctx, utils.HashToken(token))
 	if err != nil {
 		s.logger.Debug("emailVerification", "emailVerification", emailVerification, "err", err)
@@ -729,12 +696,12 @@ func (s *userService) VerifyEmailByToken(ctx context.Context, token string) erro
 	)
 }
 
-func (s *userService) isEmailValid(email string) bool {
+func (s *UserService) isEmailValid(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
 }
 
-func (s *userService) isUsernameValid(username string) bool {
+func (s *UserService) isUsernameValid(username string) bool {
 	if len(username) < 3 || len(username) > 25 {
 		return false
 	}

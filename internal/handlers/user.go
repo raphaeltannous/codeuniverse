@@ -19,12 +19,12 @@ import (
 )
 
 type UserHandler struct {
-	userService   services.UserService
+	userService   *services.UserService
 	staticService services.StaticService
 }
 
 func NewUserHandler(
-	userService services.UserService,
+	userService *services.UserService,
 	staticService services.StaticService,
 ) *UserHandler {
 	return &UserHandler{

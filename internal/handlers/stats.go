@@ -11,12 +11,12 @@ import (
 )
 
 type StatsHandler struct {
-	userService    services.UserService
+	userService    *services.UserService
 	problemService services.ProblemService
 }
 
 func NewStatsHandler(
-	userService services.UserService,
+	userService *services.UserService,
 	problemService services.ProblemService,
 ) *StatsHandler {
 	return &StatsHandler{

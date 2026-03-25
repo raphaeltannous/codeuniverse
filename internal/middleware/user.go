@@ -66,7 +66,7 @@ var UserSortOrderFilterMiddleware = makeRepositoryParamMiddleware(
 	},
 )
 
-func UserMiddleware(next http.Handler, userService services.UserService) http.Handler {
+func UserMiddleware(next http.Handler, userService *services.UserService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username := chi.URLParam(r, "username")
 

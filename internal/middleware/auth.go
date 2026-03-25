@@ -13,7 +13,7 @@ import (
 
 const UserAuthCtxKey = "userAuth"
 
-func PartialAuthMiddleware(next http.Handler, userService services.UserService) http.Handler {
+func PartialAuthMiddleware(next http.Handler, userService *services.UserService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, err := r.Cookie("jwt")
 		if err != nil {
@@ -25,7 +25,7 @@ func PartialAuthMiddleware(next http.Handler, userService services.UserService) 
 	})
 }
 
-func AuthMiddleware(next http.Handler, userService services.UserService) http.Handler {
+func AuthMiddleware(next http.Handler, userService *services.UserService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("jwt")
 		if err != nil {
