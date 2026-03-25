@@ -14,7 +14,7 @@ import (
 
 const LessonCtxKey = "lesson"
 
-func LessonMiddleware(next http.Handler, courseService services.CourseService) http.Handler {
+func LessonMiddleware(next http.Handler, courseService *services.CourseService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lessonId := chi.URLParam(r, "lessonId")
 		lessonUUID, err := uuid.Parse(lessonId)

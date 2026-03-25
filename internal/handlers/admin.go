@@ -17,14 +17,14 @@ import (
 )
 
 type AdminHandler struct {
-	courseService  services.CourseService
+	courseService  *services.CourseService
 	staticService  services.StaticService
 	userService    *services.UserService
 	problemService services.ProblemService
 }
 
 func NewAdminHandler(
-	courseService services.CourseService,
+	courseService *services.CourseService,
 	staticService services.StaticService,
 	userService *services.UserService,
 	problemService services.ProblemService,

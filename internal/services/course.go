@@ -11,34 +11,11 @@ import (
 	"github.com/google/uuid"
 )
 
-type CourseService interface {
-	CreateCourse(ctx context.Context, course *models.Course) (*models.Course, error)
-	DeleteCourse(ctx context.Context, course *models.Course) error
-
-	GetCourseBySlug(ctx context.Context, slug string) (*models.Course, error)
-	GetAllCourses(ctx context.Context) ([]*models.Course, error)
-	GetAllPublicCourses(ctx context.Context) ([]*models.Course, error)
-
-	UpdateCourse(ctx context.Context, course *models.Course, courseUpdatePatch map[string]any) error
-
-	CreateLesson(ctx context.Context, course *models.Course, lesson *models.Lesson) (*models.Lesson, error)
-	DeleteLesson(ctx context.Context, lesson *models.Lesson) error
-
-	GetCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error)
-	GetRawCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error)
-	GetLesson(ctx context.Context, lessonId uuid.UUID) (*models.Lesson, error)
-
-	UpdateLesson(ctx context.Context, lesson *models.Lesson, lessonUpdatePach map[string]any) error
-
-	GetCourseProgress(ctx context.Context, course *models.Course, user *models.User) ([]*models.CourseLessonProgress, error)
-	UpdateCourseProgress(ctx context.Context, courseProgress *models.CourseLessonProgress) error
-}
-
 var (
 	ErrInvalidPatch = errors.New("service: invalid patch")
 )
 
-type courseService struct {
+type CourseService struct {
 	courseRepository         repository.CourseRepository
 	lessonRepository         repository.LessonRepository
 	courseProgressRepository repository.CourseProgressRepository
@@ -46,7 +23,7 @@ type courseService struct {
 	logger *slog.Logger
 }
 
-func (c *courseService) GetAllCourses(ctx context.Context) ([]*models.Course, error) {
+func (c *CourseService) GetAllCourses(ctx context.Context) ([]*models.Course, error) {
 	courses, err := c.courseRepository.GetAll(ctx)
 	if err != nil {
 		c.logger.Error("failed to get all courses", "err", err)
@@ -65,7 +42,7 @@ func (c *courseService) GetAllCourses(ctx context.Context) ([]*models.Course, er
 	return courses, nil
 }
 
-func (c *courseService) GetAllPublicCourses(ctx context.Context) ([]*models.Course, error) {
+func (c *CourseService) GetAllPublicCourses(ctx context.Context) ([]*models.Course, error) {
 	courses, err := c.courseRepository.GetAllPublished(ctx)
 	if err != nil {
 		c.logger.Error("failed to get all courses", "err", err)
@@ -89,7 +66,7 @@ func (c *courseService) GetAllPublicCourses(ctx context.Context) ([]*models.Cour
 	return publicCourses, nil
 }
 
-func (c *courseService) CreateCourse(ctx context.Context, course *models.Course) (*models.Course, error) {
+func (c *CourseService) CreateCourse(ctx context.Context, course *models.Course) (*models.Course, error) {
 	course, err := c.courseRepository.Create(ctx, course)
 	if err != nil {
 		c.logger.Error("failed to create course", "course", course, "err", err)
@@ -99,7 +76,7 @@ func (c *courseService) CreateCourse(ctx context.Context, course *models.Course)
 	return course, nil
 }
 
-func (c *courseService) CreateLesson(ctx context.Context, course *models.Course, lesson *models.Lesson) (*models.Lesson, error) {
+func (c *CourseService) CreateLesson(ctx context.Context, course *models.Course, lesson *models.Lesson) (*models.Lesson, error) {
 	lesson, err := c.lessonRepository.Create(
 		ctx,
 		course.ID,
@@ -113,7 +90,7 @@ func (c *courseService) CreateLesson(ctx context.Context, course *models.Course,
 	return lesson, nil
 }
 
-func (c *courseService) DeleteCourse(ctx context.Context, course *models.Course) error {
+func (c *CourseService) DeleteCourse(ctx context.Context, course *models.Course) error {
 	err := c.courseRepository.Delete(ctx, course.ID)
 	if err != nil {
 		c.logger.Error("failed to delete course", "course", course)
@@ -123,7 +100,7 @@ func (c *courseService) DeleteCourse(ctx context.Context, course *models.Course)
 	return nil
 }
 
-func (c *courseService) DeleteLesson(ctx context.Context, lesson *models.Lesson) error {
+func (c *CourseService) DeleteLesson(ctx context.Context, lesson *models.Lesson) error {
 	err := c.lessonRepository.Delete(ctx, lesson.ID)
 	if err != nil {
 		c.logger.Error("failed to delete lesson", "lesson", lesson)
@@ -133,7 +110,7 @@ func (c *courseService) DeleteLesson(ctx context.Context, lesson *models.Lesson)
 	return nil
 }
 
-func (c *courseService) GetCourseBySlug(ctx context.Context, slug string) (*models.Course, error) {
+func (c *CourseService) GetCourseBySlug(ctx context.Context, slug string) (*models.Course, error) {
 	course, err := c.courseRepository.GetBySlug(ctx, slug)
 	if err != nil {
 		c.logger.Error("failed to get course by slug", "slug", slug, "err", err)
@@ -143,7 +120,7 @@ func (c *courseService) GetCourseBySlug(ctx context.Context, slug string) (*mode
 	return course, nil
 }
 
-func (c *courseService) GetRawCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error) {
+func (c *CourseService) GetRawCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error) {
 	lessons, err := c.lessonRepository.GetAllByCourse(ctx, course.ID)
 	if err != nil {
 		c.logger.Error("failed to get lessons for course", "course", course, "err", err)
@@ -153,7 +130,7 @@ func (c *courseService) GetRawCourseLessons(ctx context.Context, course *models.
 	return lessons, nil
 }
 
-func (c *courseService) GetCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error) {
+func (c *CourseService) GetCourseLessons(ctx context.Context, course *models.Course) ([]*models.Lesson, error) {
 	lessons, err := c.GetRawCourseLessons(ctx, course)
 	if err != nil {
 		return nil, err
@@ -168,7 +145,7 @@ func (c *courseService) GetCourseLessons(ctx context.Context, course *models.Cou
 	return lessons, nil
 }
 
-func (c *courseService) GetLesson(ctx context.Context, lessonId uuid.UUID) (*models.Lesson, error) {
+func (c *CourseService) GetLesson(ctx context.Context, lessonId uuid.UUID) (*models.Lesson, error) {
 	lesson, err := c.lessonRepository.Get(ctx, lessonId)
 	if err != nil {
 		c.logger.Error("failed to get lesson", "lessonId", lessonId, "err", err)
@@ -178,7 +155,7 @@ func (c *courseService) GetLesson(ctx context.Context, lessonId uuid.UUID) (*mod
 	return lesson, nil
 }
 
-func (c *courseService) UpdateCourse(ctx context.Context, course *models.Course, courseUpdatePatch map[string]any) error {
+func (c *CourseService) UpdateCourse(ctx context.Context, course *models.Course, courseUpdatePatch map[string]any) error {
 	if rawThumbnailUrl, ok := courseUpdatePatch["thumbnailUrl"]; ok {
 		switch thumbnailUrl := rawThumbnailUrl.(type) {
 		case string:
@@ -268,7 +245,7 @@ func (c *courseService) UpdateCourse(ctx context.Context, course *models.Course,
 	return nil
 }
 
-func (c *courseService) UpdateLesson(ctx context.Context, lesson *models.Lesson, lessonUpdatePach map[string]any) error {
+func (c *CourseService) UpdateLesson(ctx context.Context, lesson *models.Lesson, lessonUpdatePach map[string]any) error {
 	if rawVideoUrl, ok := lessonUpdatePach["videoUrl"]; ok {
 		switch videoUrl := rawVideoUrl.(type) {
 		case string:
@@ -342,7 +319,7 @@ func (c *courseService) UpdateLesson(ctx context.Context, lesson *models.Lesson,
 	return nil
 }
 
-func (c *courseService) GetCourseProgress(ctx context.Context, course *models.Course, user *models.User) ([]*models.CourseLessonProgress, error) {
+func (c *CourseService) GetCourseProgress(ctx context.Context, course *models.Course, user *models.User) ([]*models.CourseLessonProgress, error) {
 	courseProgress, err := c.courseProgressRepository.Get(
 		ctx,
 		course.ID,
@@ -356,7 +333,7 @@ func (c *courseService) GetCourseProgress(ctx context.Context, course *models.Co
 	return courseProgress, nil
 }
 
-func (c *courseService) UpdateCourseProgress(ctx context.Context, courseProgress *models.CourseLessonProgress) error {
+func (c *CourseService) UpdateCourseProgress(ctx context.Context, courseProgress *models.CourseLessonProgress) error {
 	err := c.courseProgressRepository.Save(
 		ctx,
 		courseProgress,
@@ -373,8 +350,8 @@ func NewCourseService(
 	courseRepository repository.CourseRepository,
 	lessonRepository repository.LessonRepository,
 	courseProgressRepository repository.CourseProgressRepository,
-) CourseService {
-	return &courseService{
+) *CourseService {
+	return &CourseService{
 		courseRepository:         courseRepository,
 		lessonRepository:         lessonRepository,
 		courseProgressRepository: courseProgressRepository,

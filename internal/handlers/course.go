@@ -10,10 +10,10 @@ import (
 )
 
 type CourseHandler struct {
-	courseService services.CourseService
+	courseService *services.CourseService
 }
 
-func NewCourseHandler(courseService services.CourseService) *CourseHandler {
+func NewCourseHandler(courseService *services.CourseService) *CourseHandler {
 	return &CourseHandler{
 		courseService: courseService,
 	}

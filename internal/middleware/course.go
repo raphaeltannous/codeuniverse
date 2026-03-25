@@ -14,7 +14,7 @@ import (
 
 const CourseCtxKey = "course"
 
-func CourseMiddleware(next http.Handler, courseService services.CourseService) http.Handler {
+func CourseMiddleware(next http.Handler, courseService *services.CourseService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		courseSlug := chi.URLParam(r, "courseSlug")
 		ctx := r.Context()
