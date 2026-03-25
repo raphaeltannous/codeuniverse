@@ -20,14 +20,14 @@ type AdminHandler struct {
 	courseService  *services.CourseService
 	staticService  *services.StaticService
 	userService    *services.UserService
-	problemService services.ProblemService
+	problemService *services.ProblemService
 }
 
 func NewAdminHandler(
 	courseService *services.CourseService,
 	staticService *services.StaticService,
 	userService *services.UserService,
-	problemService services.ProblemService,
+	problemService *services.ProblemService,
 ) *AdminHandler {
 	return &AdminHandler{
 		courseService:  courseService,

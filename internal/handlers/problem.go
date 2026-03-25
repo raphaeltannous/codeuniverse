@@ -15,10 +15,10 @@ import (
 )
 
 type ProblemHandler struct {
-	problemService services.ProblemService
+	problemService *services.ProblemService
 }
 
-func NewProblemsHandlers(pS services.ProblemService) *ProblemHandler {
+func NewProblemsHandlers(pS *services.ProblemService) *ProblemHandler {
 	return &ProblemHandler{
 		problemService: pS,
 	}

@@ -19,61 +19,7 @@ var (
 	ErrInvalidSlug = errors.New("invalid slug")
 )
 
-type ProblemService interface {
-	Create(ctx context.Context, problem *models.Problem) (*models.Problem, error)
-	Delete(ctx context.Context, problem *models.Problem) error
-
-	GetById(ctx context.Context, uuidString string) (*models.Problem, error)
-	GetBySlug(ctx context.Context, slug string) (*models.Problem, error)
-
-	GetProblems(ctx context.Context, getParams *repository.GetProblemsParams) ([]*models.Problem, int, error)
-	GetSolvedProblems(ctx context.Context, user *models.User) ([]string, error)
-
-	GetCount(ctx context.Context, difficulty models.ProblemDifficulty) (int, error)
-
-	UpdateProblem(ctx context.Context, problem *models.Problem, problemUpdatePatch map[string]any) error
-
-	Submit(ctx context.Context, user *models.User, problem *models.Problem, language models.ProblemLanguage, code string, handlerChannel chan string) error
-	Run(ctx context.Context, user *models.User, problem *models.Problem, language models.ProblemLanguage, code string, handlerChannel chan string) error
-
-	GetRun(ctx context.Context, user *models.User, runId uuid.UUID) (*models.Run, error)
-
-	GetSubmission(ctx context.Context, user *models.User, submissionId uuid.UUID) (*models.Submission, error)
-	GetSubmissions(ctx context.Context, user *models.User, problem *models.Problem) ([]*models.Submission, error)
-
-	GetSubmissionsCount(ctx context.Context) (int, error)
-	GetSubmissionsLastNDaysCount(ctx context.Context, since int) (int, error)
-	GetPendingSubmissionsCount(ctx context.Context) (int, error)
-	GetAcceptedSubmissionsCount(ctx context.Context) (int, error)
-	GetRecentSubmissions(ctx context.Context, count int) ([]*models.SubmissionActivity, error)
-	GetDailySubmissions(ctx context.Context, since int) ([]*models.DailySubmissions, error)
-
-	CreateNote(ctx context.Context, note *models.ProblemNote) error
-	DeleteNote(ctx context.Context, note *models.ProblemNote) error
-	GetNote(ctx context.Context, user *models.User, problem *models.Problem) (*models.ProblemNote, error)
-	UpdateNote(ctx context.Context, note *models.ProblemNote, markdown string) error
-
-	GetHint(ctx context.Context, id uuid.UUID) (*models.ProblemHint, error)
-	GetProblemHints(ctx context.Context, problem *models.Problem) ([]*models.ProblemHint, error)
-	CreateHint(ctx context.Context, problem *models.Problem, hint *models.ProblemHint) error
-	UpdateHint(ctx context.Context, hint *models.ProblemHint, content string) error
-	DeleteHint(ctx context.Context, hint *models.ProblemHint) error
-
-	GetProblemCodes(ctx context.Context, problem *models.Problem) ([]*models.ProblemCode, error)
-	SaveProblemCode(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode) error
-
-	GetProblemTestcases(ctx context.Context, problem *models.Problem) ([]*models.ProblemTestcase, error)
-	AddProblemTestcase(ctx context.Context, problem *models.Problem, testcase *models.ProblemTestcase) error
-	UpdateProblemTestcase(ctx context.Context, problem *models.Problem, testcaseId int, testcase *models.ProblemTestcase) error
-	DeleteProblemTestcase(ctx context.Context, problem *models.Problem, testcaseId int) error
-
-	GetProblemCodeConfig(ctx context.Context, problem *models.Problem) (*models.ProblemCodeConfig, error)
-	UpdateProblemCodeConfig(ctx context.Context, problem *models.Problem, config *models.ProblemCodeConfig) error
-
-	Shutdown()
-}
-
-type problemService struct {
+type ProblemService struct {
 	problemRepository     repository.ProblemRepository
 	problemNoteRepository repository.ProblemNoteRepository
 	runRepository         repository.RunRepository
@@ -88,7 +34,7 @@ type problemService struct {
 	submitWorkerPool *workerpool.WorkerPool
 }
 
-func (s *problemService) GetSolvedProblems(ctx context.Context, user *models.User) ([]string, error) {
+func (s *ProblemService) GetSolvedProblems(ctx context.Context, user *models.User) ([]string, error) {
 	solvedProblems, err := s.submissionRepository.GetSolvedProblems(ctx, user.ID)
 	if err != nil {
 		s.logger.Error("failed to get solved problems", "err", err)
@@ -98,7 +44,7 @@ func (s *problemService) GetSolvedProblems(ctx context.Context, user *models.Use
 	return solvedProblems, nil
 }
 
-func (s *problemService) AddProblemTestcase(
+func (s *ProblemService) AddProblemTestcase(
 	ctx context.Context,
 	problem *models.Problem,
 	testcase *models.ProblemTestcase,
@@ -128,7 +74,7 @@ func (s *problemService) AddProblemTestcase(
 	return nil
 }
 
-func (s *problemService) DeleteProblemTestcase(
+func (s *ProblemService) DeleteProblemTestcase(
 	ctx context.Context,
 	problem *models.Problem,
 	testcaseId int,
@@ -155,7 +101,7 @@ func (s *problemService) DeleteProblemTestcase(
 	return nil
 }
 
-func (s *problemService) GetProblemCodeConfig(ctx context.Context, problem *models.Problem) (*models.ProblemCodeConfig, error) {
+func (s *ProblemService) GetProblemCodeConfig(ctx context.Context, problem *models.Problem) (*models.ProblemCodeConfig, error) {
 	config, err := s.problemCodeRepository.GetProblemCodeConfig(
 		ctx,
 		problem,
@@ -168,7 +114,7 @@ func (s *problemService) GetProblemCodeConfig(ctx context.Context, problem *mode
 	return config, nil
 }
 
-func (s *problemService) GetProblemTestcases(ctx context.Context, problem *models.Problem) ([]*models.ProblemTestcase, error) {
+func (s *ProblemService) GetProblemTestcases(ctx context.Context, problem *models.Problem) ([]*models.ProblemTestcase, error) {
 	problemTestcases, err := s.problemCodeRepository.GetTestcases(
 		ctx,
 		problem,
@@ -181,7 +127,7 @@ func (s *problemService) GetProblemTestcases(ctx context.Context, problem *model
 	return problemTestcases, nil
 }
 
-func (s *problemService) UpdateProblemCodeConfig(ctx context.Context, problem *models.Problem, config *models.ProblemCodeConfig) error {
+func (s *ProblemService) UpdateProblemCodeConfig(ctx context.Context, problem *models.Problem, config *models.ProblemCodeConfig) error {
 	err := s.problemCodeRepository.SaveProblemCodeConfig(
 		ctx,
 		problem,
@@ -195,7 +141,7 @@ func (s *problemService) UpdateProblemCodeConfig(ctx context.Context, problem *m
 	return nil
 }
 
-func (s *problemService) UpdateProblemTestcase(
+func (s *ProblemService) UpdateProblemTestcase(
 	ctx context.Context,
 	problem *models.Problem,
 	testcaseId int,
@@ -238,8 +184,8 @@ func NewProblemService(
 	judge judger.Judge,
 	maxConcurrentRuns int,
 	maxConcurrentSubmits int,
-) ProblemService {
-	return &problemService{
+) *ProblemService {
+	return &ProblemService{
 		problemRepository:     problemRepository,
 		problemNoteRepository: problemNoteRepository,
 		runRepository:         runRepository,
@@ -254,12 +200,12 @@ func NewProblemService(
 	}
 }
 
-func (s *problemService) Shutdown() {
+func (s *ProblemService) Shutdown() {
 	s.runWorkerPool.StopWait()
 	s.submitWorkerPool.StopWait()
 }
 
-func (s *problemService) Create(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
+func (s *ProblemService) Create(ctx context.Context, problem *models.Problem) (*models.Problem, error) {
 	problem, err := s.problemRepository.Create(ctx, problem)
 	if err != nil {
 		s.logger.Error("failed to create problem", "problem", problem, "err", err)
@@ -269,7 +215,7 @@ func (s *problemService) Create(ctx context.Context, problem *models.Problem) (*
 	return problem, nil
 }
 
-func (s *problemService) Delete(ctx context.Context, problem *models.Problem) error {
+func (s *ProblemService) Delete(ctx context.Context, problem *models.Problem) error {
 	err := s.problemRepository.Delete(
 		ctx,
 		problem.ID,
@@ -286,11 +232,11 @@ func (s *problemService) Delete(ctx context.Context, problem *models.Problem) er
 	return nil
 }
 
-func (s *problemService) GetById(ctx context.Context, uuidString string) (*models.Problem, error) {
+func (s *ProblemService) GetById(ctx context.Context, uuidString string) (*models.Problem, error) {
 	return nil, nil
 }
 
-func (s *problemService) GetBySlug(ctx context.Context, slug string) (*models.Problem, error) {
+func (s *ProblemService) GetBySlug(ctx context.Context, slug string) (*models.Problem, error) {
 	problem, err := s.problemRepository.GetBySlug(
 		ctx,
 		slug,
@@ -308,7 +254,7 @@ func (s *problemService) GetBySlug(ctx context.Context, slug string) (*models.Pr
 	return problem, nil
 }
 
-func (s *problemService) GetProblems(ctx context.Context, getParams *repository.GetProblemsParams) ([]*models.Problem, int, error) {
+func (s *ProblemService) GetProblems(ctx context.Context, getParams *repository.GetProblemsParams) ([]*models.Problem, int, error) {
 	problems, total, err := s.problemRepository.GetProblems(
 		ctx,
 		getParams,
@@ -320,7 +266,7 @@ func (s *problemService) GetProblems(ctx context.Context, getParams *repository.
 	return problems, total, nil
 }
 
-func (s *problemService) GetCount(ctx context.Context, difficulty models.ProblemDifficulty) (int, error) {
+func (s *ProblemService) GetCount(ctx context.Context, difficulty models.ProblemDifficulty) (int, error) {
 	count, err := s.problemRepository.GetCountByDifficulty(ctx, difficulty)
 	if err != nil {
 		s.logger.Error("failed to get easy count", "err", err)
@@ -330,7 +276,7 @@ func (s *problemService) GetCount(ctx context.Context, difficulty models.Problem
 	return count, nil
 }
 
-func (s *problemService) UpdateProblem(
+func (s *ProblemService) UpdateProblem(
 	ctx context.Context,
 	problem *models.Problem,
 	updateProblemPatch map[string]any,
@@ -387,7 +333,7 @@ func updateProblemFromPatch[T any](
 	return nil
 }
 
-func (s *problemService) Submit(
+func (s *ProblemService) Submit(
 	ctx context.Context,
 	user *models.User,
 	problem *models.Problem,
@@ -520,7 +466,7 @@ func (s *problemService) Submit(
 	return nil
 }
 
-func (s *problemService) Run(
+func (s *ProblemService) Run(
 	ctx context.Context,
 	user *models.User,
 	problem *models.Problem,
@@ -654,7 +600,7 @@ func (s *problemService) Run(
 	return nil
 }
 
-func (s *problemService) GetRun(ctx context.Context, user *models.User, runId uuid.UUID) (*models.Run, error) {
+func (s *ProblemService) GetRun(ctx context.Context, user *models.User, runId uuid.UUID) (*models.Run, error) {
 	run, err := s.runRepository.GetById(
 		ctx,
 		runId,
@@ -674,7 +620,7 @@ func (s *problemService) GetRun(ctx context.Context, user *models.User, runId uu
 	return run, nil
 }
 
-func (s *problemService) GetSubmission(ctx context.Context, user *models.User, submissionId uuid.UUID) (*models.Submission, error) {
+func (s *ProblemService) GetSubmission(ctx context.Context, user *models.User, submissionId uuid.UUID) (*models.Submission, error) {
 	submission, err := s.submissionRepository.GetById(
 		ctx,
 		submissionId,
@@ -695,7 +641,7 @@ func (s *problemService) GetSubmission(ctx context.Context, user *models.User, s
 	return submission, nil
 }
 
-func (s *problemService) GetSubmissions(ctx context.Context, user *models.User, problem *models.Problem) ([]*models.Submission, error) {
+func (s *ProblemService) GetSubmissions(ctx context.Context, user *models.User, problem *models.Problem) ([]*models.Submission, error) {
 	submissions, err := s.submissionRepository.GetProblemSubmissions(
 		ctx,
 		user.ID,
@@ -709,7 +655,7 @@ func (s *problemService) GetSubmissions(ctx context.Context, user *models.User, 
 	return submissions, nil
 }
 
-func (s *problemService) GetSubmissionsCount(ctx context.Context) (int, error) {
+func (s *ProblemService) GetSubmissionsCount(ctx context.Context) (int, error) {
 	count, err := s.submissionRepository.GetSubmissionsCount(ctx)
 	if err != nil {
 		s.logger.Error("failed to get submissions count", "err", err)
@@ -719,7 +665,7 @@ func (s *problemService) GetSubmissionsCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (s *problemService) GetSubmissionsLastNDaysCount(ctx context.Context, since int) (int, error) {
+func (s *ProblemService) GetSubmissionsLastNDaysCount(ctx context.Context, since int) (int, error) {
 	count, err := s.submissionRepository.GetSubmissionsLastNDaysCount(ctx, since)
 	if err != nil {
 		s.logger.Error("failed to get submissions count", "err", err)
@@ -729,7 +675,7 @@ func (s *problemService) GetSubmissionsLastNDaysCount(ctx context.Context, since
 	return count, nil
 }
 
-func (s *problemService) GetPendingSubmissionsCount(ctx context.Context) (int, error) {
+func (s *ProblemService) GetPendingSubmissionsCount(ctx context.Context) (int, error) {
 	count, err := s.submissionRepository.GetPendingSubmissionsCount(ctx)
 	if err != nil {
 		s.logger.Error("failed to get submissions count", "err", err)
@@ -739,7 +685,7 @@ func (s *problemService) GetPendingSubmissionsCount(ctx context.Context) (int, e
 	return count, nil
 }
 
-func (s *problemService) GetAcceptedSubmissionsCount(ctx context.Context) (int, error) {
+func (s *ProblemService) GetAcceptedSubmissionsCount(ctx context.Context) (int, error) {
 	count, err := s.submissionRepository.GetAcceptedSubmissionsCount(ctx)
 	if err != nil {
 		s.logger.Error("failed to get submissions count", "err", err)
@@ -749,7 +695,7 @@ func (s *problemService) GetAcceptedSubmissionsCount(ctx context.Context) (int, 
 	return count, nil
 }
 
-func (s *problemService) GetRecentSubmissions(ctx context.Context, count int) ([]*models.SubmissionActivity, error) {
+func (s *ProblemService) GetRecentSubmissions(ctx context.Context, count int) ([]*models.SubmissionActivity, error) {
 	submissionsActivities, err := s.submissionRepository.GetRecentSubmissions(ctx, 10)
 	if err != nil {
 		s.logger.Error("failed to get submissionsActivities", "err", err)
@@ -759,7 +705,7 @@ func (s *problemService) GetRecentSubmissions(ctx context.Context, count int) ([
 	return submissionsActivities, err
 }
 
-func (s *problemService) GetDailySubmissions(ctx context.Context, since int) ([]*models.DailySubmissions, error) {
+func (s *ProblemService) GetDailySubmissions(ctx context.Context, since int) ([]*models.DailySubmissions, error) {
 	var dailySubmissions []*models.DailySubmissions
 	var err error
 
@@ -779,7 +725,7 @@ func (s *problemService) GetDailySubmissions(ctx context.Context, since int) ([]
 	return dailySubmissions, nil
 }
 
-func (s *problemService) CreateNote(ctx context.Context, note *models.ProblemNote) error {
+func (s *ProblemService) CreateNote(ctx context.Context, note *models.ProblemNote) error {
 	note, err := s.problemNoteRepository.Create(ctx, note)
 	if err != nil {
 		s.logger.Error("repository: create note", "err", err, "note", note)
@@ -788,7 +734,7 @@ func (s *problemService) CreateNote(ctx context.Context, note *models.ProblemNot
 	return err
 }
 
-func (s *problemService) DeleteNote(ctx context.Context, note *models.ProblemNote) error {
+func (s *ProblemService) DeleteNote(ctx context.Context, note *models.ProblemNote) error {
 	err := s.problemNoteRepository.Delete(ctx, note.ID)
 	if err != nil {
 		s.logger.Error("repository: delete note", "err", err)
@@ -797,7 +743,7 @@ func (s *problemService) DeleteNote(ctx context.Context, note *models.ProblemNot
 	return err
 }
 
-func (s *problemService) GetNote(ctx context.Context, user *models.User, problem *models.Problem) (*models.ProblemNote, error) {
+func (s *ProblemService) GetNote(ctx context.Context, user *models.User, problem *models.Problem) (*models.ProblemNote, error) {
 	problemNote, err := s.problemNoteRepository.Get(ctx, user.ID, problem.ID)
 	if err != nil {
 		s.logger.Error("repository: get problem note", "err", err)
@@ -807,7 +753,7 @@ func (s *problemService) GetNote(ctx context.Context, user *models.User, problem
 	return problemNote, nil
 }
 
-func (s *problemService) UpdateNote(ctx context.Context, note *models.ProblemNote, markdown string) error {
+func (s *ProblemService) UpdateNote(ctx context.Context, note *models.ProblemNote, markdown string) error {
 	err := s.problemNoteRepository.UpdateMarkdown(ctx, note, markdown)
 	if err != nil {
 		s.logger.Error("repository: update note", "err", err)
@@ -816,7 +762,7 @@ func (s *problemService) UpdateNote(ctx context.Context, note *models.ProblemNot
 	return err
 }
 
-func (s *problemService) CreateHint(
+func (s *ProblemService) CreateHint(
 	ctx context.Context,
 	problem *models.Problem,
 	hint *models.ProblemHint,
@@ -830,7 +776,7 @@ func (s *problemService) CreateHint(
 	return nil
 }
 
-func (s *problemService) DeleteHint(
+func (s *ProblemService) DeleteHint(
 	ctx context.Context,
 	hint *models.ProblemHint,
 ) error {
@@ -842,7 +788,7 @@ func (s *problemService) DeleteHint(
 	return nil
 }
 
-func (s *problemService) GetHint(
+func (s *ProblemService) GetHint(
 	ctx context.Context,
 	id uuid.UUID,
 ) (*models.ProblemHint, error) {
@@ -858,7 +804,7 @@ func (s *problemService) GetHint(
 	return hint, nil
 }
 
-func (s *problemService) GetProblemHints(
+func (s *ProblemService) GetProblemHints(
 	ctx context.Context,
 	problem *models.Problem,
 ) ([]*models.ProblemHint, error) {
@@ -874,7 +820,7 @@ func (s *problemService) GetProblemHints(
 	return hints, nil
 }
 
-func (s *problemService) UpdateHint(
+func (s *ProblemService) UpdateHint(
 	ctx context.Context,
 	hint *models.ProblemHint,
 	content string,
@@ -887,7 +833,7 @@ func (s *problemService) UpdateHint(
 	return nil
 }
 
-func (s *problemService) GetProblemCodes(ctx context.Context, problem *models.Problem) ([]*models.ProblemCode, error) {
+func (s *ProblemService) GetProblemCodes(ctx context.Context, problem *models.Problem) ([]*models.ProblemCode, error) {
 	problemCodes, err := s.problemCodeRepository.GetProblemCodes(ctx, problem)
 	if err != nil {
 		s.logger.Error("failed to get problemCodes", "problem", problem, "err", err)
@@ -897,7 +843,7 @@ func (s *problemService) GetProblemCodes(ctx context.Context, problem *models.Pr
 	return problemCodes, nil
 }
 
-func (s *problemService) SaveProblemCode(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode) error {
+func (s *ProblemService) SaveProblemCode(ctx context.Context, problem *models.Problem, problemCode *models.ProblemCode) error {
 	err := s.problemCodeRepository.SaveProblemCode(
 		ctx,
 		problem,

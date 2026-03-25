@@ -13,7 +13,7 @@ import (
 
 const ProblemHintCtxKey = "problemHint"
 
-func ProblemHintMiddleware(next http.Handler, problemService services.ProblemService) http.Handler {
+func ProblemHintMiddleware(next http.Handler, problemService *services.ProblemService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hintId := chi.URLParam(r, "hintId")
 		hintUUId, err := uuid.Parse(hintId)

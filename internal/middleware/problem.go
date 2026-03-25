@@ -68,7 +68,7 @@ var ProblemSortOrderFilterMiddleware = makeRepositoryParamMiddleware(
 	},
 )
 
-func ProblemMiddleware(next http.Handler, problemService services.ProblemService) http.Handler {
+func ProblemMiddleware(next http.Handler, problemService *services.ProblemService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		problemSlug := chi.URLParam(r, "problemSlug")
 		ctx := r.Context()
